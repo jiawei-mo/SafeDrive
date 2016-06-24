@@ -44,7 +44,7 @@ int main(int argc, char **argv)
 			imshow("result", matchedImg);
 
 			delete namelist[i];
-			if(waitKey(10000) >= 0) 
+			if(waitKey(10000) >= 0)
 			{
 				continue;
 			}

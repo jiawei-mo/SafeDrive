@@ -1,9 +1,5 @@
 #include "tracker.hpp"
 
-#define NN_MATCH_THRES 50.0f
-#define NN_MATCH_NUMBER 20
-#define RANSAC_THRES 2.5f
-#define ANMS_RADIUS 20
 
 Tracker::Tracker()
 {
@@ -19,10 +15,10 @@ void Tracker::setTarget(const Mat frame)
 
 Mat Tracker::match(const Mat frame)
 {
-	Mat res = frame.clone();
+	Mat curFrame = frame.clone();
 	Mat curDesc;
 	vector<KeyPoint> curKp;
-	detector->detectAndCompute(res, noArray(), curKp, curDesc);
+	detector->detectAndCompute(curFrame, noArray(), curKp, curDesc);
 //	Mat testImg;
 //	drawKeypoints(res, curKp, testImg);
 //	imshow("result", testImg);
@@ -33,7 +29,7 @@ Mat Tracker::match(const Mat frame)
 	vector<Point2f> targetMatchedKp, curMatchedKp;
 	for(int i=0; i<(int)matches.size(); i++)
 	{
-		circle(res, curKp[matches[i][0].trainIdx].pt, 2, CV_RGB(0, 0, 255));
+//		circle(curFrame, curKp[matches[i][0].trainIdx].pt, 2, CV_RGB(0, 0, 255));
 		if(matches[i][0].distance < NN_MATCH_THRES)
 		{
 			targetMatchedKp.push_back(targetKp[matches[i][0].queryIdx].pt);
@@ -46,10 +42,11 @@ Mat Tracker::match(const Mat frame)
 		homography = findHomography(targetMatchedKp, curMatchedKp, RANSAC, RANSAC_THRES, inliner_mask);
 	}
 
-	if(targetMatchedKp.size() < NN_MATCH_NUMBER || homography.empty())
+	if(targetMatchedKp.size() < NN_MATCH_NUMBER || homography.empty() || norm(homography)>HOMO_NORM_THRES)
 	{
 		cout<<"homography fail!"<<endl;
-		return res;
+		Mat failHomo;
+		return failHomo;
 	}
 
 	vector<Point2f> projectedKp;
@@ -57,6 +54,9 @@ Mat Tracker::match(const Mat frame)
 
 	int count = 0;
 	double dist = 0.0;
+	Mat matchedImg = Mat::zeros(frame.rows, 2*frame.cols, frame.type());
+	targetFrame.copyTo(matchedImg(Rect(0, 0, frame.cols, frame.rows)));
+	frame.copyTo(matchedImg(Rect(frame.cols, 0, frame.cols, frame.rows)));
 	for(int i=0; i<(int)targetMatchedKp.size(); i++)
 	{
 		if(inliner_mask.at<uchar>(i))
@@ -64,11 +64,17 @@ Mat Tracker::match(const Mat frame)
 			count++;
 			dist += (projectedKp[i].x - curMatchedKp[i].x)*(projectedKp[i].x - curMatchedKp[i].x);
 			dist += (projectedKp[i].y - curMatchedKp[i].y)*(projectedKp[i].y - curMatchedKp[i].y);
-			line(res, targetMatchedKp[i], projectedKp[i], CV_RGB(255, 0, 0));
+			curMatchedKp[i].x += frame.cols;
+			projectedKp[i].x += frame.cols;
+			line(matchedImg, targetMatchedKp[i], curMatchedKp[i], CV_RGB(255, 0, 0));
+			circle(matchedImg, projectedKp[i], 2, CV_RGB(0, 0, 255));
 		}
 	}
 	dist = dist / count;
-	cout<<"projection num: "<<count<<endl;
-	cout<<"projection distance: "<<dist<<endl;
-	return res;
+
+	cout<<endl<<"homograpy norm: "<<norm(homography)<<endl;
+	cout<<"inliner number: "<<count<<endl;
+	cout<<"projection distance: "<<dist<<endl<<endl;
+	imshow("Match", matchedImg);
+	return homography;
 }

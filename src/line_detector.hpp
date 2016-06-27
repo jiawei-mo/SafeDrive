@@ -8,5 +8,5 @@ class Line_detector
 {
 public:
 	Line_detector(){};
-	Mat process(const Mat img);
+	vector<Point2f> process(const Mat img);
 };

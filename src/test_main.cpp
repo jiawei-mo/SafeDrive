@@ -12,10 +12,6 @@ int main(int argc, char **argv)
 	Tracker *tracker = new Tracker();
 	Line_detector *line_detector = new Line_detector();
     GSVFetcher *fetcher = new GSVFetcher();
-    //44.9745647,-93.2704977,3a,75y,218.36h,95.89t
-//    Mat test = fetcher->get(Size(600, 300), 46.414382, 10.013988, 151.78, -0.76);
-//    imshow("result", test);
-//    waitKey(1000000);
 
 	string targetName = argv[1];
 	Mat targetFrame = imread(targetName);
@@ -30,8 +26,8 @@ int main(int argc, char **argv)
 //	}
 //	else
 //	{
-	int n = 30;
-	float lan = 44.9700000;
+	int n = 10;
+	float lan = 44.9740000;
 	float lon = -93.2704977;
 	float head = 218.36;
 	float pitch = 0;
@@ -46,7 +42,7 @@ int main(int argc, char **argv)
 //			cout<<imgPath<<endl;
 //			Mat curFrame = imread(imgPath);
 
-			Mat curFrame = fetcher->get(Size(640, 380), lan, lon, head, pitch);
+			Mat curFrame = fetcher->get(Size(640, 480), lan, lon, head, pitch);
 			lan += 0.0003;
 			Mat matchedImg, lineImg;
 			matchedImg = tracker->match(curFrame);

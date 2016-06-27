@@ -4,16 +4,19 @@
 
 # Add inputs and outputs from these tool invocations to the build variables 
 CPP_SRCS += \
+../src/gsvFitcher.cpp \
 ../src/line_detector.cpp \
 ../src/test_main.cpp \
 ../src/tracker.cpp 
 
 OBJS += \
+./src/gsvFitcher.o \
 ./src/line_detector.o \
 ./src/test_main.o \
 ./src/tracker.o 
 
 CPP_DEPS += \
+./src/gsvFitcher.d \
 ./src/line_detector.d \
 ./src/test_main.d \
 ./src/tracker.d 

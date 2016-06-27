@@ -7,7 +7,7 @@ using namespace std;
 class Tracker
 {
 protected:
-	Ptr<Feature2D> detector;
+	Ptr<ORB> detector;
 	Ptr<DescriptorMatcher> matcher;
 
 	Mat targetFrame, targetDesc;

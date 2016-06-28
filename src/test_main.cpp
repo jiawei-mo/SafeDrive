@@ -42,7 +42,7 @@ int main(int argc, char **argv)
 	Mat projectedImg = targetFrame.clone();
 	for(int i=0; i<(int)projectedPoints.size(); i++)
 	{
-		projectedImg.at<Vec3b>(projectedPoints[i]) = Vec3b(255, 255, 255);
+		projectedImg.at<Vec3b>(projectedPoints[i]) = Vec3b(0, 255, 255);
 	}
 	imshow("result", projectedImg);
 	waitKey(100000000);

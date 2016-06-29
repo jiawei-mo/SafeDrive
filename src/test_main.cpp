@@ -1,12 +1,13 @@
+#include "parameters.hpp"
 #include "tracker.hpp"
 #include "line_detector.hpp"
 #include "gsvFetcher.hpp"
-#include <dirent.h>
 #include <string.h>
 using namespace std;
 
 int main(int argc, char **argv)
 {
+	namedWindow("result", WINDOW_NORMAL);
 	Tracker *tracker = new Tracker();
 	Line_detector *line_detector = new Line_detector();
     GSVFetcher *fetcher = new GSVFetcher();
@@ -15,7 +16,7 @@ int main(int argc, char **argv)
 	Mat targetFrame = imread(targetName);
 	tracker->setTarget(targetFrame);
 
-	int n = 5;
+	int n = 3;
 	float lan = 44.9740000;
 	float lon = -93.2704977;
 	float head = 218.36;
@@ -25,9 +26,10 @@ int main(int argc, char **argv)
 	Mat matchedNorm, minHomo;
 	for(int i=0; i<n; i++)
 	{
-		Mat curFrame = fetcher->get(Size(640, 480), lan, lon, head, pitch);
+		Mat curFrame = fetcher->get(Size(IMAGE_WIDTH, IMAGE_HEIGHT), lan, lon, head, pitch);
 		lan += 0.0003;
-		matchedNorm = tracker->match(curFrame);
+		matchedNorm = tracker->match(curFrame, false);
+//		waitKey(100000);
 		if(!matchedNorm.empty() && norm(matchedNorm) < minNorm)
 		{
 			minNorm = norm(matchedNorm);
@@ -35,7 +37,10 @@ int main(int argc, char **argv)
 			idx = i;
 		}
 	}
-	Mat matchedFrame = fetcher->get(Size(640, 480), 44.9740000+0.0003*idx, lon, head, pitch);
+
+	//TODO
+	Mat matchedFrame = fetcher->get(Size(IMAGE_WIDTH, IMAGE_HEIGHT), 44.9740000+0.0003*2, lon, head, pitch);
+	matchedNorm = tracker->match(matchedFrame, true);
 	vector<Point2f> lanePoints, projectedPoints;
 	lanePoints = line_detector->process(matchedFrame);
 	perspectiveTransform(lanePoints, projectedPoints, minHomo);

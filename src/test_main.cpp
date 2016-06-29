@@ -16,9 +16,9 @@ int main(int argc, char **argv)
 	tracker->setTarget(targetFrame);
 
 	int n = 5;
-	float lan = 44.9740000;
+	float lan = 44.9739000;
 	float lon = -93.2704977;
-	float head = 218.36;
+	float head = 220;
 	float pitch = 0;
 	double minNorm = HOMO_NORM_THRES+1;
 	int idx = -1;
@@ -38,11 +38,11 @@ int main(int argc, char **argv)
 	Mat matchedFrame = fetcher->get(Size(640, 480), 44.9740000+0.0003*idx, lon, head, pitch);
 	vector<Point2f> lanePoints, projectedPoints;
 	lanePoints = line_detector->process(matchedFrame);
-	perspectiveTransform(lanePoints, projectedPoints, minHomo);
+//	perspectiveTransform(lanePoints, projectedPoints, minHomo);
 	Mat projectedImg = targetFrame.clone();
 	for(int i=0; i<(int)projectedPoints.size(); i++)
 	{
-		projectedImg.at<Vec3b>(projectedPoints[i]) = Vec3b(0, 255, 255);
+//		projectedImg.at<Vec3b>(projectedPoints[i]) = Vec3b(0, 255, 255);
 	}
 	imshow("result", projectedImg);
 	waitKey(100000000);

@@ -44,6 +44,7 @@ Mat Tracker::match(const Mat frame)
 
 	if(targetMatchedKp.size() < NN_MATCH_NUMBER || homography.empty() || norm(homography)>HOMO_NORM_THRES)
 	{
+		cout<<"homography fail"<<endl;
 		Mat failHomo;
 		return failHomo;
 	}

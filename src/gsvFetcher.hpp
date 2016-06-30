@@ -1,4 +1,5 @@
 #include "parameters.hpp"
+
 class GSVFetcher
 {
 public:

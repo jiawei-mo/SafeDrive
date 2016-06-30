@@ -28,7 +28,7 @@ int main(int argc, char **argv)
 	{
 		Mat curFrame = fetcher->get(Size(IMAGE_WIDTH, IMAGE_HEIGHT), lan, lon, head, pitch);
 		head += 2;
-		matchedNorm = tracker->match(curFrame, true);
+		matchedNorm = tracker->match(curFrame, false);
 //		waitKey(100000);
 		if(matchedNorm.score < minScore && norm(matchedNorm.homo)<HOMO_NORM_THRES)
 		{

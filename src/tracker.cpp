@@ -95,7 +95,7 @@ TrackRes Tracker::match(const Mat frame, bool showImg)
 	if(showImg)
 	{
 		imshow("Match", matchedImg);
-		waitKey(100000000);
+//		waitKey(100000000);
 	}
 	return TrackRes{homography, dist/count};
 }

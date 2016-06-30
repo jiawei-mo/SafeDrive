@@ -10,7 +10,7 @@ Tracker::Tracker()
 void Tracker::setTarget(const Mat frame)
 {
 	targetFrame = frame.clone();
-	GaussianBlur(targetFrame, targetFrame, Size(3,3), 1.2, 1.2);
+	GaussianBlur(targetFrame, targetFrame, Size(5,5), 1.2, 1.2);
 	Mat grayImg;
 	vector<Point2f> corners;
 	cvtColor(targetFrame, grayImg, CV_BGR2GRAY);
@@ -26,7 +26,7 @@ void Tracker::setTarget(const Mat frame)
 Mat Tracker::match(const Mat frame, bool showImg)
 {
 	Mat curFrame = frame.clone();
-	GaussianBlur(curFrame, curFrame, Size(3,3), 1.2, 1.2);
+	GaussianBlur(curFrame, curFrame, Size(5,5), 1.2, 1.2);
 
 	Mat grayImg;
 	vector<Point2f> corners;

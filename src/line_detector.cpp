@@ -27,12 +27,13 @@ vector<Point2f> Line_detector::process(const Mat img)
 			}
 		}
 	}
-//	Mat projectedImg = img.clone();
-//	for(int i=0; i<(int)lanePoints.size(); i++)
-//	{
-//		projectedImg.at<Vec3b>(lanePoints[i]) = Vec3b(0, 255, 255);
-//	}
-//	imshow("lanes",projectedImg);
+	Mat projectedImg = img.clone();
+	for(int i=0; i<(int)lanePoints.size(); i++)
+	{
+		projectedImg.at<Vec3b>(lanePoints[i]) = Vec3b(0, 255, 255);
+	}
+	namedWindow("lanes", WINDOW_NORMAL);
+	imshow("lanes",projectedImg);
 	return lanePoints;
 }
 

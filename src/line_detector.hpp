@@ -1,9 +1,4 @@
-#include "opencv2/opencv.hpp"
-#include "opencv2/features2d.hpp"
-using namespace cv;
-using namespace std;
-
-
+#include "parameters.hpp"
 class Line_detector
 {
 public:

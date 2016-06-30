@@ -1,9 +1,10 @@
-#include "opencv2/opencv.hpp"
-#include "opencv2/features2d.hpp"
 #include "parameters.hpp"
 
-using namespace cv;
-using namespace std;
+struct TrackRes
+{
+	Mat homo;
+	double score;
+};
 
 class Tracker
 {
@@ -17,5 +18,5 @@ protected:
 public:
 	Tracker();
 	void setTarget(const Mat frame);
-	Mat match(const Mat frame, bool showImg);
+	TrackRes match(const Mat frame, bool showImg);
 };

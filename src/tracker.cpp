@@ -23,7 +23,7 @@ void Tracker::setTarget(const Mat frame)
 	detector->compute(targetFrame, targetKp, targetDesc);
 }
 
-Mat Tracker::match(const Mat frame, bool showImg)
+TrackRes Tracker::match(const Mat frame, bool showImg)
 {
 	Mat curFrame = frame.clone();
 	GaussianBlur(curFrame, curFrame, Size(5,5), 1.2, 1.2);
@@ -33,7 +33,6 @@ Mat Tracker::match(const Mat frame, bool showImg)
 	cvtColor(curFrame, grayImg, CV_BGR2GRAY);
 	goodFeaturesToTrack(grayImg, corners, MAX_NUM_FEATURE, QUALITY_LEVEL, MIN_DISTANCE);
 
-	cout<<corners.size()<<endl;
 	vector<KeyPoint> curKp;
 	for( size_t i = 0; i < corners.size(); i++ ) {
 		curKp.push_back(KeyPoint(corners[i], 1.f));
@@ -54,7 +53,6 @@ Mat Tracker::match(const Mat frame, bool showImg)
 			targetMatchedKp.push_back(targetKp[matches[i][0].trainIdx].pt);
 		}
 	}
-	cout<<targetMatchedKp.size()<<endl;
 	Mat homography, inliner_mask;
 	if(targetMatchedKp.size() >= NN_MATCH_NUMBER)
 	{
@@ -63,9 +61,9 @@ Mat Tracker::match(const Mat frame, bool showImg)
 
 	if(targetMatchedKp.size() < NN_MATCH_NUMBER || homography.empty() || norm(homography)>HOMO_NORM_THRES)
 	{
-		cout<<"homography fail"<<endl;
+		cout<<"homography fail"<<endl<<endl;
 		Mat failHomo;
-		return failHomo;
+		return TrackRes{failHomo, HOMO_NORM_THRES+1};
 	}
 
 	vector<Point2f> projectedKp;
@@ -91,7 +89,7 @@ Mat Tracker::match(const Mat frame, bool showImg)
 	}
 	dist = dist / count;
 
-	cout<<endl<<"homograpy norm: "<<norm(homography)<<endl;
+	cout<<"homograpy norm: "<<norm(homography)<<endl;
 	cout<<"inliner number: "<<count<<endl;
 	cout<<"projection distance: "<<dist<<endl<<endl;
 	if(showImg)
@@ -99,5 +97,5 @@ Mat Tracker::match(const Mat frame, bool showImg)
 		imshow("Match", matchedImg);
 		waitKey(100000000);
 	}
-	return homography;
+	return TrackRes{homography, dist/count};
 }

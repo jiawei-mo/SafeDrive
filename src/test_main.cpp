@@ -20,23 +20,25 @@ int main(int argc, char **argv)
 	float lon = -93.2704977;
 	float head = 200.36;
 	float pitch = 0;
-	double minNorm = HOMO_NORM_THRES+1;
+	double minScore = HOMO_FAIL_SCORE+1;
 	int idx = -1;
-	Mat matchedNorm, minHomo;
+	TrackRes matchedNorm;
+	Mat minHomo;
 	for(int i=0; i<n; i++)
 	{
 		Mat curFrame = fetcher->get(Size(IMAGE_WIDTH, IMAGE_HEIGHT), lan, lon, head, pitch);
 		head += 2;
 		matchedNorm = tracker->match(curFrame, true);
 //		waitKey(100000);
-		if(!matchedNorm.empty() && norm(matchedNorm) < minNorm)
+		if(matchedNorm.score < minScore && norm(matchedNorm.homo)<HOMO_NORM_THRES)
 		{
-			minNorm = norm(matchedNorm);
-			minHomo = matchedNorm;
+			minScore = matchedNorm.score;
+			minHomo = matchedNorm.homo;
 			idx = i;
 		}
 	}
 
+	cout<<"Matched Result:"<<endl;
 	//TODO
 	Mat matchedFrame = fetcher->get(Size(IMAGE_WIDTH, IMAGE_HEIGHT), lan, lon, 200.36+2*idx, pitch);
 	matchedNorm = tracker->match(matchedFrame, true);

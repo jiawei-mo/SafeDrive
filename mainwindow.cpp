@@ -21,7 +21,7 @@ MainWindow::MainWindow(QWidget *parent) :
     detector = new LaneDetector();
     fetcher = new GSVFetcher();
 
-    string targetName = "/home/kimiwings/workspace/SafeDrive/images/target.png";
+    string targetName = "/home/kimiwings/SafeDrive/images/target.png";
     float lat = 44.9745000;
     float lon = -93.2704977;
     float heading = 218.36;
@@ -102,7 +102,7 @@ void MainWindow::changeParamAndReprocess()
     float rt = ui->slider_RT->value() / 1.0f;
     tracker->changeParam(mnf, ql, md, nmt, nmn, rt);
 
-    string targetName = "/home/kimiwings/workspace/SafeDrive/images/target.png";
+    string targetName = "/home/kimiwings/SafeDrive/images/target.png";
     float lat = 44.9745000;
     float lon = -93.2704977;
     float heading = 218.36;

@@ -31,11 +31,14 @@ private:
     cv::Mat laneImg;
     cv::Mat resultImg;
 
+    string targetName;
+    float lat;
+    float lon;
+    float head;
     void changeParamAndReprocess();
     void process(string targetName, float lat, float lon, float heading, float pitch);
 
 private slots:
-    void on_button_run_clicked();
     void on_button_reset_clicked();
     void on_slider_MNF_valueChanged(int mnf);
     void on_slider_QL_valueChanged(int qli);
@@ -43,6 +46,7 @@ private slots:
     void on_slider_NMT_valueChanged(int nmti);
     void on_slider_NMN_valueChanged(int nmn);
     void on_slider_RT_valueChanged(int rti);
+    void on_button_start_clicked();
 };
 
 #endif // MAINWINDOW_H

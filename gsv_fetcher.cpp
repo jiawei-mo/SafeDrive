@@ -17,7 +17,6 @@ Mat GSVFetcher::get(Size size, float lan, float lon, float head, float pitch)
     std::ostringstream s;
     s<<"https://maps.googleapis.com/maps/api/streetview?size="<<width<<"x"<<height<<"&location="<<lan<<","<<lon
             <<"&heading="<<head<<"&pitch="<<pitch<<"&key="<<GSVFetcher::key;
-    cout<<s.str()<<endl;
     VideoCapture cap(s.str());
     Mat res = Mat::zeros(size, CV_8U);
     if(!cap.isOpened())

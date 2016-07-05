@@ -51,7 +51,6 @@ void Tracker::setTarget(const Mat frame)
     }
 
     detector->compute(targetFrame, targetKp, targetDesc);
-    cout<<targetKp.size()<<endl;
 }
 
 TrackRes Tracker::match(const Mat frame)
@@ -91,7 +90,6 @@ TrackRes Tracker::match(const Mat frame)
     }
     if(targetMatchedKp.size() < NN_MATCH_NUMBER || homography.empty() || norm(homography)>HOMO_NORM_THRES)
     {
-        cout<<"homography fail"<<endl<<endl;
         Mat failMat;
         return TrackRes{failMat, failMat, HOMO_FAIL_SCORE+1};
     }
@@ -118,9 +116,5 @@ TrackRes Tracker::match(const Mat frame)
         }
     }
     dist = dist / count;
-
-    cout<<"homograpy norm: "<<norm(homography)<<endl;
-    cout<<"inliner number: "<<count<<endl;
-    cout<<"projection distance: "<<dist<<endl<<endl;
     return TrackRes{matchedImg, homography, dist/count};
 }

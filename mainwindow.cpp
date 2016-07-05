@@ -2,7 +2,7 @@
 #include "ui_mainwindow.h"
 
 #define MATCH_STEP 1
-#define MATCH_HEADING_LENGTH 2
+#define MATCH_head_LENGTH 2
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -20,14 +20,6 @@ MainWindow::MainWindow(QWidget *parent) :
     tracker = new Tracker(mnf, ql, md, nmt, nmn, rt);
     detector = new LaneDetector();
     fetcher = new GSVFetcher();
-
-    string targetName = "/home/kimiwings/SafeDrive/images/target.png";
-    float lat = 44.9745000;
-    float lon = -93.2704977;
-    float heading = 218.36;
-    float pitch = 0;
-
-    process(targetName, lat, lon, heading, pitch);
 }
 
 MainWindow::~MainWindow()
@@ -35,11 +27,23 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
-void MainWindow::process(string targetName, float lat, float lon, float heading, float pitch)
+void MainWindow::on_button_start_clicked()
+{
+    string targetNameFull = ui->text_TFN->toPlainText().toStdString();
+    targetName = targetNameFull.substr(7, targetNameFull.length()-8);
+    lat = ui->text_LAT->toPlainText().toFloat();
+    lon = ui->text_LON->toPlainText().toFloat();
+    head = ui->text_HD->toPlainText().toFloat();
+
+    process(targetName, lat, lon, head, 0);
+}
+
+void MainWindow::process(string targetName, float lat, float lon, float head, float pitch)
 {
     Mat targetFrame = imread(targetName);
     if( targetFrame.empty() ) {
-      cout<<"Error occured, image not read correctly";
+      ui->text_log->appendPlainText("Error occured, image not read correctly");
+      return;
     }
     tracker->setTarget(targetFrame);
 
@@ -49,7 +53,7 @@ void MainWindow::process(string targetName, float lat, float lon, float heading,
     float minScore = HOMO_FAIL_SCORE+1;
     for(int i=0; i<MATCH_STEP; i++)
     {
-        Mat curFrame = fetcher->get(Size(IMAGE_WIDTH, IMAGE_HEIGHT), lat, lon, heading+MATCH_HEADING_LENGTH*i, pitch);
+        Mat curFrame = fetcher->get(Size(IMAGE_WIDTH, IMAGE_HEIGHT), lat, lon, head+MATCH_head_LENGTH*i, pitch);
         trackRes = tracker->match(curFrame);
         if(trackRes.score < minScore && norm(trackRes.homo)<HOMO_NORM_THRES)
         {
@@ -58,9 +62,16 @@ void MainWindow::process(string targetName, float lat, float lon, float heading,
         }
     }
 
-    cout<<"Matched Result:"<<endl;
-    Mat matchedFrame = fetcher->get(Size(IMAGE_WIDTH, IMAGE_HEIGHT), lat, lon, heading+MATCH_HEADING_LENGTH*idx, pitch);
+    ui->text_log->appendPlainText("Matched Result:");
+    Mat matchedFrame = fetcher->get(Size(IMAGE_WIDTH, IMAGE_HEIGHT), lat, lon, head+MATCH_head_LENGTH*idx, pitch);
     trackRes = tracker->match(matchedFrame);
+    if(trackRes.homo.empty()) {
+        ui->text_log->appendPlainText("Fail!");
+    } else {
+        ui->text_log->appendPlainText("Success!");
+        ui->text_log->appendPlainText(QString("Latitude: ") + QString::number(lat) + QString(" Longitude: ") + QString::number(lon) + QString(" Heading: ") + QString::number(head));
+        ui->text_log->appendPlainText(QString("Average projection error: ") + QString::number(trackRes.score) + QString(" Homo Norm: ") + QString::number(norm(trackRes.homo)) + QString("\n"));
+    }
 
     LaneRes laneRes;
     laneRes = detector->process(matchedFrame);
@@ -102,18 +113,7 @@ void MainWindow::changeParamAndReprocess()
     float rt = ui->slider_RT->value() / 1.0f;
     tracker->changeParam(mnf, ql, md, nmt, nmn, rt);
 
-    string targetName = "/home/kimiwings/SafeDrive/images/target.png";
-    float lat = 44.9745000;
-    float lon = -93.2704977;
-    float heading = 218.36;
-    float pitch = 0;
-
-    process(targetName, lat, lon, heading, pitch);
-}
-
-void MainWindow::on_button_run_clicked()
-{
-
+    process(targetName, lat, lon, head, 0);
 }
 
 void MainWindow::on_button_reset_clicked()

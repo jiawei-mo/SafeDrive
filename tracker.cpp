@@ -88,10 +88,20 @@ TrackRes Tracker::match(const Mat frame)
     {
         homography = findHomography(curMatchedKp, targetMatchedKp, RANSAC, RANSAC_THRES, inliner_mask);
     }
+
+    Mat matchedImg = Mat::zeros(frame.rows, 2*frame.cols, frame.type());
+    curFrame.copyTo(matchedImg(Rect(0, 0, frame.cols, frame.rows)));
+    targetFrame.copyTo(matchedImg(Rect(frame.cols, 0, frame.cols, frame.rows)));
+
     if(targetMatchedKp.size() < NN_MATCH_NUMBER || homography.empty() || norm(homography)>HOMO_NORM_THRES)
     {
-        Mat failMat;
-        return TrackRes{failMat, failMat, HOMO_FAIL_SCORE+1};
+        for(int i=0; i<(int)targetMatchedKp.size(); i++)
+        {
+            targetMatchedKp[i].x += frame.cols;
+            line(matchedImg, curMatchedKp[i], targetMatchedKp[i], CV_RGB(255, 0, 0));
+        }
+        Mat failHomo;
+        return TrackRes{matchedImg, failHomo, HOMO_FAIL_SCORE+1};
     }
 
     vector<Point2f> projectedKp;
@@ -99,9 +109,6 @@ TrackRes Tracker::match(const Mat frame)
 
     int count = 0;
     float dist = 0.0;
-    Mat matchedImg = Mat::zeros(frame.rows, 2*frame.cols, frame.type());
-    curFrame.copyTo(matchedImg(Rect(0, 0, frame.cols, frame.rows)));
-    targetFrame.copyTo(matchedImg(Rect(frame.cols, 0, frame.cols, frame.rows)));
     for(int i=0; i<(int)targetMatchedKp.size(); i++)
     {
         if(inliner_mask.at<uchar>(i))

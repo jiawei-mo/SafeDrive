@@ -76,17 +76,16 @@ void MainWindow::process(string targetName, float lat, float lon, float head, fl
     LaneRes laneRes;
     laneRes = detector->process(matchedFrame);
     vector<Point2f> projectedPoints;
-    if(trackRes.score > HOMO_FAIL_SCORE) {
-        return;
-    }
-    perspectiveTransform(laneRes.dots, projectedPoints, trackRes.homo);
     Mat resImg = targetFrame.clone();
-    for(int i=0; i<(int)projectedPoints.size(); i++)
-    {
-        resImg.at<Vec3b>(projectedPoints[i]) = Vec3b(0, 255, 255);
+    if(trackRes.score < HOMO_FAIL_SCORE) {
+        perspectiveTransform(laneRes.dots, projectedPoints, trackRes.homo);
+        for(int i=0; i<(int)projectedPoints.size(); i++)
+        {
+            resImg.at<Vec3b>(projectedPoints[i]) = Vec3b(0, 255, 255);
+        }
+        //	Mat roi = lineImg(Rect(lineImg.cols/4,lineImg.rows/2,lineImg.cols/2,lineImg.rows/2));
+        //	roi.copyTo(matchedImg(Rect(matchedImg.cols/4,matchedImg.rows/2,matchedImg.cols/2,matchedImg.rows/2)));
     }
-//	Mat roi = lineImg(Rect(lineImg.cols/4,lineImg.rows/2,lineImg.cols/2,lineImg.rows/2));
-//	roi.copyTo(matchedImg(Rect(matchedImg.cols/4,matchedImg.rows/2,matchedImg.cols/2,matchedImg.rows/2)));
 
     Mat matchedImg = trackRes.matchedImg;
     cvtColor(matchedImg, matchedImg, CV_BGR2RGB);
@@ -105,6 +104,12 @@ void MainWindow::process(string targetName, float lat, float lon, float head, fl
 
 void MainWindow::changeParamAndReprocess()
 {
+    ui->label_MNF->setText(QString("Max Num Features: ") + QString::number(ui->slider_MNF->value()));
+    ui->label_QL->setText(QString("Quality Level: ") + QString::number(ui->slider_QL->value() / 100.0f));
+    ui->label_MD->setText(QString("Min Distance: ") + QString::number(ui->slider_MD->value()));
+    ui->label_NMT->setText(QString("NN Match Thres: ") + QString::number(ui->slider_NMT->value() / 100.0f));
+    ui->label_NMN->setText(QString("NN Match Number: ") + QString::number(ui->slider_NMN->value()));
+    ui->label_RT->setText(QString("RANSAC Thres: ") + QString::number(ui->slider_RT->value() / 1.0f));
     int mnf = ui->slider_MNF->value();
     float ql = ui->slider_QL->value() / 100.0f;
     int md = ui->slider_MD->value();
@@ -120,60 +125,90 @@ void MainWindow::on_button_reset_clicked()
 {
     ui->slider_MNF->setValue(1000);
     ui->slider_QL->setValue(1);
-    ui->slider_MD->setValue(7);
-    ui->slider_NMT->setValue(90);
+    ui->slider_MD->setValue(15);
+    ui->slider_NMT->setValue(81);
     ui->slider_NMN->setValue(4);
     ui->slider_RT->setValue(20);
     changeParamAndReprocess();
 }
 
-void MainWindow::on_slider_MNF_valueChanged(int mnf)
+void MainWindow::on_slider_MNF_sliderReleased()
 {
-    string mnfT = "Max Num Features: ";
-    mnfT += to_string(mnf);
-    ui->label_MNF->setText(mnfT.c_str());
     changeParamAndReprocess();
 }
 
-void MainWindow::on_slider_QL_valueChanged(int qli)
+void MainWindow::on_slider_QL_sliderReleased()
 {
-    string qlT = "Quality Level: ";
-    float ql = qli / 100.0f;
-    qlT += to_string(ql);
-    ui->label_QL->setText(qlT.c_str());
     changeParamAndReprocess();
 }
 
-void MainWindow::on_slider_MD_valueChanged(int md)
+void MainWindow::on_slider_MD_sliderReleased()
 {
-    string mdT = "Min Distance: ";
-    mdT += to_string(md);
-    ui->label_MD->setText(mdT.c_str());
     changeParamAndReprocess();
 }
 
-void MainWindow::on_slider_NMT_valueChanged(int nmti)
+void MainWindow::on_slider_NMT_sliderReleased()
 {
-    string nmtT = "NN Match Thres: ";
-    float nmt = nmti / 100.0f;
-    nmtT += to_string(nmt);
-    ui->label_NMT->setText(nmtT.c_str());
     changeParamAndReprocess();
 }
 
-void MainWindow::on_slider_NMN_valueChanged(int nmn)
+void MainWindow::on_slider_NMN_sliderReleased()
 {
-    string nmnT = "NN Match Number: ";
-    nmnT += to_string(nmn);
-    ui->label_NMN->setText(nmnT.c_str());
     changeParamAndReprocess();
 }
 
-void MainWindow::on_slider_RT_valueChanged(int rti)
+void MainWindow::on_slider_RT_sliderReleased()
 {
-    string rtT = "RANSAC Thres: ";
-    float rt = rti / 1.0f;
-    rtT += to_string(rt);
-    ui->label_RT->setText(rtT.c_str());
     changeParamAndReprocess();
 }
+
+//void MainWindow::on_slider_MNF_valueChanged(int mnf)
+//{
+//    string mnfT = "Max Num Features: ";
+//    mnfT += to_string(mnf);
+//    ui->label_MNF->setText(mnfT.c_str());
+//    changeParamAndReprocess();
+//}
+
+//void MainWindow::on_slider_QL_valueChanged(int qli)
+//{
+//    string qlT = "Quality Level: ";
+//    float ql = qli / 100.0f;
+//    qlT += to_string(ql);
+//    ui->label_QL->setText(qlT.c_str());
+//    changeParamAndReprocess();
+//}
+
+//void MainWindow::on_slider_MD_valueChanged(int md)
+//{
+//    string mdT = "Min Distance: ";
+//    mdT += to_string(md);
+//    ui->label_MD->setText(mdT.c_str());
+//    changeParamAndReprocess();
+//}
+
+//void MainWindow::on_slider_NMT_valueChanged(int nmti)
+//{
+//    string nmtT = "NN Match Thres: ";
+//    float nmt = nmti / 100.0f;
+//    nmtT += to_string(nmt);
+//    ui->label_NMT->setText(nmtT.c_str());
+//    changeParamAndReprocess();
+//}
+
+//void MainWindow::on_slider_NMN_valueChanged(int nmn)
+//{
+//    string nmnT = "NN Match Number: ";
+//    nmnT += to_string(nmn);
+//    ui->label_NMN->setText(nmnT.c_str());
+//    changeParamAndReprocess();
+//}
+
+//void MainWindow::on_slider_RT_valueChanged(int rti)
+//{
+//    string rtT = "RANSAC Thres: ";
+//    float rt = rti / 1.0f;
+//    rtT += to_string(rt);
+//    ui->label_RT->setText(rtT.c_str());
+//    changeParamAndReprocess();
+//}

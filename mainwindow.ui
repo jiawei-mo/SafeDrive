@@ -138,7 +138,7 @@
      </rect>
     </property>
     <property name="text">
-     <string>Quality Level: 0.010000</string>
+     <string>Quality Level: 0.01</string>
     </property>
    </widget>
    <widget class="QLabel" name="label_NMT">
@@ -151,7 +151,7 @@
      </rect>
     </property>
     <property name="text">
-     <string>NN Match Thres: 0.810000</string>
+     <string>NN Match Thres: 0.81</string>
     </property>
    </widget>
    <widget class="QSlider" name="slider_MD">
@@ -221,7 +221,7 @@
      </rect>
     </property>
     <property name="text">
-     <string>RANSAC Thres: 20.000000</string>
+     <string>RANSAC Thres: 20</string>
     </property>
    </widget>
    <widget class="QSlider" name="slider_NMN">

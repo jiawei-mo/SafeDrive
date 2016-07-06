@@ -40,13 +40,19 @@ private:
 
 private slots:
     void on_button_reset_clicked();
-    void on_slider_MNF_valueChanged(int mnf);
-    void on_slider_QL_valueChanged(int qli);
-    void on_slider_MD_valueChanged(int md);
-    void on_slider_NMT_valueChanged(int nmti);
-    void on_slider_NMN_valueChanged(int nmn);
-    void on_slider_RT_valueChanged(int rti);
+//    void on_slider_MNF_valueChanged(int mnf);
+//    void on_slider_QL_valueChanged(int qli);
+//    void on_slider_MD_valueChanged(int md);
+//    void on_slider_NMT_valueChanged(int nmti);
+//    void on_slider_NMN_valueChanged(int nmn);
+//    void on_slider_RT_valueChanged(int rti);
     void on_button_start_clicked();
+    void on_slider_MNF_sliderReleased();
+    void on_slider_QL_sliderReleased();
+    void on_slider_MD_sliderReleased();
+    void on_slider_NMT_sliderReleased();
+    void on_slider_NMN_sliderReleased();
+    void on_slider_RT_sliderReleased();
 };
 
 #endif // MAINWINDOW_H

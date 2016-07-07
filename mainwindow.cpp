@@ -31,9 +31,16 @@ void MainWindow::on_button_start_clicked()
 {
     string targetNameFull = ui->text_TFN->toPlainText().toStdString();
     targetName = targetNameFull.substr(7, targetNameFull.length()-8);
-    lat = ui->text_LAT->toPlainText().toFloat();
-    lon = ui->text_LON->toPlainText().toFloat();
-    head = ui->text_HD->toPlainText().toFloat();
+    string paramNameFull = ui->text_PM->toPlainText().toStdString();
+    string paramName = paramNameFull.substr(7, paramNameFull.length()-8);
+    ifstream params(paramName);
+    string param;
+    params >> param;
+    lat = stof(param);
+    params >> param;
+    lon = stof(param);
+    params >> param;
+    head = stof(param);
 
     process(targetName, lat, lon, head, 0);
 }
@@ -53,7 +60,7 @@ void MainWindow::process(string targetName, float lat, float lon, float head, fl
     float minScore = HOMO_FAIL_SCORE+1;
     for(int i=0; i<MATCH_STEP; i++)
     {
-        Mat curFrame = fetcher->get(Size(IMAGE_WIDTH, IMAGE_HEIGHT), lat, lon, head+MATCH_head_LENGTH*i, pitch);
+        Mat curFrame = fetcher->get(targetFrame.size(), lat, lon, head+MATCH_head_LENGTH*i, pitch);
         trackRes = tracker->match(curFrame);
         if(trackRes.score < minScore && norm(trackRes.homo)<HOMO_NORM_THRES)
         {
@@ -63,7 +70,7 @@ void MainWindow::process(string targetName, float lat, float lon, float head, fl
     }
 
     ui->text_log->appendPlainText("Matched Result:");
-    Mat matchedFrame = fetcher->get(Size(IMAGE_WIDTH, IMAGE_HEIGHT), lat, lon, head+MATCH_head_LENGTH*idx, pitch);
+    Mat matchedFrame = fetcher->get(targetFrame.size(), lat, lon, head+MATCH_head_LENGTH*idx, pitch);
     trackRes = tracker->match(matchedFrame);
     if(trackRes.homo.empty()) {
         ui->text_log->appendPlainText("Fail!");
@@ -75,16 +82,19 @@ void MainWindow::process(string targetName, float lat, float lon, float head, fl
 
     LaneRes laneRes;
     laneRes = detector->process(matchedFrame);
-    vector<Point2f> projectedPoints;
+    vector<Point2f> whiteProjectedPoints, yellowProjectedPoints;
     Mat resImg = targetFrame.clone();
     if(trackRes.score < HOMO_FAIL_SCORE) {
-        perspectiveTransform(laneRes.dots, projectedPoints, trackRes.homo);
-        for(int i=0; i<(int)projectedPoints.size(); i++)
+        perspectiveTransform(laneRes.whitePoints, whiteProjectedPoints, trackRes.homo);
+        perspectiveTransform(laneRes.yellowPoints, yellowProjectedPoints, trackRes.homo);
+        for(int i=0; i<(int)whiteProjectedPoints.size(); i++)
         {
-            resImg.at<Vec3b>(projectedPoints[i]) = Vec3b(0, 255, 255);
+            resImg.at<Vec3b>(whiteProjectedPoints[i]) = Vec3b(255, 255, 255);
         }
-        //	Mat roi = lineImg(Rect(lineImg.cols/4,lineImg.rows/2,lineImg.cols/2,lineImg.rows/2));
-        //	roi.copyTo(matchedImg(Rect(matchedImg.cols/4,matchedImg.rows/2,matchedImg.cols/2,matchedImg.rows/2)));
+        for(int i=0; i<(int)yellowProjectedPoints.size(); i++)
+        {
+            resImg.at<Vec3b>(yellowProjectedPoints[i]) = Vec3b(0, 255, 255);
+        }
     }
 
     Mat matchedImg = trackRes.matchedImg;
@@ -125,7 +135,7 @@ void MainWindow::on_button_reset_clicked()
 {
     ui->slider_MNF->setValue(1000);
     ui->slider_QL->setValue(1);
-    ui->slider_MD->setValue(15);
+    ui->slider_MD->setValue(11);
     ui->slider_NMT->setValue(81);
     ui->slider_NMN->setValue(4);
     ui->slider_RT->setValue(20);

@@ -3,8 +3,5 @@
 
 #endif // PARAMETERS_HPP
 
-
-#define IMAGE_WIDTH 640
-#define IMAGE_HEIGHT 480
 #define HOMO_FAIL_SCORE 100.0f
 #define HOMO_NORM_THRES 300.0f

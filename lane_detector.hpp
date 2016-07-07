@@ -12,7 +12,8 @@ using namespace std;
 struct LaneRes
 {
     Mat laneImg;
-    vector<Point2f> dots;
+    vector<Point2f> whitePoints;
+    vector<Point2f> yellowPoints;
 };
 
 class LaneDetector

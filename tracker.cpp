@@ -40,7 +40,7 @@ void Tracker::changeParam(int mnf, float ql, int md, float nmt, int nmn, float r
 void Tracker::setTarget(const Mat frame)
 {
     targetFrame = frame.clone();
-    GaussianBlur(targetFrame, targetFrame, Size(5,5), 1.2, 1.2);
+//    GaussianBlur(targetFrame, targetFrame, Size(5,5), 1.2, 1.2);
     Mat grayImg;
     vector<Point2f> corners;
     cvtColor(targetFrame, grayImg, CV_BGR2GRAY);
@@ -56,7 +56,7 @@ void Tracker::setTarget(const Mat frame)
 TrackRes Tracker::match(const Mat frame)
 {
     Mat curFrame = frame.clone();
-    GaussianBlur(curFrame, curFrame, Size(5,5), 1.2, 1.2);
+//    GaussianBlur(curFrame, curFrame, Size(5,5), 1.2, 1.2);
 
     Mat grayImg;
     vector<Point2f> corners;

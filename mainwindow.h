@@ -5,8 +5,9 @@
 #include "tracker.hpp"
 #include "lane_detector.hpp"
 #include "gsv_fetcher.hpp"
+#include "parameters.hpp"
 #include <string.h>
-#include <parameters.hpp>
+#include <fstream>
 
 namespace Ui {
 class MainWindow;

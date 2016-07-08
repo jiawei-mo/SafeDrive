@@ -29,15 +29,15 @@ protected:
     int MAX_NUM_FEATURE;
     float QUALITY_LEVEL;
     int MIN_DISTANCE;
-
+    int BLUR_SIZE;
+    float BLUR_VAR;
     float NN_MATCH_THRES;
-    unsigned int NN_MATCH_NUMBER;
     float RANSAC_THRES;
 
 public:
     Tracker();
-    Tracker(int mnf, float ql, int md, float nmt, int nmn, float rt);
-    void changeParam(int mnf, float ql, int md, float nmt, int nmn, float rt);
+    Tracker(int mnf, float ql, int md, int bs, float bv, float nmt, float rt);
+    void changeParam(int mnf, float ql, int md, int bs, float bv, float nmt, float rt);
     void setTarget(const Mat frame);
     TrackRes match(const Mat frame);
 };

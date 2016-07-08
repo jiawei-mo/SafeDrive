@@ -5,34 +5,37 @@ Tracker::Tracker()
     MAX_NUM_FEATURE = 1000;
     QUALITY_LEVEL = 0.01f;
     MIN_DISTANCE = 7;
+    BLUR_SIZE = 3;
+    BLUR_VAR = 1.2;
     NN_MATCH_THRES = 0.9f;
-    NN_MATCH_NUMBER = 4;
     RANSAC_THRES = 20.0f;
     targetKp.clear();
     detector = ORB::create();
     matcher = DescriptorMatcher::create("BruteForce-Hamming");
 }
 
-Tracker::Tracker(int mnf, float ql, int md, float nmt, int nmn, float rt)
+Tracker::Tracker(int mnf, float ql, int md, int bs, float bv, float nmt, float rt)
 {
     MAX_NUM_FEATURE = mnf;
     QUALITY_LEVEL = ql;
     MIN_DISTANCE = md;
+    BLUR_SIZE = bs;
+    BLUR_VAR = bv;
     NN_MATCH_THRES = nmt;
-    NN_MATCH_NUMBER = nmn;
     RANSAC_THRES = rt;
     targetKp.clear();
     detector = ORB::create();
     matcher = DescriptorMatcher::create("BruteForce-Hamming");
 }
 
-void Tracker::changeParam(int mnf, float ql, int md, float nmt, int nmn, float rt)
+void Tracker::changeParam(int mnf, float ql, int md, int bs, float bv, float nmt, float rt)
 {
     MAX_NUM_FEATURE = mnf;
     QUALITY_LEVEL = ql;
     MIN_DISTANCE = md;
+    BLUR_SIZE = bs;
+    BLUR_VAR = bv;
     NN_MATCH_THRES = nmt;
-    NN_MATCH_NUMBER = nmn;
     RANSAC_THRES = rt;
     targetKp.clear();
 }
@@ -41,7 +44,7 @@ void Tracker::setTarget(const Mat frame)
 {
     cout<<"setTarget"<<endl;
     targetFrame = frame.clone();
-//    GaussianBlur(targetFrame, targetFrame, Size(5,5), 1.2, 1.2);
+    GaussianBlur(targetFrame, targetFrame, Size(BLUR_SIZE,BLUR_SIZE), BLUR_VAR, BLUR_VAR);
     Mat grayImg;
     vector<Point2f> corners;
     cvtColor(targetFrame, grayImg, CV_BGR2GRAY);
@@ -57,7 +60,7 @@ TrackRes Tracker::match(const Mat frame)
 {
     cout<<"match"<<endl;
     Mat curFrame = frame.clone();
-//    GaussianBlur(curFrame, curFrame, Size(5,5), 1.2, 1.2);
+    GaussianBlur(curFrame, curFrame, Size(BLUR_SIZE,BLUR_SIZE), BLUR_VAR, BLUR_VAR);
 
     Mat grayImg;
     vector<Point2f> corners;

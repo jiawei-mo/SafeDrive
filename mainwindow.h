@@ -46,7 +46,6 @@ private slots:
     void on_slider_QL_sliderReleased();
     void on_slider_MD_sliderReleased();
     void on_slider_NMT_sliderReleased();
-    void on_slider_NMN_sliderReleased();
     void on_slider_RT_sliderReleased();
     void on_slider_BS_sliderReleased();
     void on_slider_BV_sliderReleased();

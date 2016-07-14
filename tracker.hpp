@@ -23,6 +23,7 @@ protected:
     Ptr<ORB> detector;
     Ptr<DescriptorMatcher> matcher;
 
+    Mat mask;
     Mat targetFrame, targetDesc;
     vector<KeyPoint> targetKp;
 

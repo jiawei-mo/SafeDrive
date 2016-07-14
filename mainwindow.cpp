@@ -1,7 +1,7 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 
-#define MATCH_STEP 1
+#define MATCH_STEP 3
 #define MATCH_head_LENGTH 2
 
 MainWindow::MainWindow(QWidget *parent) :
@@ -180,11 +180,6 @@ void MainWindow::on_slider_MD_sliderReleased()
 }
 
 void MainWindow::on_slider_NMT_sliderReleased()
-{
-    changeParamAndReprocess();
-}
-
-void MainWindow::on_slider_NMN_sliderReleased()
 {
     changeParamAndReprocess();
 }

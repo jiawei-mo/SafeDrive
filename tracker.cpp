@@ -48,12 +48,19 @@ void Tracker::setTarget(const Mat frame)
     Mat grayImg;
     vector<Point2f> corners;
     cvtColor(targetFrame, grayImg, CV_BGR2GRAY);
-    goodFeaturesToTrack(grayImg, corners, MAX_NUM_FEATURE, QUALITY_LEVEL, MIN_DISTANCE);
+    mask = Mat::zeros(frame.size(), CV_8UC1);
+    mask(Rect(0,0,mask.cols/3,mask.rows/2)).setTo(Scalar::all(255));
+    mask(Rect(mask.cols*2/3,0,mask.cols/3,mask.rows/2)).setTo(Scalar::all(255));
+    goodFeaturesToTrack(grayImg, corners, MAX_NUM_FEATURE, QUALITY_LEVEL, MIN_DISTANCE, mask);
 
     for( size_t i = 0; i < corners.size(); i++ ) {
         targetKp.push_back(KeyPoint(corners[i], 1.f));
     }
     detector->compute(targetFrame, targetKp, targetDesc);
+
+    for( size_t i = 0; i < corners.size(); i++ ) {
+        circle(targetFrame, corners[i], 2, CV_RGB(0, 0, 255));
+    }
 }
 
 TrackRes Tracker::match(const Mat frame)
@@ -65,7 +72,7 @@ TrackRes Tracker::match(const Mat frame)
     Mat grayImg;
     vector<Point2f> corners;
     cvtColor(curFrame, grayImg, CV_BGR2GRAY);
-    goodFeaturesToTrack(grayImg, corners, MAX_NUM_FEATURE, QUALITY_LEVEL, MIN_DISTANCE);
+    goodFeaturesToTrack(grayImg, corners, MAX_NUM_FEATURE, QUALITY_LEVEL, MIN_DISTANCE, mask);
     grayImg.release();
 
     vector<KeyPoint> curKp;

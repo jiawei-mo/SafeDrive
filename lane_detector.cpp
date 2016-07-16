@@ -9,7 +9,7 @@ LaneRes LaneDetector::process(const Mat img)
 
     //Detection by color
     Mat whiteHist, yellowHist;
-    inRange(roi, Scalar(190, 190, 190), Scalar(255, 255, 255), whiteHist);
+    inRange(roi, Scalar(170, 170, 170), Scalar(255, 255, 255), whiteHist);
     inRange(roi, Scalar(0, 150, 170), Scalar(150, 255, 255), yellowHist);
 
 //    imshow("lane", histImg);

@@ -116,7 +116,7 @@
      <number>1</number>
     </property>
     <property name="maximum">
-     <number>10</number>
+     <number>20</number>
     </property>
     <property name="singleStep">
      <number>1</number>
@@ -138,7 +138,7 @@
      </rect>
     </property>
     <property name="text">
-     <string>Quality Level: 0.01</string>
+     <string>Quality Level: 0.001</string>
     </property>
    </widget>
    <widget class="QLabel" name="label_NMT">
@@ -151,7 +151,7 @@
      </rect>
     </property>
     <property name="text">
-     <string>NN Match Thres: 0.81</string>
+     <string>NN Match Thres: 0.78</string>
     </property>
    </widget>
    <widget class="QSlider" name="slider_MD">
@@ -195,7 +195,7 @@
      <number>100</number>
     </property>
     <property name="value">
-     <number>81</number>
+     <number>78</number>
     </property>
     <property name="orientation">
      <enum>Qt::Horizontal</enum>
@@ -310,7 +310,8 @@
      </rect>
     </property>
     <property name="plainText">
-     <string/>
+     <string>file:///home/kimiwings/SafeDrive/test/test1.jpg
+</string>
     </property>
    </widget>
    <widget class="QLabel" name="label">
@@ -375,7 +376,8 @@
      </rect>
     </property>
     <property name="plainText">
-     <string/>
+     <string>file:///home/kimiwings/SafeDrive/test/test1.txt
+</string>
     </property>
    </widget>
    <widget class="QLabel" name="label_2">

@@ -1,8 +1,11 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 
-#define MATCH_STEP 3
-#define MATCH_head_LENGTH 2
+#define MATCH_STEP 1
+#define MATCH_LAT_LENGTH 0.0001
+#define MATCH_LON_LENGTH 0.0001
+#define MATCH_HEAD_LENGTH 2
+#define MATCH_PITCH_LENGTH 1
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -11,7 +14,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->setupUi(this);
 
     int mnf = ui->slider_MNF->value();
-    float ql = ui->slider_QL->value() / 100.0f;
+    float ql = ui->slider_QL->value() / 1000.0f;
     int md = ui->slider_MD->value();
     int bs = ui->slider_BS->value() * 2 - 1;
     float bv = ui->slider_BV->value() / 10.0f;
@@ -63,30 +66,53 @@ void MainWindow::process(string targetName, float lat, float lon, float head, fl
     }
     tracker->setTarget(targetFrame);
 
-    int idx = 0;
     TrackRes trackRes;
     float minScore = HOMO_FAIL_SCORE+1;
+    float minLat = lat;
+    float minLon = lon;
+    float minHead = head;
+    float minPitch = pitch;
     Mat curFrame;
-    for(int i=0; i<MATCH_STEP; i++)
+    for(int a=0; a<MATCH_STEP; a++)
     {
-        curFrame = fetcher->get(targetFrame.size(), lat, lon, head+MATCH_head_LENGTH*i, pitch);
-        trackRes = tracker->match(curFrame);
-        if(trackRes.score < minScore && norm(trackRes.homo)<HOMO_NORM_THRES)
+        float curLat = lat+MATCH_LAT_LENGTH*a;
+        for(int b=0; b<MATCH_STEP; b++)
         {
-            minScore = trackRes.score;
-            idx = i;
+            float curLon = lon+MATCH_LON_LENGTH*b;
+            for(int c=0; c<MATCH_STEP; c++)
+            {
+                float curHead = head+MATCH_HEAD_LENGTH*c;
+                for(int d=0; d<MATCH_STEP; d++)
+                {
+                    float curPitch = pitch+MATCH_PITCH_LENGTH*d;
+                    curFrame = fetcher->get(targetFrame.size(),
+                                            curLat,
+                                            curLon,
+                                            curHead,
+                                            curPitch);
+                    trackRes = tracker->match(curFrame);
+                    if(trackRes.score < minScore && norm(trackRes.homo)<HOMO_NORM_THRES)
+                    {
+                        minScore = trackRes.score;
+                        minLat = curLat;
+                        minLon = curLon;
+                        minHead = curHead;
+                        minPitch = curPitch;
+                    }
+                }
+            }
         }
     }
     curFrame.release();
 
     ui->text_log->appendPlainText("Matched Result:");
-    Mat matchedFrame = fetcher->get(targetFrame.size(), lat, lon, head+MATCH_head_LENGTH*idx, pitch);
+    Mat matchedFrame = fetcher->get(targetFrame.size(), minLat, minLon, minHead, minPitch);
     trackRes = tracker->match(matchedFrame);
     if(trackRes.homo.empty()) {
         ui->text_log->appendPlainText("Fail!");
     } else {
         ui->text_log->appendPlainText("Success!");
-        ui->text_log->appendPlainText(QString("Latitude: ") + QString::number(lat) + QString(" Longitude: ") + QString::number(lon) + QString(" Heading: ") + QString::number(head));
+        ui->text_log->appendPlainText(QString("Latitude: ") + QString::number(minLat) + QString(" Longitude: ") + QString::number(minLon) + QString(" Heading: ") + QString::number(minHead) + QString(" Pitch: ") + QString::number(minPitch));
         ui->text_log->appendPlainText(QString("Average projection error: ") + QString::number(trackRes.score) + QString(" Homo Norm: ") + QString::number(norm(trackRes.homo)) + QString("\n"));
     }
 
@@ -96,6 +122,7 @@ void MainWindow::process(string targetName, float lat, float lon, float head, fl
     vector<Point2f> whiteProjectedPoints, yellowProjectedPoints;
     Mat resImg = targetFrame.clone();
     targetFrame.release();
+    cout<<"before map"<<endl;
     if(trackRes.score < HOMO_FAIL_SCORE) {
         perspectiveTransform(laneRes.whitePoints, whiteProjectedPoints, trackRes.homo);
         perspectiveTransform(laneRes.yellowPoints, yellowProjectedPoints, trackRes.homo);
@@ -112,36 +139,41 @@ void MainWindow::process(string targetName, float lat, float lon, float head, fl
             }
         }
     }
+    cout<<"end map"<<endl;
 
-    Mat matchedImg = trackRes.matchedImg;
+    Mat matchedImg = trackRes.matchedImg.clone();
     cvtColor(matchedImg, matchedImg, CV_BGR2RGB);
     QImage QMatchedImg((uchar*)matchedImg.data, matchedImg.cols, matchedImg.rows, matchedImg.step, QImage::Format_RGB888);
     ui->label_match->setPixmap(QPixmap::fromImage(QMatchedImg));
     matchedImg.release();
+    cout<<"match img end"<<endl;
 
-    Mat laneImg = laneRes.laneImg;
+    Mat laneImg = laneRes.laneImg.clone();
     cvtColor(laneImg, laneImg, CV_BGR2RGB);
+    cout<<"Here"<<endl;
     QImage QlaneImg((uchar*)laneImg.data, laneImg.cols, laneImg.rows, laneImg.step, QImage::Format_RGB888);
     ui->label_lane->setPixmap(QPixmap::fromImage(QlaneImg));
     laneImg.release();
+    cout<<"lane img end"<<endl;
 
     cvtColor(resImg, resImg, CV_BGR2RGB);
     QImage QresImg((uchar*)resImg.data, resImg.cols, resImg.rows, resImg.step, QImage::Format_RGB888);
     ui->label_result->setPixmap(QPixmap::fromImage(QresImg));
     resImg.release();
+    cout<<"match img end"<<endl;
 }
 
 void MainWindow::changeParamAndReprocess()
 {
     ui->label_MNF->setText(QString("Max Num Features: ") + QString::number(ui->slider_MNF->value()));
-    ui->label_QL->setText(QString("Quality Level: ") + QString::number(ui->slider_QL->value() / 100.0f));
+    ui->label_QL->setText(QString("Quality Level: ") + QString::number(ui->slider_QL->value() / 1000.0f));
     ui->label_MD->setText(QString("Min Distance: ") + QString::number(ui->slider_MD->value()));
     ui->label_BS->setText(QString("Blur Size: ") + QString::number(ui->slider_BS->value()));
     ui->label_BV->setText(QString("Blur Var: ") + QString::number(ui->slider_BV->value() / 10.0f));
     ui->label_NMT->setText(QString("NN Match Thres: ") + QString::number(ui->slider_NMT->value() / 100.0f));
     ui->label_RT->setText(QString("RANSAC Thres: ") + QString::number(ui->slider_RT->value() / 1.0f));
     int mnf = ui->slider_MNF->value();
-    float ql = ui->slider_QL->value() / 100.0f;
+    float ql = ui->slider_QL->value() / 1000.0f;
     int md = ui->slider_MD->value();
     int bs = ui->slider_BS->value() * 2 - 1;
     float bv = ui->slider_BV->value() / 10.0f;
@@ -159,7 +191,7 @@ void MainWindow::on_button_reset_clicked()
     ui->slider_MD->setValue(11);
     ui->slider_BS->setValue(3);
     ui->slider_BV->setValue(12);
-    ui->slider_NMT->setValue(81);
+    ui->slider_NMT->setValue(78);
     ui->slider_RT->setValue(20);
     changeParamAndReprocess();
 }

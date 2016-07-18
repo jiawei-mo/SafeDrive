@@ -42,7 +42,7 @@ bool imgBoundValid(const Mat img, Point2f pt) {
 void MainWindow::on_button_start_clicked()
 {
     string targetNameFull = ui->text_TFN->toPlainText().toStdString();
-    targetName = targetNameFull.substr(7, targetNameFull.length()-8);
+    string targetName = targetNameFull.substr(7, targetNameFull.length()-8);
     string paramNameFull = ui->text_PM->toPlainText().toStdString();
     string paramName = paramNameFull.substr(7, paramNameFull.length()-8);
     ifstream params(paramName);
@@ -53,20 +53,22 @@ void MainWindow::on_button_start_clicked()
     lon = stof(param);
     params >> param;
     head = stof(param);
-
-    process(targetName, lat, lon, head, 0);
-}
-
-void MainWindow::process(string targetName, float lat, float lon, float head, float pitch)
-{
-    Mat targetFrame = imread(targetName);
+    params.close();
+    targetFrame = imread(targetName);
     if( targetFrame.empty() ) {
       ui->text_log->appendPlainText("Error occured, image not read correctly");
       return;
     }
+    ui->text_log->appendPlainText("Finish loading image!");
+    cout<<"Finish loading image!"<<endl;
+    process(lat, lon, head, 0);
+}
+
+void MainWindow::process(float lat, float lon, float head, float pitch)
+{
     tracker->setTarget(targetFrame);
 
-    TrackRes trackRes;
+    TrackRes* trackRes;
     float minScore = HOMO_FAIL_SCORE+1;
     float minLat = lat;
     float minLon = lon;
@@ -91,9 +93,9 @@ void MainWindow::process(string targetName, float lat, float lon, float head, fl
                                             curHead,
                                             curPitch);
                     trackRes = tracker->match(curFrame);
-                    if(trackRes.score < minScore && norm(trackRes.homo)<HOMO_NORM_THRES)
+                    if(trackRes->score < minScore && norm(trackRes->homo)<HOMO_NORM_THRES)
                     {
-                        minScore = trackRes.score;
+                        minScore = trackRes->score;
                         minLat = curLat;
                         minLon = curLon;
                         minHead = curHead;
@@ -103,64 +105,75 @@ void MainWindow::process(string targetName, float lat, float lon, float head, fl
             }
         }
     }
-    curFrame.release();
+    //curFrame.release();
 
     ui->text_log->appendPlainText("Matched Result:");
     Mat matchedFrame = fetcher->get(targetFrame.size(), minLat, minLon, minHead, minPitch);
     trackRes = tracker->match(matchedFrame);
-    if(trackRes.homo.empty()) {
+    if(trackRes->homo.empty()) {
         ui->text_log->appendPlainText("Fail!");
     } else {
         ui->text_log->appendPlainText("Success!");
         ui->text_log->appendPlainText(QString("Latitude: ") + QString::number(minLat) + QString(" Longitude: ") + QString::number(minLon) + QString(" Heading: ") + QString::number(minHead) + QString(" Pitch: ") + QString::number(minPitch));
-        ui->text_log->appendPlainText(QString("Average projection error: ") + QString::number(trackRes.score) + QString(" Homo Norm: ") + QString::number(norm(trackRes.homo)) + QString("\n"));
+        ui->text_log->appendPlainText(QString("Average projection error: ") + QString::number(trackRes->score) + QString(" Homo Norm: ") + QString::number(norm(trackRes->homo)) + QString("\n"));
     }
 
-    LaneRes laneRes;
+    LaneRes* laneRes;
     laneRes = detector->process(matchedFrame);
-    matchedFrame.release();
+    //matchedFrame.release();
     vector<Point2f> whiteProjectedPoints, yellowProjectedPoints;
-    Mat resImg = targetFrame.clone();
-    targetFrame.release();
+    //targetFrame.release();
     cout<<"before map"<<endl;
-    if(trackRes.score < HOMO_FAIL_SCORE) {
-        perspectiveTransform(laneRes.whitePoints, whiteProjectedPoints, trackRes.homo);
-        perspectiveTransform(laneRes.yellowPoints, yellowProjectedPoints, trackRes.homo);
+    Mat matchRes = targetFrame.clone();
+    if(trackRes->score < HOMO_FAIL_SCORE) {
+        perspectiveTransform(laneRes->whitePoints, whiteProjectedPoints, trackRes->homo);
+        perspectiveTransform(laneRes->yellowPoints, yellowProjectedPoints, trackRes->homo);
         for(int i=0; i<(int)whiteProjectedPoints.size(); i++)
         {
-            if((imgBoundValid(resImg, whiteProjectedPoints[i]))) {
-                resImg.at<Vec3b>(whiteProjectedPoints[i]) = Vec3b(255, 255, 255);
+            if((imgBoundValid(targetFrame, whiteProjectedPoints[i]))) {
+                matchRes.at<Vec3b>(whiteProjectedPoints[i]) = Vec3b(255, 255, 255);
             }
         }
         for(int i=0; i<(int)yellowProjectedPoints.size(); i++)
         {
-            if((imgBoundValid(resImg, yellowProjectedPoints[i]))) {
-                resImg.at<Vec3b>(yellowProjectedPoints[i]) = Vec3b(0, 255, 255);
+            if((imgBoundValid(targetFrame, yellowProjectedPoints[i]))) {
+                matchRes.at<Vec3b>(yellowProjectedPoints[i]) = Vec3b(0, 255, 255);
             }
         }
+
+        Mat recImg, recEdge;
+        Mat matchedEdge = matchRes.clone();
+        warpPerspective(matchedFrame, recImg, trackRes->homo, matchRes.size());
+        Canny( recImg, recEdge, 10, 100, 3);
+        Mat green = cv::Mat(matchRes.size(), matchRes.type() );
+        green = cv::Scalar(0,255,0);
+        green.copyTo(matchedEdge, recEdge);
+        imshow("Perspective", matchedEdge);
     }
     cout<<"end map"<<endl;
 
-    Mat matchedImg = trackRes.matchedImg.clone();
+    Mat matchedImg = trackRes->matchedImg.clone();
+    free(trackRes);
     cvtColor(matchedImg, matchedImg, CV_BGR2RGB);
     QImage QMatchedImg((uchar*)matchedImg.data, matchedImg.cols, matchedImg.rows, matchedImg.step, QImage::Format_RGB888);
     ui->label_match->setPixmap(QPixmap::fromImage(QMatchedImg));
-    matchedImg.release();
+    //matchedImg.release();
     cout<<"match img end"<<endl;
 
-    Mat laneImg = laneRes.laneImg.clone();
+    Mat laneImg = laneRes->laneImg.clone();
     cvtColor(laneImg, laneImg, CV_BGR2RGB);
-    cout<<"Here"<<endl;
     QImage QlaneImg((uchar*)laneImg.data, laneImg.cols, laneImg.rows, laneImg.step, QImage::Format_RGB888);
     ui->label_lane->setPixmap(QPixmap::fromImage(QlaneImg));
     laneImg.release();
     cout<<"lane img end"<<endl;
 
-    cvtColor(resImg, resImg, CV_BGR2RGB);
-    QImage QresImg((uchar*)resImg.data, resImg.cols, resImg.rows, resImg.step, QImage::Format_RGB888);
+    cvtColor(matchRes, matchRes, CV_BGR2RGB);
+    QImage QresImg((uchar*)matchRes.data, matchRes.cols, matchRes.rows, matchRes.step, QImage::Format_RGB888);
     ui->label_result->setPixmap(QPixmap::fromImage(QresImg));
-    resImg.release();
-    cout<<"match img end"<<endl;
+    //resImg.release();
+    cout<<"res img end"<<endl;
+
+    return;
 }
 
 void MainWindow::changeParamAndReprocess()
@@ -181,7 +194,7 @@ void MainWindow::changeParamAndReprocess()
     float rt = ui->slider_RT->value() / 1.0f;
     tracker->changeParam(mnf, ql, md, bs, bv, nmt, rt);
 
-    process(targetName, lat, lon, head, 0);
+    process(lat, lon, head, 0);
 }
 
 void MainWindow::on_button_reset_clicked()

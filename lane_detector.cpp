@@ -1,6 +1,6 @@
 #include "lane_detector.hpp"
 
-LaneRes LaneDetector::process(const Mat img)
+LaneRes* LaneDetector::process(const Mat img)
 {
 //	namedWindow("lanes", WINDOW_NORMAL);
     Mat imgCopy = img.clone();
@@ -9,7 +9,7 @@ LaneRes LaneDetector::process(const Mat img)
 
     //Detection by color
     Mat whiteHist, yellowHist;
-    inRange(roi, Scalar(170, 170, 170), Scalar(255, 255, 255), whiteHist);
+    inRange(roi, Scalar(180, 180, 190), Scalar(255, 255, 255), whiteHist);
     inRange(roi, Scalar(0, 150, 170), Scalar(150, 255, 255), yellowHist);
 
 //    imshow("lane", histImg);
@@ -46,6 +46,6 @@ LaneRes LaneDetector::process(const Mat img)
     {
         laneImg.at<Vec3b>(yellowPoints[i]) = Vec3b(0, 255, 255);
     }
-    return LaneRes{laneImg, whitePoints, yellowPoints};
+    return new LaneRes{laneImg, whitePoints, yellowPoints};
 }
 

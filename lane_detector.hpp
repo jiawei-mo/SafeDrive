@@ -19,5 +19,5 @@ struct LaneRes
 class LaneDetector
 {
 public:
-    LaneRes process(const Mat img);
+    LaneRes* process(const Mat img);
 };

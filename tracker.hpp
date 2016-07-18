@@ -24,7 +24,8 @@ protected:
     Ptr<DescriptorMatcher> matcher;
 
     Mat mask;
-    Mat targetFrame, targetDesc;
+    Mat targetFrame;
+    Mat targetDesc;
     vector<KeyPoint> targetKp;
 
     int MAX_NUM_FEATURE;
@@ -40,5 +41,5 @@ public:
     Tracker(int mnf, float ql, int md, int bs, float bv, float nmt, float rt);
     void changeParam(int mnf, float ql, int md, int bs, float bv, float nmt, float rt);
     void setTarget(const Mat frame);
-    TrackRes match(const Mat frame);
+    TrackRes* match(const Mat frame);
 };

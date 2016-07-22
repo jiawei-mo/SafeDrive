@@ -54,6 +54,7 @@ void MainWindow::on_button_start_clicked()
     params >> param;
     head = stof(param);
     params.close();
+    targetFrame.release();
     targetFrame = imread(targetName);
     if( targetFrame.empty() ) {
       ui->text_log->appendPlainText("Error occured, image not read correctly");
@@ -124,6 +125,7 @@ void MainWindow::process(float lat, float lon, float head, float pitch)
     vector<Point2f> whiteProjectedPoints, yellowProjectedPoints;
     //targetFrame.release();
     cout<<"before map"<<endl;
+    cout<<targetFrame.size()<<endl;
     Mat matchRes = targetFrame.clone();
     if(trackRes->score < HOMO_FAIL_SCORE) {
         perspectiveTransform(laneRes->whitePoints, whiteProjectedPoints, trackRes->homo);
@@ -141,19 +143,18 @@ void MainWindow::process(float lat, float lon, float head, float pitch)
             }
         }
 
-        Mat recImg, recEdge;
-        Mat matchedEdge = matchRes.clone();
-        warpPerspective(matchedFrame, recImg, trackRes->homo, matchRes.size());
-        Canny( recImg, recEdge, 10, 100, 3);
-        Mat green = cv::Mat(matchRes.size(), matchRes.type() );
-        green = cv::Scalar(0,255,0);
-        green.copyTo(matchedEdge, recEdge);
-        imshow("Perspective", matchedEdge);
+//        Mat recImg, recEdge;
+//        Mat matchedEdge = matchRes.clone();
+//        warpPerspective(matchedFrame, recImg, trackRes->homo, matchRes.size());
+//        Canny( recImg, recEdge, 10, 100, 3);
+//        Mat green = cv::Mat(matchRes.size(), matchRes.type() );
+//        green = cv::Scalar(0,255,0);
+//        green.copyTo(matchedEdge, recEdge);
+//        imshow("Perspective", matchedEdge);
     }
     cout<<"end map"<<endl;
 
     Mat matchedImg = trackRes->matchedImg.clone();
-    free(trackRes);
     cvtColor(matchedImg, matchedImg, CV_BGR2RGB);
     QImage QMatchedImg((uchar*)matchedImg.data, matchedImg.cols, matchedImg.rows, matchedImg.step, QImage::Format_RGB888);
     ui->label_match->setPixmap(QPixmap::fromImage(QMatchedImg));

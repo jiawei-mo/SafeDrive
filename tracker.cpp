@@ -42,6 +42,7 @@ void Tracker::changeParam(int mnf, float ql, int md, int bs, float bv, float nmt
 
 void Tracker::setTarget(const Mat frame)
 {
+    cout<<"into setTarget"<<endl;
     cout<<targetFrame.size()<<endl;
     cout<<"setTarget"<<endl;
     targetFrame = frame.clone();

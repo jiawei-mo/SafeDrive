@@ -310,7 +310,8 @@
      </rect>
     </property>
     <property name="plainText">
-     <string/>
+     <string>file:///home/kimiwings/SafeDrive/test/test1.jpg
+</string>
     </property>
    </widget>
    <widget class="QLabel" name="label">
@@ -375,7 +376,8 @@
      </rect>
     </property>
     <property name="plainText">
-     <string/>
+     <string>file:///home/kimiwings/SafeDrive/test/test1.txt
+</string>
     </property>
    </widget>
    <widget class="QLabel" name="label_2">

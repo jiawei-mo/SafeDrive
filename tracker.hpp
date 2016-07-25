@@ -6,7 +6,7 @@
 #include "opencv2/opencv.hpp"
 #include "opencv2/videoio.hpp"
 #include "opencv2/features2d.hpp"
-#include <parameters.hpp>
+#include "parameters.hpp"
 using namespace cv;
 using namespace std;
 
@@ -15,6 +15,14 @@ struct TrackRes
     Mat matchedImg;
     Mat homo;
     float score;
+    TrackRes(Mat m, Mat h, float s) {
+        matchedImg = m.clone();
+        homo = h.clone();
+        score = s;
+    }
+    ~TrackRes() {
+        cout<<"TrackRes deallocation"<<endl;
+    }
 };
 
 class Tracker
@@ -40,6 +48,6 @@ public:
     Tracker();
     Tracker(int mnf, float ql, int md, int bs, float bv, float nmt, float rt);
     void changeParam(int mnf, float ql, int md, int bs, float bv, float nmt, float rt);
-    void setTarget(const Mat frame);
-    TrackRes* match(const Mat frame);
+    void setTarget(const Mat& frame);
+    TrackRes* match(const Mat& frame);
 };

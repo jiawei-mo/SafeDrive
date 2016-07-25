@@ -40,11 +40,8 @@ void Tracker::changeParam(int mnf, float ql, int md, int bs, float bv, float nmt
     targetKp.clear();
 }
 
-void Tracker::setTarget(const Mat frame)
+void Tracker::setTarget(const Mat& frame)
 {
-    cout<<"into setTarget"<<endl;
-    cout<<targetFrame.size()<<endl;
-    cout<<"setTarget"<<endl;
     targetFrame = frame.clone();
     GaussianBlur(targetFrame, targetFrame, Size(BLUR_SIZE,BLUR_SIZE), BLUR_VAR, BLUR_VAR);
     Mat grayImg;
@@ -54,23 +51,19 @@ void Tracker::setTarget(const Mat frame)
     mask(Rect(0,0,mask.cols/3,mask.rows)).setTo(Scalar::all(255));
     mask(Rect(mask.cols*2/3,0,mask.cols/3,mask.rows)).setTo(Scalar::all(255));
     goodFeaturesToTrack(grayImg, corners, MAX_NUM_FEATURE, QUALITY_LEVEL, MIN_DISTANCE, mask);
-    //grayImg.release();
 
     for( size_t i = 0; i < corners.size(); i++ ) {
         targetKp.push_back(KeyPoint(corners[i], 1.f));
     }
     detector->compute(targetFrame, targetKp, targetDesc);
 
-    cout<<"target size: "<<corners.size()<<endl;
     for( size_t i = 0; i < corners.size(); i++ ) {
         circle(targetFrame, corners[i], 2, CV_RGB(0, 0, 255));
     }
-    cout<<"setTarget finished"<<endl;
 }
 
-TrackRes* Tracker::match(const Mat frame)
+TrackRes* Tracker::match(const Mat& frame)
 {
-    cout<<"match"<<endl;
     Mat curFrame = frame.clone();
     GaussianBlur(curFrame, curFrame, Size(BLUR_SIZE,BLUR_SIZE), BLUR_VAR, BLUR_VAR);
 
@@ -78,10 +71,8 @@ TrackRes* Tracker::match(const Mat frame)
     vector<Point2f> corners;
     cvtColor(curFrame, grayImg, CV_BGR2GRAY);
     goodFeaturesToTrack(grayImg, corners, MAX_NUM_FEATURE, QUALITY_LEVEL, MIN_DISTANCE, mask);
-    //grayImg.release();
 
     vector<KeyPoint> curKp;
-    cout<<"cur size: "<<corners.size()<<endl;
     for( size_t i = 0; i < corners.size(); i++ ) {
         curKp.push_back(KeyPoint(corners[i], 1.f));
     }
@@ -91,7 +82,6 @@ TrackRes* Tracker::match(const Mat frame)
 
     vector< vector<DMatch> > matches;
     matcher->knnMatch(curDesc, targetDesc, matches, 2);
-    //curDesc.release();
     vector<Point2f> targetMatchedKp, curMatchedKp;
     for(int i=0; i<(int)matches.size(); i++)
     {
@@ -110,7 +100,6 @@ TrackRes* Tracker::match(const Mat frame)
 
     Mat matchedImg = Mat::zeros(frame.rows, 2*frame.cols, frame.type());
     curFrame.copyTo(matchedImg(Rect(0, 0, frame.cols, frame.rows)));
-    //curFrame.release();
     targetFrame.copyTo(matchedImg(Rect(frame.cols, 0, frame.cols, frame.rows)));
 
     if(targetMatchedKp.size() < NN_MATCH_NUMBER || homography.empty() || norm(homography)>HOMO_NORM_THRES)
@@ -142,8 +131,7 @@ TrackRes* Tracker::match(const Mat frame)
             circle(matchedImg, projectedKp[i], 2, CV_RGB(0, 255, 0));
         }
     }
-    //inliner_mask.release();
     dist = dist / count;
-    cout<<"match return"<<endl;
-    return new TrackRes{matchedImg, homography, dist/count};
+    TrackRes *res = new TrackRes(matchedImg, homography, dist/count);
+    return res;
 }

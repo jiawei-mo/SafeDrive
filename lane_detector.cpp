@@ -1,6 +1,6 @@
 #include "lane_detector.hpp"
 
-LaneRes* LaneDetector::process(const Mat img)
+LaneRes* LaneDetector::process(const Mat& img)
 {
 //	namedWindow("lanes", WINDOW_NORMAL);
     Mat imgCopy = img.clone();
@@ -46,6 +46,7 @@ LaneRes* LaneDetector::process(const Mat img)
     {
         laneImg.at<Vec3b>(yellowPoints[i]) = Vec3b(0, 255, 255);
     }
-    return new LaneRes{laneImg, whitePoints, yellowPoints};
+    LaneRes *res = new LaneRes(laneImg, whitePoints, yellowPoints);
+    return res;
 }
 

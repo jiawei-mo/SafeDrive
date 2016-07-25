@@ -28,12 +28,12 @@ private:
     LaneDetector *detector;
     GSVFetcher *fetcher;
 
-    cv::Mat targetFrame;
+    string targetString;
     float lat;
     float lon;
     float head;
     void changeParamAndReprocess();
-    void process(float lat, float lon, float heading, float pitch);
+    void process(string targetString, float lat, float lon, float heading, float pitch);
 
 private slots:
     void on_button_reset_clicked();

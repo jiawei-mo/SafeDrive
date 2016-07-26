@@ -12,11 +12,9 @@ using namespace std;
 
 struct TrackRes
 {
-    Mat matchedImg;
     Mat homo;
     float score;
-    TrackRes(Mat m, Mat h, float s) {
-        matchedImg = m.clone();
+    TrackRes(Mat h, float s) {
         homo = h.clone();
         score = s;
     }

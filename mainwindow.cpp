@@ -23,25 +23,19 @@ bool imgBoundValid(const Mat img, Point2f pt) {
 
 Mat projDifference(const Mat& image1, const Mat& image2)
 {
-    Mat img1, img2;
-    image1.convertTo(img1, CV_32FC3);
-    image2.convertTo(img2, CV_32FC3);
-    if(img1.channels() != 1)
-        cvtColor(img1, img1, CV_RGB2GRAY);
-    if(img2.channels() != 1)
-        cvtColor(img2, img2, CV_RGB2GRAY);
-//    Canny( image1, img1, 10, 100, 3);
-//    Canny( image2, img2, 10, 100, 3);
+    Mat img1Tmp, img2Tmp, img1Edge, img2Edge;
+    image1.convertTo(img1Tmp, CV_8UC3);
+    image2.convertTo(img2Tmp, CV_8UC3);
+    Canny( img1Tmp, img1Edge, 50, 200, 3);
+    Canny( img2Tmp, img2Edge, 50, 200, 3);
 
-    Mat imgDiff;
-    img1.copyTo(imgDiff);
-    imgDiff -= img2;
-    imgDiff /= 2.f;
-    imgDiff += 128.f;
+    Mat res(image1.size(), CV_8UC3, Scalar(0, 0, 0));
+    Mat redImg(image1.size(), CV_8UC3, Scalar(255, 0, 0));
+    Mat blueImg(image1.size(), CV_8UC3, Scalar(0, 0, 255));
+    redImg.copyTo(res, img1Edge);
+    blueImg.copyTo(res, img2Edge);
 
-    Mat imgSh;
-    imgDiff.convertTo(imgSh, CV_8UC3);
-    return imgSh;
+    return res;
 }
 
 //return pair<homo, diffImg>
@@ -70,7 +64,6 @@ void MainWindow::process(string targetString, float lat, float lon, float head, 
       ui->text_log->appendPlainText("Error occured, image not read correctly");
       return;
     }
-    ui->text_log->appendPlainText("Finish loading image!");
 
     tracker->setTarget(targetFrame);
 
@@ -129,22 +122,30 @@ void MainWindow::process(string targetString, float lat, float lon, float head, 
     ui->text_log->appendPlainText(QString("Latitude: ") + QString::number(minLat) + QString(" Longitude: ") + QString::number(minLon) + QString(" Heading: ") + QString::number(minHead) + QString(" Pitch: ") + QString::number(minPitch));
     ui->text_log->appendPlainText(QString("Average projection error: ") + QString::number(trackRes->score) + QString(" Homo Norm: ") + QString::number(norm(trackRes->homo)) + QString("\n"));
 
+    //coarse proj
+    Mat recMatchedImg;
+    warpPerspective(matchedFrame, recMatchedImg, trackRes->homo, targetFrame.size());
+
     //pixelwise compare
-    Mat recImg, targetTmp;
-    warpPerspective(matchedFrame, recImg, trackRes->homo, targetFrame.size());
-//    recImg = matchedFrame.clone();
-    recImg.convertTo(recImg, CV_64FC3);
-    targetFrame.convertTo(targetTmp, CV_64FC3);
-    pair<Mat, Mat> pixelRes = pixelWiseMatch(recImg, targetTmp);
+    Mat recMatchedImgTmp, targetFrameTmp;
+//    recMatchedImg = matchedFrame.clone();
+//    Canny( recMatchedImg, recMatchedImgTmp, 50, 200, 3);
+//    Canny( targetFrame, targetFrameTmp, 50, 200, 3);
+    recMatchedImg.convertTo(recMatchedImgTmp, CV_64FC3);
+    targetFrame.convertTo(targetFrameTmp, CV_64FC3);
+    pair<Mat, Mat> pixelRes = pixelWiseMatch(targetFrameTmp, recMatchedImgTmp);
     Mat finalHomo = pixelRes.first;
     Mat diffImg = pixelRes.second;
+    cout<<"coarse homo: "<<endl<<trackRes->homo<<endl<<endl;
+    cout<<"fine homo: "<<endl<<finalHomo<<endl<<endl;
 
+    //detect lane
     LaneRes* laneRes;
-    laneRes = detector->process(matchedFrame);
+    laneRes = detector->process(recMatchedImg);
     vector<Point2f> whiteProjectedPoints, yellowProjectedPoints;
     Mat matchRes = targetFrame.clone();
-    perspectiveTransform(laneRes->whitePoints, whiteProjectedPoints, finalHomo);
-    perspectiveTransform(laneRes->yellowPoints, yellowProjectedPoints, finalHomo);
+    perspectiveTransform(laneRes->whitePoints, whiteProjectedPoints, finalHomo.inv());
+    perspectiveTransform(laneRes->yellowPoints, yellowProjectedPoints, finalHomo.inv());
 
     //draw lanes
     for(int i=0; i<(int)whiteProjectedPoints.size(); i++)
@@ -161,17 +162,6 @@ void MainWindow::process(string targetString, float lat, float lon, float head, 
     }
 
     //put images onto GUI
-    Mat matchedImg = trackRes->matchedImg.clone();
-    cvtColor(matchedImg, matchedImg, CV_BGR2RGB);
-    QImage QMatchedImg((uchar*)matchedImg.data, matchedImg.cols, matchedImg.rows, matchedImg.step, QImage::Format_RGB888);
-    ui->label_match->setPixmap(QPixmap::fromImage(QMatchedImg));
-
-    Mat laneImg = laneRes->laneImg.clone();
-    cvtColor(laneImg, laneImg, CV_BGR2RGB);
-    QImage QlaneImg((uchar*)laneImg.data, laneImg.cols, laneImg.rows, laneImg.step, QImage::Format_RGB888);
-    ui->label_lane->setPixmap(QPixmap::fromImage(QlaneImg));
-
-    cvtColor(diffImg, diffImg, CV_GRAY2RGB);
     QImage QpixelImg((uchar*)diffImg.data, diffImg.cols, diffImg.rows, diffImg.step, QImage::Format_RGB888);
     ui->label_pixel->setPixmap(QPixmap::fromImage(QpixelImg));
 

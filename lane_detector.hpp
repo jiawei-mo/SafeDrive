@@ -11,11 +11,9 @@ using namespace std;
 
 struct LaneRes
 {
-    Mat laneImg;
     vector<Point2f> whitePoints;
     vector<Point2f> yellowPoints;
-    LaneRes(Mat l, vector<Point2f> w, vector<Point2f> y) {
-        laneImg = l.clone();
+    LaneRes(vector<Point2f> w, vector<Point2f> y) {
         whitePoints = w;
         yellowPoints = y;
     }

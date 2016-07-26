@@ -46,7 +46,8 @@ LaneRes* LaneDetector::process(const Mat& img)
     {
         laneImg.at<Vec3b>(yellowPoints[i]) = Vec3b(0, 255, 255);
     }
-    LaneRes *res = new LaneRes(laneImg, whitePoints, yellowPoints);
+    imshow("Lane Result", laneImg);
+    LaneRes *res = new LaneRes(whitePoints, yellowPoints);
     return res;
 }
 

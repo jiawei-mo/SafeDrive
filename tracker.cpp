@@ -110,7 +110,7 @@ TrackRes* Tracker::match(const Mat& frame)
             line(matchedImg, curMatchedKp[i], targetMatchedKp[i], CV_RGB(255, 0, 0));
         }
         Mat failHomo;
-        return new TrackRes{matchedImg, failHomo, HOMO_FAIL_SCORE+1};
+        return new TrackRes{failHomo, HOMO_FAIL_SCORE+1};
     }
 
     vector<Point2f> projectedKp;
@@ -132,6 +132,7 @@ TrackRes* Tracker::match(const Mat& frame)
         }
     }
     dist = dist / count;
-    TrackRes *res = new TrackRes(matchedImg, homography, dist/count);
+    imshow("Match Result", matchedImg);
+    TrackRes *res = new TrackRes(homography, dist/count);
     return res;
 }

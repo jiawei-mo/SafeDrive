@@ -9,21 +9,9 @@
 using namespace cv;
 using namespace std;
 
-struct LaneRes
-{
-    vector<Point2f> whitePoints;
-    vector<Point2f> yellowPoints;
-    LaneRes(vector<Point2f> w, vector<Point2f> y) {
-        whitePoints = w;
-        yellowPoints = y;
-    }
-    ~LaneRes() {
-        cout<<"LaneRes deallocation"<<endl;
-    }
-};
-
 class LaneDetector
 {
 public:
-    LaneRes* process(const Mat& img);
+    void detect(const Mat& img, vector<Point2f> &whitePoints, vector<Point2f> &yellowPoints);
+    void detectAndProject(const Mat& detImg, Mat& projImg, const Mat &homo);
 };

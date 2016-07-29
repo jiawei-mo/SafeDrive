@@ -2,13 +2,13 @@
 
 Tracker::Tracker()
 {
-    MAX_NUM_FEATURE = 1000;
-    QUALITY_LEVEL = 0.01f;
-    MIN_DISTANCE = 7;
-    BLUR_SIZE = 3;
-    BLUR_VAR = 1.2;
-    NN_MATCH_THRES = 0.9f;
-    RANSAC_THRES = 20.0f;
+    max_num_features = 1000;
+    quality_level = 0.01f;
+    min_distance = 7;
+    blur_size = 3;
+    blur_var = 1.2;
+    nn_match_thres = 0.9f;
+    ransac_thres = 20.0f;
     targetKp.clear();
     detector = ORB::create();
     matcher = DescriptorMatcher::create("BruteForce-Hamming");
@@ -16,13 +16,13 @@ Tracker::Tracker()
 
 Tracker::Tracker(int mnf, float ql, int md, int bs, float bv, float nmt, float rt)
 {
-    MAX_NUM_FEATURE = mnf;
-    QUALITY_LEVEL = ql;
-    MIN_DISTANCE = md;
-    BLUR_SIZE = bs;
-    BLUR_VAR = bv;
-    NN_MATCH_THRES = nmt;
-    RANSAC_THRES = rt;
+    max_num_features = mnf;
+    quality_level = ql;
+    min_distance = md;
+    blur_size = bs;
+    blur_var = bv;
+    nn_match_thres = nmt;
+    ransac_thres = rt;
     targetKp.clear();
     detector = ORB::create();
     matcher = DescriptorMatcher::create("BruteForce-Hamming");
@@ -30,27 +30,27 @@ Tracker::Tracker(int mnf, float ql, int md, int bs, float bv, float nmt, float r
 
 void Tracker::changeParam(int mnf, float ql, int md, int bs, float bv, float nmt, float rt)
 {
-    MAX_NUM_FEATURE = mnf;
-    QUALITY_LEVEL = ql;
-    MIN_DISTANCE = md;
-    BLUR_SIZE = bs;
-    BLUR_VAR = bv;
-    NN_MATCH_THRES = nmt;
-    RANSAC_THRES = rt;
+    max_num_features = mnf;
+    quality_level = ql;
+    min_distance = md;
+    blur_size = bs;
+    blur_var = bv;
+    nn_match_thres = nmt;
+    ransac_thres = rt;
     targetKp.clear();
 }
 
 void Tracker::setTarget(const Mat& frame)
 {
     targetFrame = frame.clone();
-    GaussianBlur(targetFrame, targetFrame, Size(BLUR_SIZE,BLUR_SIZE), BLUR_VAR, BLUR_VAR);
+    GaussianBlur(targetFrame, targetFrame, Size(blur_size,blur_size), blur_var, blur_var);
     Mat grayImg;
     vector<Point2f> corners;
     cvtColor(targetFrame, grayImg, CV_BGR2GRAY);
     mask = Mat::zeros(frame.size(), CV_8UC1);
-    mask(Rect(0,0,mask.cols/3,mask.rows)).setTo(Scalar::all(255));
-    mask(Rect(mask.cols*2/3,0,mask.cols/3,mask.rows)).setTo(Scalar::all(255));
-    goodFeaturesToTrack(grayImg, corners, MAX_NUM_FEATURE, QUALITY_LEVEL, MIN_DISTANCE, mask);
+    mask(Rect(0,0,mask.cols/3,mask.rows/2)).setTo(Scalar::all(255));
+    mask(Rect(mask.cols*2/3,0,mask.cols/3,mask.rows/2)).setTo(Scalar::all(255));
+    goodFeaturesToTrack(grayImg, corners, max_num_features, quality_level, min_distance, mask);
 
     for( size_t i = 0; i < corners.size(); i++ ) {
         targetKp.push_back(KeyPoint(corners[i], 1.f));
@@ -62,15 +62,15 @@ void Tracker::setTarget(const Mat& frame)
     }
 }
 
-TrackRes* Tracker::match(const Mat& frame)
+Mat Tracker::match(const Mat& frame)
 {
+    //detect feature points on curFrame
     Mat curFrame = frame.clone();
-    GaussianBlur(curFrame, curFrame, Size(BLUR_SIZE,BLUR_SIZE), BLUR_VAR, BLUR_VAR);
-
+    GaussianBlur(curFrame, curFrame, Size(blur_size,blur_size), blur_var, blur_var);
     Mat grayImg;
     vector<Point2f> corners;
     cvtColor(curFrame, grayImg, CV_BGR2GRAY);
-    goodFeaturesToTrack(grayImg, corners, MAX_NUM_FEATURE, QUALITY_LEVEL, MIN_DISTANCE, mask);
+    goodFeaturesToTrack(grayImg, corners, max_num_features, quality_level, min_distance, mask);
 
     vector<KeyPoint> curKp;
     for( size_t i = 0; i < corners.size(); i++ ) {
@@ -80,37 +80,43 @@ TrackRes* Tracker::match(const Mat& frame)
     Mat curDesc;
     detector->compute(curFrame, curKp, curDesc);
 
+    //matches
     vector< vector<DMatch> > matches;
     matcher->knnMatch(curDesc, targetDesc, matches, 2);
     vector<Point2f> targetMatchedKp, curMatchedKp;
     for(int i=0; i<(int)matches.size(); i++)
     {
         circle(curFrame, curKp[matches[i][0].trainIdx].pt, 2, CV_RGB(0, 0, 255));
-        if(matches[i][0].distance < NN_MATCH_THRES*matches[i][1].distance)
+        if(matches[i][0].distance < nn_match_thres*matches[i][1].distance)
         {
             curMatchedKp.push_back(curKp[matches[i][0].queryIdx].pt);
             targetMatchedKp.push_back(targetKp[matches[i][0].trainIdx].pt);
         }
     }
+
+    //find homography based on matches
     Mat homography, inliner_mask;
     if(targetMatchedKp.size() >= NN_MATCH_NUMBER)
     {
-        homography = findHomography(curMatchedKp, targetMatchedKp, RANSAC, RANSAC_THRES, inliner_mask);
+        homography = findHomography(curMatchedKp, targetMatchedKp, RANSAC, ransac_thres, inliner_mask);
     }
 
+    //show inliner pairs between two images side by side
     Mat matchedImg = Mat::zeros(frame.rows, 2*frame.cols, frame.type());
     curFrame.copyTo(matchedImg(Rect(0, 0, frame.cols, frame.rows)));
     targetFrame.copyTo(matchedImg(Rect(frame.cols, 0, frame.cols, frame.rows)));
 
-    if(targetMatchedKp.size() < NN_MATCH_NUMBER || homography.empty() || norm(homography)>HOMO_NORM_THRES)
+    //track fail
+    if(targetMatchedKp.size() < NN_MATCH_NUMBER || homography.empty() || norm(homography)>=HOMO_FAIL_NORM)
     {
         for(int i=0; i<(int)targetMatchedKp.size(); i++)
         {
             targetMatchedKp[i].x += frame.cols;
             line(matchedImg, curMatchedKp[i], targetMatchedKp[i], CV_RGB(255, 0, 0));
         }
-        Mat failHomo;
-        return new TrackRes{failHomo, HOMO_FAIL_SCORE+1};
+        imshow("Match Result", matchedImg);
+        cout<<"Match fail, norm exceeded!"<<endl;
+        return homography;
     }
 
     vector<Point2f> projectedKp;
@@ -131,8 +137,15 @@ TrackRes* Tracker::match(const Mat& frame)
             circle(matchedImg, projectedKp[i], 2, CV_RGB(0, 255, 0));
         }
     }
-    dist = dist / count;
     imshow("Match Result", matchedImg);
-    TrackRes *res = new TrackRes(homography, dist/count);
-    return res;
+
+    dist = dist / count;
+    cout<<"Proj Err: "<<dist<<endl;
+    if(dist > PROJ_ERR_THRES) {
+        Mat failHomo = Mat::ones(1,1,CV_8U);
+        failHomo.at<unsigned int>(0,0) = HOMO_FAIL_NORM;
+        cout<<"Match fail!"<<endl;
+        return failHomo;
+    }
+    return homography;
 }

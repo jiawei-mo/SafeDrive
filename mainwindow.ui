@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1690</width>
-    <height>689</height>
+    <width>1058</width>
+    <height>737</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -17,8 +17,8 @@
    <widget class="QLabel" name="label_result">
     <property name="geometry">
      <rect>
-      <x>660</x>
-      <y>10</y>
+      <x>20</x>
+      <y>30</y>
       <width>640</width>
       <height>640</height>
      </rect>
@@ -33,8 +33,8 @@
    <widget class="QLabel" name="label_MNF">
     <property name="geometry">
      <rect>
-      <x>1330</x>
-      <y>260</y>
+      <x>690</x>
+      <y>280</y>
       <width>161</width>
       <height>20</height>
      </rect>
@@ -46,8 +46,8 @@
    <widget class="QSlider" name="slider_MNF">
     <property name="geometry">
      <rect>
-      <x>1510</x>
-      <y>260</y>
+      <x>870</x>
+      <y>280</y>
       <width>160</width>
       <height>16</height>
      </rect>
@@ -74,8 +74,8 @@
    <widget class="QSlider" name="slider_QL">
     <property name="geometry">
      <rect>
-      <x>1510</x>
-      <y>290</y>
+      <x>870</x>
+      <y>310</y>
       <width>160</width>
       <height>16</height>
      </rect>
@@ -84,13 +84,13 @@
      <number>1</number>
     </property>
     <property name="maximum">
-     <number>20</number>
+     <number>50</number>
     </property>
     <property name="singleStep">
      <number>1</number>
     </property>
     <property name="value">
-     <number>1</number>
+     <number>10</number>
     </property>
     <property name="orientation">
      <enum>Qt::Horizontal</enum>
@@ -99,21 +99,21 @@
    <widget class="QLabel" name="label_QL">
     <property name="geometry">
      <rect>
-      <x>1330</x>
-      <y>290</y>
+      <x>690</x>
+      <y>310</y>
       <width>161</width>
       <height>20</height>
      </rect>
     </property>
     <property name="text">
-     <string>Quality Level: 0.001</string>
+     <string>Quality Level: 0.01</string>
     </property>
    </widget>
    <widget class="QLabel" name="label_NMT">
     <property name="geometry">
      <rect>
-      <x>1330</x>
-      <y>350</y>
+      <x>690</x>
+      <y>370</y>
       <width>161</width>
       <height>20</height>
      </rect>
@@ -125,8 +125,8 @@
    <widget class="QSlider" name="slider_MD">
     <property name="geometry">
      <rect>
-      <x>1510</x>
-      <y>320</y>
+      <x>870</x>
+      <y>340</y>
       <width>160</width>
       <height>16</height>
      </rect>
@@ -150,8 +150,8 @@
    <widget class="QSlider" name="slider_NMT">
     <property name="geometry">
      <rect>
-      <x>1510</x>
-      <y>350</y>
+      <x>870</x>
+      <y>370</y>
       <width>160</width>
       <height>16</height>
      </rect>
@@ -172,8 +172,8 @@
    <widget class="QLabel" name="label_MD">
     <property name="geometry">
      <rect>
-      <x>1330</x>
-      <y>320</y>
+      <x>690</x>
+      <y>340</y>
       <width>161</width>
       <height>20</height>
      </rect>
@@ -185,8 +185,8 @@
    <widget class="QLabel" name="label_RT">
     <property name="geometry">
      <rect>
-      <x>1330</x>
-      <y>380</y>
+      <x>690</x>
+      <y>400</y>
       <width>161</width>
       <height>20</height>
      </rect>
@@ -198,8 +198,8 @@
    <widget class="QSlider" name="slider_BS">
     <property name="geometry">
      <rect>
-      <x>1510</x>
-      <y>200</y>
+      <x>870</x>
+      <y>220</y>
       <width>160</width>
       <height>16</height>
      </rect>
@@ -223,8 +223,8 @@
    <widget class="QSlider" name="slider_RT">
     <property name="geometry">
      <rect>
-      <x>1510</x>
-      <y>380</y>
+      <x>870</x>
+      <y>400</y>
       <width>160</width>
       <height>16</height>
      </rect>
@@ -245,8 +245,8 @@
    <widget class="QLabel" name="label_BS">
     <property name="geometry">
      <rect>
-      <x>1330</x>
-      <y>200</y>
+      <x>690</x>
+      <y>220</y>
       <width>161</width>
       <height>20</height>
      </rect>
@@ -258,8 +258,8 @@
    <widget class="QPushButton" name="button_reset">
     <property name="geometry">
      <rect>
-      <x>1330</x>
-      <y>410</y>
+      <x>690</x>
+      <y>430</y>
       <width>81</width>
       <height>41</height>
      </rect>
@@ -271,8 +271,8 @@
    <widget class="QPlainTextEdit" name="text_TFN">
     <property name="geometry">
      <rect>
-      <x>1330</x>
-      <y>20</y>
+      <x>690</x>
+      <y>40</y>
       <width>331</width>
       <height>31</height>
      </rect>
@@ -285,8 +285,8 @@
    <widget class="QLabel" name="label">
     <property name="geometry">
      <rect>
-      <x>1330</x>
-      <y>0</y>
+      <x>690</x>
+      <y>20</y>
       <width>151</width>
       <height>20</height>
      </rect>
@@ -303,8 +303,8 @@
    <widget class="QPushButton" name="button_start">
     <property name="geometry">
      <rect>
-      <x>1330</x>
-      <y>130</y>
+      <x>690</x>
+      <y>150</y>
       <width>81</width>
       <height>41</height>
      </rect>
@@ -321,8 +321,8 @@
    <widget class="QPlainTextEdit" name="text_log">
     <property name="geometry">
      <rect>
-      <x>1330</x>
-      <y>450</y>
+      <x>690</x>
+      <y>470</y>
       <width>341</width>
       <height>201</height>
      </rect>
@@ -337,8 +337,8 @@
    <widget class="QPlainTextEdit" name="text_PM">
     <property name="geometry">
      <rect>
-      <x>1330</x>
-      <y>80</y>
+      <x>690</x>
+      <y>100</y>
       <width>331</width>
       <height>31</height>
      </rect>
@@ -351,8 +351,8 @@
    <widget class="QLabel" name="label_2">
     <property name="geometry">
      <rect>
-      <x>1330</x>
-      <y>60</y>
+      <x>690</x>
+      <y>80</y>
       <width>211</width>
       <height>20</height>
      </rect>
@@ -369,8 +369,8 @@
    <widget class="QSlider" name="slider_BV">
     <property name="geometry">
      <rect>
-      <x>1510</x>
-      <y>230</y>
+      <x>870</x>
+      <y>250</y>
       <width>160</width>
       <height>16</height>
      </rect>
@@ -394,30 +394,14 @@
    <widget class="QLabel" name="label_BV">
     <property name="geometry">
      <rect>
-      <x>1330</x>
-      <y>230</y>
+      <x>690</x>
+      <y>250</y>
       <width>161</width>
       <height>20</height>
      </rect>
     </property>
     <property name="text">
      <string>Blur Var: 1.2</string>
-    </property>
-   </widget>
-   <widget class="QLabel" name="label_pixel">
-    <property name="geometry">
-     <rect>
-      <x>10</x>
-      <y>10</y>
-      <width>640</width>
-      <height>640</height>
-     </rect>
-    </property>
-    <property name="autoFillBackground">
-     <bool>true</bool>
-    </property>
-    <property name="text">
-     <string/>
     </property>
    </widget>
   </widget>

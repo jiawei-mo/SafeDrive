@@ -21,8 +21,7 @@ SOURCES += main.cpp\
 HEADERS  += mainwindow.h \
     tracker.hpp \
     gsv_fetcher.hpp \
-    lane_detector.hpp \
-    parameters.hpp
+    lane_detector.hpp
 
 FORMS    += mainwindow.ui
 
@@ -39,3 +38,5 @@ LIBS += -lopencv_imgcodecs
 LIBS += -lopencv_reg
 
 CONFIG += c++11
+QMAKE_CXXFLAGS += -fopenmp
+LIBS += -fopenmp

@@ -5,7 +5,6 @@
 #include "tracker.hpp"
 #include "lane_detector.hpp"
 #include "gsv_fetcher.hpp"
-#include "parameters.hpp"
 #include <string.h>
 #include <fstream>
 
@@ -32,8 +31,9 @@ private:
     float lat;
     float lon;
     float head;
+    float pitch;
     void changeParamAndReprocess();
-    void process(string targetString, float lat, float lon, float heading, float pitch);
+    void process();
 
 private slots:
     void on_button_reset_clicked();

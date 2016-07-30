@@ -142,7 +142,7 @@ Mat Tracker::match(const Mat& frame)
     dist = dist / count;
     cout<<"Proj Err: "<<dist<<endl;
     if(dist > PROJ_ERR_THRES) {
-        Mat failHomo = Mat::ones(1,1,CV_8U);
+        Mat failHomo = Mat::ones(3,3,CV_8U);
         failHomo.at<unsigned int>(0,0) = HOMO_FAIL_NORM;
         cout<<"Match fail!"<<endl;
         return failHomo;

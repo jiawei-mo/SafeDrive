@@ -7,7 +7,7 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 
-#define MATCH_STEP 3
+#define MATCH_STEP 1
 #define MATCH_LAT_LENGTH 0.0001
 #define MATCH_LON_LENGTH 0.0001
 #define MATCH_HEAD_LENGTH 1
@@ -15,7 +15,28 @@
 
 using namespace cv::reg;
 
-Mat projDifference(const Mat& image1, const Mat& image2)
+void showDifference(const Mat& image1, const Mat& image2, string title)
+{
+    Mat img1, img2;
+    image1.convertTo(img1, CV_32FC3);
+    image2.convertTo(img2, CV_32FC3);
+    if(img1.channels() != 1)
+        cvtColor(img1, img1, CV_RGB2GRAY);
+    if(img2.channels() != 1)
+        cvtColor(img2, img2, CV_RGB2GRAY);
+
+    Mat imgDiff;
+    img1.copyTo(imgDiff);
+    imgDiff -= img2;
+    imgDiff /= 2.f;
+    imgDiff += 128.f;
+
+    Mat imgSh;
+    imgDiff.convertTo(imgSh, CV_8UC3);
+    imshow(title, imgSh);
+}
+
+void showDifferenceEdge(const Mat& image1, const Mat& image2, string name)
 {
     Mat img1Tmp, img2Tmp, img1Edge, img2Edge;
     image1.convertTo(img1Tmp, CV_8UC3);
@@ -29,27 +50,28 @@ Mat projDifference(const Mat& image1, const Mat& image2)
     redImg.copyTo(res, img1Edge);
     blueImg.copyTo(res, img2Edge);
 
-    return res;
+    imshow(name, res);
+
+    return;
 }
 
 //return pair<homo, diffImg>
-pair<Mat, Mat> pixelWiseMatch(const Mat& img1, const Mat& img2)
+Mat pixelWiseMatch(const Mat& img1, const Mat& img2, const Mat& initialHomo)
 {
+    Ptr<Map> res = new MapProjec(initialHomo);
     MapperGradProj mapper;
     MapperPyramid mappPyr(mapper);
-    mappPyr.numIterPerScale_ = 10;
-    Ptr<Map> mapPtr;
-    mappPyr.calculate(img1, img2, mapPtr);
+    mappPyr.calculate(img1, img2, res);
 
-    MapProjec* mapProj = dynamic_cast<MapProjec*>(mapPtr.get());
+    MapProjec* mapProj = dynamic_cast<MapProjec*>(res.get());
     mapProj->normalize();
 
     // Generate diffImg
     Mat dest;
     mapProj->inverseWarp(img2, dest);
-    Mat diffImg = projDifference(img1, dest);
+    showDifferenceEdge(img1, dest, "Pixel Difference");
 
-    return make_pair(Mat(mapProj->getProjTr()), diffImg);
+    return Mat(mapProj->getProjTr());
 }
 
 void MainWindow::process()
@@ -120,33 +142,31 @@ void MainWindow::process()
     ui->text_log->appendPlainText(QString("Latitude: ") + QString::number(minLat) + QString(" Longitude: ") + QString::number(minLon) + QString(" Heading: ") + QString::number(minHead) + QString(" Pitch: ") + QString::number(minPitch));
     ui->text_log->appendPlainText(QString(" Homo Norm: ") + QString::number(norm(trackRes)) + QString("\n"));
 
-    //coarse proj
-    Mat recMatchedImg;
-    warpPerspective(matchedFrame, recMatchedImg, trackRes, targetFrame.size());
+//    //coarse proj
+//    Mat recMatchedImg;
+//    warpPerspective(matchedFrame, recMatchedImg, trackRes, targetFrame.size());
 
     //pixelwise compare
-    Mat recMatchedImgTmp, targetFrameTmp;
+    Mat matchedFrameTmp, targetFrameTmp;
 //    recMatchedImg = matchedFrame.clone();
-//    Canny( recMatchedImg, recMatchedImgTmp, 50, 200, 3);
+//    Canny( matchedFrame, matchedFrameTmp, 50, 200, 3);
 //    Canny( targetFrame, targetFrameTmp, 50, 200, 3);
-    Rect topHalf(0, 0, recMatchedImg.cols, recMatchedImg.rows / 2);
-    Mat recHalf(recMatchedImg, topHalf);
-    Mat tgtHalf(targetFrame, topHalf);
-    recHalf.convertTo(recMatchedImgTmp, CV_64FC3);
+    Rect mask(0, 0, matchedFrame.cols, matchedFrame.rows);
+    Mat recHalf(matchedFrame, mask);
+    Mat tgtHalf(targetFrame, mask);
+    recHalf.convertTo(matchedFrameTmp, CV_64FC3);
     tgtHalf.convertTo(targetFrameTmp, CV_64FC3);
-    pair<Mat, Mat> pixelRes = pixelWiseMatch(recMatchedImgTmp, targetFrameTmp);
-    Mat finalHomo = pixelRes.first;
-    Mat diffImg = pixelRes.second;
-    imshow("Pixel Difference", diffImg);
+    Mat finalHomo = pixelWiseMatch(matchedFrameTmp, targetFrameTmp, trackRes);
 
     //detect lane
     Mat matchRes = targetFrame.clone();
-    detector->detectAndProject(recMatchedImg, matchRes, finalHomo.inv());
+    detector->detectAndProject(matchedFrame, matchRes, finalHomo);
 
-    //detect lane compare
-    Mat matchResC = targetFrame.clone();
-    detector->detectAndProject(matchedFrame, matchResC, trackRes);
-    imshow("Compare", matchResC);
+    //no pixel compare
+//    Mat matchResC = targetFrame.clone();
+//    detector->detectAndProject(matchedFrame, matchResC, trackRes);
+//    imshow("Compare", matchResC);
+//    showDifferenceEdge(matchedFrame, targetFrame, "compare diff");
 
     //put images onto GUI
     cvtColor(matchRes, matchRes, CV_BGR2RGB);

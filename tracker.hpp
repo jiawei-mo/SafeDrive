@@ -9,8 +9,8 @@
 using namespace cv;
 using namespace std;
 
-#define HOMO_FAIL_NORM 200.0f
-#define PROJ_ERR_THRES 10.0f
+#define HOMO_FAIL_NORM 20000.0f
+#define PROJ_ERR_THRES 100.0f
 #define NN_MATCH_NUMBER 4
 
 class Tracker

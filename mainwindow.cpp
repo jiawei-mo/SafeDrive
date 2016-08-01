@@ -1,78 +1,13 @@
-#include "opencv2/reg/mapprojec.hpp"
-#include "opencv2/reg/mappergradproj.hpp"
-#include "opencv2/reg/mapperpyramid.hpp"
-
 #include "omp.h"
 
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 
-#define MATCH_STEP 1
+#define MATCH_STEP 2
 #define MATCH_LAT_LENGTH 0.0001
 #define MATCH_LON_LENGTH 0.0001
-#define MATCH_HEAD_LENGTH 1
+#define MATCH_HEAD_LENGTH 2
 #define MATCH_PITCH_LENGTH 1
-
-using namespace cv::reg;
-
-void showDifference(const Mat& image1, const Mat& image2, string title)
-{
-    Mat img1, img2;
-    image1.convertTo(img1, CV_32FC3);
-    image2.convertTo(img2, CV_32FC3);
-    if(img1.channels() != 1)
-        cvtColor(img1, img1, CV_RGB2GRAY);
-    if(img2.channels() != 1)
-        cvtColor(img2, img2, CV_RGB2GRAY);
-
-    Mat imgDiff;
-    img1.copyTo(imgDiff);
-    imgDiff -= img2;
-    imgDiff /= 2.f;
-    imgDiff += 128.f;
-
-    Mat imgSh;
-    imgDiff.convertTo(imgSh, CV_8UC3);
-    imshow(title, imgSh);
-}
-
-void showDifferenceEdge(const Mat& image1, const Mat& image2, string name)
-{
-    Mat img1Tmp, img2Tmp, img1Edge, img2Edge;
-    image1.convertTo(img1Tmp, CV_8UC3);
-    image2.convertTo(img2Tmp, CV_8UC3);
-    Canny( img1Tmp, img1Edge, 50, 150, 3);
-    Canny( img2Tmp, img2Edge, 50, 150, 3);
-
-    Mat res(image1.size(), CV_8UC3, Scalar(0, 0, 0));
-    Mat redImg(image1.size(), CV_8UC3, Scalar(255, 0, 0));
-    Mat blueImg(image1.size(), CV_8UC3, Scalar(0, 0, 255));
-    redImg.copyTo(res, img1Edge);
-    blueImg.copyTo(res, img2Edge);
-
-    imshow(name, res);
-
-    return;
-}
-
-//return pair<homo, diffImg>
-Mat pixelWiseMatch(const Mat& img1, const Mat& img2, const Mat& initialHomo)
-{
-    Ptr<Map> res = new MapProjec(initialHomo);
-    MapperGradProj mapper;
-    MapperPyramid mappPyr(mapper);
-    mappPyr.calculate(img1, img2, res);
-
-    MapProjec* mapProj = dynamic_cast<MapProjec*>(res.get());
-    mapProj->normalize();
-
-    // Generate diffImg
-    Mat dest;
-    mapProj->inverseWarp(img2, dest);
-    showDifferenceEdge(img1, dest, "Pixel Difference");
-
-    return Mat(mapProj->getProjTr());
-}
 
 void MainWindow::process()
 {
@@ -84,55 +19,55 @@ void MainWindow::process()
 
     tracker->setTarget(targetFrame);
 
-    Mat trackRes;
+    Mat featureRes;
     float minNorm = HOMO_FAIL_NORM+1;
     float minLat = lat;
     float minLon = lon;
     float minHead = head;
     float minPitch = pitch;
     Mat curFrame;
-//    #pragma omp parallel for
-//    for(int a=0; a<MATCH_STEP; a++)
-//    {
-//        float curLat = lat+MATCH_LAT_LENGTH*a;
-//        #pragma omp parallel for
-//        for(int b=0; b<MATCH_STEP; b++)
-//        {
-//            float curLon = lon+MATCH_LON_LENGTH*b;
-//            #pragma omp parallel for
+    #pragma omp parallel for
+    for(int a=0; a<MATCH_STEP; a++)
+    {
+        float curLat = lat+MATCH_LAT_LENGTH*a;
+        #pragma omp parallel for
+        for(int b=0; b<MATCH_STEP; b++)
+        {
+            float curLon = lon+MATCH_LON_LENGTH*b;
+            #pragma omp parallel for
             for(int c=0; c<MATCH_STEP; c++)
             {
                 float curHead = head+MATCH_HEAD_LENGTH*c;
-//                #pragma omp parallel for
+                #pragma omp parallel for
                 for(int d=0; d<MATCH_STEP; d++)
                 {
                     float curPitch = pitch+MATCH_PITCH_LENGTH*d;
                     curFrame = fetcher->get(targetFrame.size(),
-                                            lat,
-                                            lon,
+                                            curLat,
+                                            curLon,
                                             curHead,
                                             curPitch);
-                    trackRes = tracker->match(curFrame);
-                    if(norm(trackRes) < minNorm)
+                    featureRes = tracker->featureMatch(curFrame, false);
+                    if(norm(featureRes) < minNorm)
                     {
-                        minNorm = norm(trackRes);
-                        minLat = lat;
-                        minLon = lon;
+                        minNorm = norm(featureRes);
+                        minLat = curLat;
+                        minLon = curLon;
                         minHead = curHead;
                         minPitch = curPitch;
                     }
                 }
             }
-//        }
-//    }
+        }
+    }
 
 
     ui->text_log->appendPlainText("Matched Result:");
     Mat matchedFrame = fetcher->get(targetFrame.size(), minLat, minLon, minHead, minPitch);
-    trackRes = tracker->match(matchedFrame);
+    featureRes = tracker->featureMatch(matchedFrame, true);
 
     //fail
-    if(trackRes.empty() || norm(trackRes) >= HOMO_FAIL_NORM) {
+    if(featureRes.empty() || norm(featureRes) >= HOMO_FAIL_NORM) {
         ui->text_log->appendPlainText("Fail!");
         return;
     }
@@ -140,33 +75,21 @@ void MainWindow::process()
     //success
     ui->text_log->appendPlainText("Success!");
     ui->text_log->appendPlainText(QString("Latitude: ") + QString::number(minLat) + QString(" Longitude: ") + QString::number(minLon) + QString(" Heading: ") + QString::number(minHead) + QString(" Pitch: ") + QString::number(minPitch));
-    ui->text_log->appendPlainText(QString(" Homo Norm: ") + QString::number(norm(trackRes)) + QString("\n"));
+    ui->text_log->appendPlainText(QString(" Homo Norm: ") + QString::number(norm(featureRes)) + QString("\n"));
 
-//    //coarse proj
-//    Mat recMatchedImg;
-//    warpPerspective(matchedFrame, recMatchedImg, trackRes, targetFrame.size());
+    //pixel-wise compare
+    Mat finalHomo = tracker->pixelMatch(matchedFrame, featureRes);
 
-    //pixelwise compare
-    Mat matchedFrameTmp, targetFrameTmp;
-//    recMatchedImg = matchedFrame.clone();
-//    Canny( matchedFrame, matchedFrameTmp, 50, 200, 3);
-//    Canny( targetFrame, targetFrameTmp, 50, 200, 3);
-    Rect mask(0, 0, matchedFrame.cols, matchedFrame.rows);
-    Mat recHalf(matchedFrame, mask);
-    Mat tgtHalf(targetFrame, mask);
-    recHalf.convertTo(matchedFrameTmp, CV_64FC3);
-    tgtHalf.convertTo(targetFrameTmp, CV_64FC3);
-    Mat finalHomo = pixelWiseMatch(matchedFrameTmp, targetFrameTmp, trackRes);
+    Mat matchResC = targetFrame.clone();
+    detector->detectAndProject(matchedFrame, matchResC, featureRes);
+    cout<<featureRes<<endl;
+    imshow("Compare", matchResC);
+    tracker->showDifferenceEdge(matchedFrame, targetFrame, "compare diff");
 
     //detect lane
     Mat matchRes = targetFrame.clone();
     detector->detectAndProject(matchedFrame, matchRes, finalHomo);
-
-    //no pixel compare
-//    Mat matchResC = targetFrame.clone();
-//    detector->detectAndProject(matchedFrame, matchResC, trackRes);
-//    imshow("Compare", matchResC);
-//    showDifferenceEdge(matchedFrame, targetFrame, "compare diff");
+    cout<<finalHomo<<endl;
 
     //put images onto GUI
     cvtColor(matchRes, matchRes, CV_BGR2RGB);
@@ -176,42 +99,32 @@ void MainWindow::process()
     return;
 }
 
-void MainWindow::changeParamAndReprocess()
-{
-    ui->label_MNF->setText(QString("Max Num Features: ") + QString::number(ui->slider_MNF->value()));
-    ui->label_QL->setText(QString("Quality Level: ") + QString::number(ui->slider_QL->value() / 1000.0f));
-    ui->label_MD->setText(QString("Min Distance: ") + QString::number(ui->slider_MD->value()));
-    ui->label_BS->setText(QString("Blur Size: ") + QString::number(ui->slider_BS->value()));
-    ui->label_BV->setText(QString("Blur Var: ") + QString::number(ui->slider_BV->value() / 10.0f));
-    ui->label_NMT->setText(QString("NN Match Thres: ") + QString::number(ui->slider_NMT->value() / 100.0f));
-    ui->label_RT->setText(QString("RANSAC Thres: ") + QString::number(ui->slider_RT->value() / 1.0f));
-    int mnf = ui->slider_MNF->value();
-    float ql = ui->slider_QL->value() / 1000.0f;
-    int md = ui->slider_MD->value();
-    int bs = ui->slider_BS->value() * 2 - 1;
-    float bv = ui->slider_BV->value() / 10.0f;
-    float nmt = ui->slider_NMT->value() / 100.0f;
-    float rt = ui->slider_RT->value() / 1.0f;
-    tracker->changeParam(mnf, ql, md, bs, bv, nmt, rt);
-
-    process();
-}
-
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
 
-    int mnf = ui->slider_MNF->value();
-    float ql = ui->slider_QL->value() / 1000.0f;
-    int md = ui->slider_MD->value();
-    int bs = ui->slider_BS->value() * 2 - 1;
-    float bv = ui->slider_BV->value() / 10.0f;
-    float nmt = ui->slider_NMT->value() / 100.0f;
-    float rt = ui->slider_RT->value() / 1.0f;
+    ui->slider_BS->setValue(BS);
+    ui->slider_BV->setValue(BV);
+    ui->slider_MNF->setValue(MNF);
+    ui->slider_QL->setValue(QL);
+    ui->slider_MD->setValue(MD);
+    ui->slider_NMT->setValue(NMT);
+    ui->slider_RT->setValue(RT);
+    ui->slider_BDT->setValue(BDT);
+    ui->slider_BDS->setValue(BDS);
+    int bs = BS * 2 - 1;
+    float bv = BV / 10.0f;
+    int mnf = MNF;
+    float ql = QL / 1000.0f;
+    int md = MD;
+    float nmt = NMT / 100.0f;
+    float rt = RT / 1.0f;
+    int bdt = ui->slider_BDT->value();
+    float bds = ui->slider_BDS->value() * 2 - 1;
 
-    tracker = new Tracker(mnf, ql, md, bs, bv, nmt, rt);
+    tracker = new Tracker(mnf, ql, md, bs, bv, nmt, rt, bdt, bds);
     detector = new LaneDetector();
     fetcher = new GSVFetcher();
 }
@@ -219,6 +132,31 @@ MainWindow::MainWindow(QWidget *parent) :
 MainWindow::~MainWindow()
 {
     delete ui;
+}
+
+void MainWindow::changeParamAndReprocess()
+{
+    ui->label_BS->setText(QString("Blur Size: ") + QString::number(ui->slider_BS->value()));
+    ui->label_BV->setText(QString("Blur Var: ") + QString::number(ui->slider_BV->value() / 10.0f));
+    ui->label_MNF->setText(QString("Max Num Features: ") + QString::number(ui->slider_MNF->value()));
+    ui->label_QL->setText(QString("Quality Level: ") + QString::number(ui->slider_QL->value() / 1000.0f));
+    ui->label_MD->setText(QString("Min Distance: ") + QString::number(ui->slider_MD->value()));
+    ui->label_NMT->setText(QString("NN Match Thres: ") + QString::number(ui->slider_NMT->value() / 100.0f));
+    ui->label_RT->setText(QString("RANSAC Thres: ") + QString::number(ui->slider_RT->value() / 1.0f));
+    ui->label_BDT->setText(QString("Board Thres: ") + QString::number(ui->slider_BDT->value()));
+    ui->label_BDS->setText(QString("Board Size: ") + QString::number(ui->slider_BDS->value()));
+    int bs = ui->slider_BS->value() * 2 - 1;
+    float bv = ui->slider_BV->value() / 10.0f;
+    int mnf = ui->slider_MNF->value();
+    float ql = ui->slider_QL->value() / 1000.0f;
+    int md = ui->slider_MD->value();
+    float nmt = ui->slider_NMT->value() / 100.0f;
+    float rt = ui->slider_RT->value() / 1.0f;
+    int bdt = ui->slider_BDT->value();
+    float bds = ui->slider_BDS->value() * 2 - 1;
+    tracker->changeParam(mnf, ql, md, bs, bv, nmt, rt, bdt, bds);
+
+    process();
 }
 
 void MainWindow::on_button_start_clicked()
@@ -239,18 +177,20 @@ void MainWindow::on_button_start_clicked()
     pitch = stof(param);
     params.close();
 
-    process();
+    on_button_reset_clicked();
 }
 
 void MainWindow::on_button_reset_clicked()
 {
-    ui->slider_BS->setValue(3);
-    ui->slider_BV->setValue(12);
-    ui->slider_MNF->setValue(1000);
-    ui->slider_QL->setValue(10);
-    ui->slider_MD->setValue(5);
-    ui->slider_NMT->setValue(78);
-    ui->slider_RT->setValue(20);
+    ui->slider_BS->setValue(BS);
+    ui->slider_BV->setValue(BV);
+    ui->slider_MNF->setValue(MNF);
+    ui->slider_QL->setValue(QL);
+    ui->slider_MD->setValue(MD);
+    ui->slider_NMT->setValue(NMT);
+    ui->slider_RT->setValue(RT);
+    ui->slider_BDT->setValue(BDT);
+    ui->slider_BDS->setValue(BDS);
     changeParamAndReprocess();
 }
 
@@ -285,6 +225,16 @@ void MainWindow::on_slider_BS_sliderReleased()
 }
 
 void MainWindow::on_slider_BV_sliderReleased()
+{
+    changeParamAndReprocess();
+}
+
+void MainWindow::on_slider_BDT_sliderReleased()
+{
+    changeParamAndReprocess();
+}
+
+void MainWindow::on_slider_BDS_sliderReleased()
 {
     changeParamAndReprocess();
 }

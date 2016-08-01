@@ -1,6 +1,6 @@
 #include "lane_detector.hpp"
 
-void LaneDetector::detect(const Mat& img, vector<Point2f>& whitePoints, vector<Point2f>& yellowPoints)
+void LaneDetector::detect(const Mat& img, vector<Point2f>& whitePoints, vector<Point2f>& yellowPoints, bool showImg)
 {
     Mat imgCopy = img.clone();
     //ROI
@@ -33,16 +33,18 @@ void LaneDetector::detect(const Mat& img, vector<Point2f>& whitePoints, vector<P
         }
     }
 
-    Mat laneImg = img.clone();
-    for(int i=0; i<(int)whitePoints.size(); i++)
-    {
-        laneImg.at<Vec3b>(whitePoints[i]) = Vec3b(255, 255, 255);
+    if(showImg) {
+        Mat laneImg = img.clone();
+        for(int i=0; i<(int)whitePoints.size(); i++)
+        {
+            laneImg.at<Vec3b>(whitePoints[i]) = Vec3b(255, 255, 255);
+        }
+        for(int i=0; i<(int)yellowPoints.size(); i++)
+        {
+            laneImg.at<Vec3b>(yellowPoints[i]) = Vec3b(0, 255, 255);
+        }
+        imshow("Lane Result", laneImg);
     }
-    for(int i=0; i<(int)yellowPoints.size(); i++)
-    {
-        laneImg.at<Vec3b>(yellowPoints[i]) = Vec3b(0, 255, 255);
-    }
-    imshow("Lane Result", laneImg);
 }
 
 bool imgBoundValid(const Mat& img, Point2f pt) {
@@ -53,11 +55,11 @@ bool imgBoundValid(const Mat& img, Point2f pt) {
     return a && b && c && d;
 }
 
-void LaneDetector::detectAndProject(const Mat& detImg, Mat& projImg, const Mat& homo)
+void LaneDetector::detectAndProject(const Mat& detImg, Mat& projImg, const Mat& homo, bool showImg)
 {
     vector<Point2f> whitePoints;
     vector<Point2f> yellowPoints;
-    detect(detImg, whitePoints, yellowPoints);
+    detect(detImg, whitePoints, yellowPoints, showImg);
     vector<Point2f> whiteProjectedPoints, yellowProjectedPoints;
     perspectiveTransform(whitePoints, whiteProjectedPoints, homo);
     perspectiveTransform(yellowPoints, yellowProjectedPoints, homo);

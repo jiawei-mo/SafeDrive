@@ -12,6 +12,6 @@ using namespace std;
 class LaneDetector
 {
 public:
-    void detect(const Mat& img, vector<Point2f> &whitePoints, vector<Point2f> &yellowPoints);
-    void detectAndProject(const Mat& detImg, Mat& projImg, const Mat &homo);
+    void detect(const Mat& img, vector<Point2f> &whitePoints, vector<Point2f> &yellowPoints, bool showImg=false);
+    void detectAndProject(const Mat& detImg, Mat& projImg, const Mat &homo, bool showImg=false);
 };

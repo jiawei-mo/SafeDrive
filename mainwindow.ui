@@ -34,20 +34,20 @@
     <property name="geometry">
      <rect>
       <x>690</x>
-      <y>280</y>
+      <y>260</y>
       <width>161</width>
       <height>20</height>
      </rect>
     </property>
     <property name="text">
-     <string>Max Num Features: 1000</string>
+     <string>Max Num Features</string>
     </property>
    </widget>
    <widget class="QSlider" name="slider_MNF">
     <property name="geometry">
      <rect>
       <x>870</x>
-      <y>280</y>
+      <y>260</y>
       <width>160</width>
       <height>16</height>
      </rect>
@@ -64,8 +64,11 @@
     <property name="pageStep">
      <number>300</number>
     </property>
+    <property name="value">
+     <number>100</number>
+    </property>
     <property name="sliderPosition">
-     <number>1000</number>
+     <number>100</number>
     </property>
     <property name="orientation">
      <enum>Qt::Horizontal</enum>
@@ -75,7 +78,7 @@
     <property name="geometry">
      <rect>
       <x>870</x>
-      <y>310</y>
+      <y>290</y>
       <width>160</width>
       <height>16</height>
      </rect>
@@ -90,7 +93,7 @@
      <number>1</number>
     </property>
     <property name="value">
-     <number>10</number>
+     <number>1</number>
     </property>
     <property name="orientation">
      <enum>Qt::Horizontal</enum>
@@ -100,33 +103,33 @@
     <property name="geometry">
      <rect>
       <x>690</x>
-      <y>310</y>
+      <y>290</y>
       <width>161</width>
       <height>20</height>
      </rect>
     </property>
     <property name="text">
-     <string>Quality Level: 0.01</string>
+     <string>Quality Level</string>
     </property>
    </widget>
    <widget class="QLabel" name="label_NMT">
     <property name="geometry">
      <rect>
       <x>690</x>
-      <y>370</y>
+      <y>350</y>
       <width>161</width>
       <height>20</height>
      </rect>
     </property>
     <property name="text">
-     <string>NN Match Thres: 0.78</string>
+     <string>NN Match Thres</string>
     </property>
    </widget>
    <widget class="QSlider" name="slider_MD">
     <property name="geometry">
      <rect>
       <x>870</x>
-      <y>340</y>
+      <y>320</y>
       <width>160</width>
       <height>16</height>
      </rect>
@@ -138,10 +141,10 @@
      <number>20</number>
     </property>
     <property name="value">
-     <number>5</number>
+     <number>1</number>
     </property>
     <property name="sliderPosition">
-     <number>5</number>
+     <number>1</number>
     </property>
     <property name="orientation">
      <enum>Qt::Horizontal</enum>
@@ -151,7 +154,7 @@
     <property name="geometry">
      <rect>
       <x>870</x>
-      <y>370</y>
+      <y>350</y>
       <width>160</width>
       <height>16</height>
      </rect>
@@ -163,7 +166,7 @@
      <number>100</number>
     </property>
     <property name="value">
-     <number>78</number>
+     <number>0</number>
     </property>
     <property name="orientation">
      <enum>Qt::Horizontal</enum>
@@ -173,33 +176,33 @@
     <property name="geometry">
      <rect>
       <x>690</x>
-      <y>340</y>
+      <y>320</y>
       <width>161</width>
       <height>20</height>
      </rect>
     </property>
     <property name="text">
-     <string>Min Distance: 5</string>
+     <string>Min Distance</string>
     </property>
    </widget>
    <widget class="QLabel" name="label_RT">
     <property name="geometry">
      <rect>
       <x>690</x>
-      <y>400</y>
+      <y>380</y>
       <width>161</width>
       <height>20</height>
      </rect>
     </property>
     <property name="text">
-     <string>RANSAC Thres: 20</string>
+     <string>RANSAC Thres</string>
     </property>
    </widget>
    <widget class="QSlider" name="slider_BS">
     <property name="geometry">
      <rect>
       <x>870</x>
-      <y>220</y>
+      <y>200</y>
       <width>160</width>
       <height>16</height>
      </rect>
@@ -208,13 +211,13 @@
      <number>1</number>
     </property>
     <property name="maximum">
-     <number>20</number>
+     <number>10</number>
     </property>
     <property name="pageStep">
      <number>7</number>
     </property>
     <property name="value">
-     <number>3</number>
+     <number>1</number>
     </property>
     <property name="orientation">
      <enum>Qt::Horizontal</enum>
@@ -224,7 +227,7 @@
     <property name="geometry">
      <rect>
       <x>870</x>
-      <y>400</y>
+      <y>380</y>
       <width>160</width>
       <height>16</height>
      </rect>
@@ -233,10 +236,10 @@
      <number>0</number>
     </property>
     <property name="maximum">
-     <number>50</number>
+     <number>30</number>
     </property>
     <property name="value">
-     <number>20</number>
+     <number>0</number>
     </property>
     <property name="orientation">
      <enum>Qt::Horizontal</enum>
@@ -246,20 +249,20 @@
     <property name="geometry">
      <rect>
       <x>690</x>
-      <y>220</y>
+      <y>200</y>
       <width>161</width>
       <height>20</height>
      </rect>
     </property>
     <property name="text">
-     <string>Blur Size: 3</string>
+     <string>Blur Size</string>
     </property>
    </widget>
    <widget class="QPushButton" name="button_reset">
     <property name="geometry">
      <rect>
-      <x>690</x>
-      <y>430</y>
+      <x>910</x>
+      <y>150</y>
       <width>81</width>
       <height>41</height>
      </rect>
@@ -370,7 +373,7 @@
     <property name="geometry">
      <rect>
       <x>870</x>
-      <y>250</y>
+      <y>230</y>
       <width>160</width>
       <height>16</height>
      </rect>
@@ -379,13 +382,13 @@
      <number>1</number>
     </property>
     <property name="maximum">
-     <number>40</number>
+     <number>20</number>
     </property>
     <property name="pageStep">
      <number>7</number>
     </property>
     <property name="value">
-     <number>12</number>
+     <number>1</number>
     </property>
     <property name="orientation">
      <enum>Qt::Horizontal</enum>
@@ -395,13 +398,83 @@
     <property name="geometry">
      <rect>
       <x>690</x>
-      <y>250</y>
+      <y>230</y>
       <width>161</width>
       <height>20</height>
      </rect>
     </property>
     <property name="text">
-     <string>Blur Var: 1.2</string>
+     <string>Blur Var</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_BDT">
+    <property name="geometry">
+     <rect>
+      <x>690</x>
+      <y>410</y>
+      <width>161</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Board Thres</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_BDS">
+    <property name="geometry">
+     <rect>
+      <x>690</x>
+      <y>440</y>
+      <width>161</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Board Size</string>
+    </property>
+   </widget>
+   <widget class="QSlider" name="slider_BDS">
+    <property name="geometry">
+     <rect>
+      <x>870</x>
+      <y>440</y>
+      <width>160</width>
+      <height>16</height>
+     </rect>
+    </property>
+    <property name="minimum">
+     <number>0</number>
+    </property>
+    <property name="maximum">
+     <number>30</number>
+    </property>
+    <property name="value">
+     <number>0</number>
+    </property>
+    <property name="orientation">
+     <enum>Qt::Horizontal</enum>
+    </property>
+   </widget>
+   <widget class="QSlider" name="slider_BDT">
+    <property name="geometry">
+     <rect>
+      <x>870</x>
+      <y>410</y>
+      <width>160</width>
+      <height>16</height>
+     </rect>
+    </property>
+    <property name="minimum">
+     <number>0</number>
+    </property>
+    <property name="maximum">
+     <number>1000</number>
+    </property>
+    <property name="value">
+     <number>0</number>
+    </property>
+    <property name="orientation">
+     <enum>Qt::Horizontal</enum>
     </property>
    </widget>
   </widget>

@@ -6,11 +6,17 @@
 #include "opencv2/opencv.hpp"
 #include "opencv2/videoio.hpp"
 #include "opencv2/features2d.hpp"
+
+#include "opencv2/reg/mapprojec.hpp"
+#include "opencv2/reg/mappergradproj.hpp"
+#include "opencv2/reg/mapperpyramid.hpp"
+
 using namespace cv;
 using namespace std;
+using namespace cv::reg;
 
 #define HOMO_FAIL_NORM 20000.0f
-#define PROJ_ERR_THRES 100.0f
+#define PROJ_ERR_THRES 200.0f
 #define NN_MATCH_NUMBER 4
 
 class Tracker
@@ -32,10 +38,19 @@ protected:
     float nn_match_thres;
     float ransac_thres;
 
+    int board_thres;
+    int board_size;
+
 public:
     Tracker();
-    Tracker(int mnf, float ql, int md, int bs, float bv, float nmt, float rt);
-    void changeParam(int mnf, float ql, int md, int bs, float bv, float nmt, float rt);
+    Tracker(int mnf, float ql, int md, int bs, float bv, float nmt, float rt, int bdt, int bds);
+    void changeParam(int mnf, float ql, int md, int bs, float bv, float nmt, float rt, int bdt, int bds);
     void setTarget(const Mat& frame);
-    Mat match(const Mat& frame);
+    Mat featureMatch(const Mat& frame, bool showImg);
+    Mat pixelMatch(const Mat& matchedFrame, const Mat& featureRes);
+
+    //helpers
+    void showDifference(const Mat& image1, const Mat& image2, string title);
+    void showDifferenceEdge(const Mat& image1, const Mat& image2, string name);
+    Mat pixelWiseMatch(const Mat& img1, const Mat& img2, const Mat& initialHomo);
 };

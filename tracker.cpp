@@ -1,65 +1,5 @@
 #include "tracker.hpp"
 
-void Tracker::showDifference(const Mat& image1, const Mat& image2, string title)
-{
-    Mat img1, img2;
-    image1.convertTo(img1, CV_32FC3);
-    image2.convertTo(img2, CV_32FC3);
-    if(img1.channels() != 1)
-        cvtColor(img1, img1, CV_RGB2GRAY);
-    if(img2.channels() != 1)
-        cvtColor(img2, img2, CV_RGB2GRAY);
-
-    Mat imgDiff;
-    img1.copyTo(imgDiff);
-    imgDiff -= img2;
-    imgDiff /= 2.f;
-    imgDiff += 128.f;
-
-    Mat imgSh;
-    imgDiff.convertTo(imgSh, CV_8UC3);
-    imshow(title, imgSh);
-}
-
-void Tracker::showDifferenceEdge(const Mat& image1, const Mat& image2, string name)
-{
-    Mat img1Tmp, img2Tmp, img1Edge, img2Edge;
-    image1.convertTo(img1Tmp, CV_8UC3);
-    image2.convertTo(img2Tmp, CV_8UC3);
-    Canny( img1Tmp, img1Edge, 50, 150, 3);
-    Canny( img2Tmp, img2Edge, 50, 150, 3);
-
-    Mat res(image1.size(), CV_8UC3, Scalar(0, 0, 0));
-    Mat redImg(image1.size(), CV_8UC3, Scalar(255, 0, 0));
-    Mat blueImg(image1.size(), CV_8UC3, Scalar(0, 0, 255));
-    redImg.copyTo(res, img1Edge);
-    blueImg.copyTo(res, img2Edge);
-
-    imshow(name, res);
-
-    return;
-}
-
-//return pair<homo, diffImg>
-Mat Tracker::pixelWiseMatch(const Mat& img1, const Mat& img2, const Mat& initialHomo)
-{
-    Ptr<Map> res = new MapProjec(initialHomo);
-    MapperGradProj mapper;
-    MapperPyramid mappPyr(mapper);
-    mappPyr.numIterPerScale_ = 10;
-    mappPyr.calculate(img1, img2, res);
-
-    MapProjec* mapProj = dynamic_cast<MapProjec*>(res.get());
-    mapProj->normalize();
-
-    // Generate diffImg
-    Mat dest;
-    mapProj->inverseWarp(img2, dest);
-    showDifferenceEdge(img1, dest, "Pixel Difference");
-
-    return Mat(mapProj->getProjTr());
-}
-
 Tracker::Tracker()
 {
     max_num_features = 1000;
@@ -246,4 +186,64 @@ Mat Tracker::pixelMatch(const Mat& matchedFrame, const Mat& featureRes)
     targetROI.convertTo(targetFrame64F, CV_64FC3);
     Mat homo = pixelWiseMatch(matchedFrame64F, targetFrame64F, featureRes);
     return homo;
+}
+
+void Tracker::showDifference(const Mat& image1, const Mat& image2, string title)
+{
+    Mat img1, img2;
+    image1.convertTo(img1, CV_32FC3);
+    image2.convertTo(img2, CV_32FC3);
+    if(img1.channels() != 1)
+        cvtColor(img1, img1, CV_RGB2GRAY);
+    if(img2.channels() != 1)
+        cvtColor(img2, img2, CV_RGB2GRAY);
+
+    Mat imgDiff;
+    img1.copyTo(imgDiff);
+    imgDiff -= img2;
+    imgDiff /= 2.f;
+    imgDiff += 128.f;
+
+    Mat imgSh;
+    imgDiff.convertTo(imgSh, CV_8UC3);
+    imshow(title, imgSh);
+}
+
+void Tracker::showDifferenceEdge(const Mat& image1, const Mat& image2, string name)
+{
+    Mat img1Tmp, img2Tmp, img1Edge, img2Edge;
+    image1.convertTo(img1Tmp, CV_8UC3);
+    image2.convertTo(img2Tmp, CV_8UC3);
+    Canny( img1Tmp, img1Edge, 50, 150, 3);
+    Canny( img2Tmp, img2Edge, 50, 150, 3);
+
+    Mat res(image1.size(), CV_8UC3, Scalar(0, 0, 0));
+    Mat redImg(image1.size(), CV_8UC3, Scalar(255, 0, 0));
+    Mat blueImg(image1.size(), CV_8UC3, Scalar(0, 0, 255));
+    redImg.copyTo(res, img1Edge);
+    blueImg.copyTo(res, img2Edge);
+
+    imshow(name, res);
+
+    return;
+}
+
+//return pair<homo, diffImg>
+Mat Tracker::pixelWiseMatch(const Mat& img1, const Mat& img2, const Mat& initialHomo)
+{
+    Ptr<Map> res = new MapProjec(initialHomo);
+    MapperGradProj mapper;
+    MapperPyramid mappPyr(mapper);
+    mappPyr.numIterPerScale_ = 10;
+    mappPyr.calculate(img1, img2, res);
+
+    MapProjec* mapProj = dynamic_cast<MapProjec*>(res.get());
+    mapProj->normalize();
+
+    // Generate diffImg
+    Mat dest;
+    mapProj->inverseWarp(img2, dest);
+    showDifferenceEdge(img1, dest, "Pixel Difference");
+
+    return Mat(mapProj->getProjTr());
 }

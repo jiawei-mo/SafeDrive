@@ -80,6 +80,7 @@ void MainWindow::process()
     //pixel-wise compare
     Mat finalHomo = tracker->pixelMatch(matchedFrame, featureRes);
 
+    //pixel benchmark
     Mat matchResC = targetFrame.clone();
     detector->detectAndProject(matchedFrame, matchResC, featureRes);
     cout<<featureRes<<endl;

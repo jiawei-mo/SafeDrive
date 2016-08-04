@@ -94,7 +94,7 @@ int Tracker::featureMatch(const Mat& frame, Mat& homography, bool showImg)
         Point2f targetKpTmp = targetKp[matches[i][0].trainIdx].pt;
         targetKpTmp.x += frame.cols;
         circle(matchedImg, targetKpTmp, 2, CV_RGB(0, 0, 255));
-        if(matches[i][0].distance < nn_match_thres)
+        if(matches[i][0].distance < nn_match_thres*matches[i][1].distance)
         {
             curMatchedKp.push_back(curKp[matches[i][0].queryIdx].pt);
             targetMatchedKp.push_back(targetKp[matches[i][0].trainIdx].pt);

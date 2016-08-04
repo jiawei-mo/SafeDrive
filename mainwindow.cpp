@@ -123,7 +123,7 @@ MainWindow::MainWindow(QWidget *parent) :
     int mnf = MNF;
     float ql = QL / 1000.0f;
     int md = MD;
-    int nmt = NMT;
+    float nmt = NMT / 100.0f;
     float rt = RT / 1.0f;
     float bds = ui->slider_BDS->value() * 2 - 1;
 
@@ -144,7 +144,7 @@ void MainWindow::changeParamAndReprocess()
     ui->label_MNF->setText(QString("Max Num Features: ") + QString::number(ui->slider_MNF->value()));
     ui->label_QL->setText(QString("Quality Level: ") + QString::number(ui->slider_QL->value() / 1000.0f));
     ui->label_MD->setText(QString("Min Distance: ") + QString::number(ui->slider_MD->value()));
-    ui->label_NMT->setText(QString("NN Match Thres: ") + QString::number(ui->slider_NMT->value()));
+    ui->label_NMT->setText(QString("NN Match Thres: ") + QString::number(ui->slider_NMT->value() / 100.0f));
     ui->label_RT->setText(QString("RANSAC Thres: ") + QString::number(ui->slider_RT->value() / 1.0f));
     ui->label_BDS->setText(QString("Board Size: ") + QString::number(ui->slider_BDS->value()));
     int bs = ui->slider_BS->value() * 2 - 1;
@@ -152,7 +152,7 @@ void MainWindow::changeParamAndReprocess()
     int mnf = ui->slider_MNF->value();
     float ql = ui->slider_QL->value() / 1000.0f;
     int md = ui->slider_MD->value();
-    int nmt = ui->slider_NMT->value();
+    float nmt = ui->slider_NMT->value() / 100.0f;
     float rt = ui->slider_RT->value() / 1.0f;
     float bds = ui->slider_BDS->value() * 2 - 1;
     tracker->changeParam(mnf, ql, md, bs, bv, nmt, rt, bds);

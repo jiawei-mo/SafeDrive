@@ -13,9 +13,8 @@
 #define MNF 1000
 #define QL 10
 #define MD 5
-#define NMT 92
-#define RT 20
-#define BDT 200
+#define NMT 223
+#define RT 7
 #define BDS 10
 
 namespace Ui {

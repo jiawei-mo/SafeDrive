@@ -163,7 +163,7 @@
      <number>0</number>
     </property>
     <property name="maximum">
-     <number>100</number>
+     <number>300</number>
     </property>
     <property name="value">
      <number>0</number>
@@ -407,24 +407,11 @@
      <string>Blur Var</string>
     </property>
    </widget>
-   <widget class="QLabel" name="label_BDT">
-    <property name="geometry">
-     <rect>
-      <x>690</x>
-      <y>410</y>
-      <width>161</width>
-      <height>20</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>Board Thres</string>
-    </property>
-   </widget>
    <widget class="QLabel" name="label_BDS">
     <property name="geometry">
      <rect>
       <x>690</x>
-      <y>440</y>
+      <y>410</y>
       <width>161</width>
       <height>20</height>
      </rect>
@@ -437,28 +424,6 @@
     <property name="geometry">
      <rect>
       <x>870</x>
-      <y>440</y>
-      <width>160</width>
-      <height>16</height>
-     </rect>
-    </property>
-    <property name="minimum">
-     <number>0</number>
-    </property>
-    <property name="maximum">
-     <number>30</number>
-    </property>
-    <property name="value">
-     <number>0</number>
-    </property>
-    <property name="orientation">
-     <enum>Qt::Horizontal</enum>
-    </property>
-   </widget>
-   <widget class="QSlider" name="slider_BDT">
-    <property name="geometry">
-     <rect>
-      <x>870</x>
       <y>410</y>
       <width>160</width>
       <height>16</height>
@@ -468,7 +433,7 @@
      <number>0</number>
     </property>
     <property name="maximum">
-     <number>1000</number>
+     <number>30</number>
     </property>
     <property name="value">
      <number>0</number>

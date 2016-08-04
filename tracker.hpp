@@ -30,6 +30,9 @@ protected:
     Mat targetDesc;
     vector<KeyPoint> targetKp;
 
+    vector<Point2f> inline_target;
+    vector<Point2f> inline_matched;
+
     int max_num_features;
     float quality_level;
     int min_distance;
@@ -43,14 +46,14 @@ protected:
 
 public:
     Tracker();
-    Tracker(int mnf, float ql, int md, int bs, float bv, float nmt, float rt, int bdt, int bds);
-    void changeParam(int mnf, float ql, int md, int bs, float bv, float nmt, float rt, int bdt, int bds);
+    Tracker(int mnf, float ql, int md, int bs, float bv, float nmt, float rt, int bds);
+    void changeParam(int mnf, float ql, int md, int bs, float bv, float nmt, float rt, int bds);
     void setTarget(const Mat& frame);
     Mat featureMatch(const Mat& frame, bool showImg);
-    Mat pixelMatch(const Mat& matchedFrame, const Mat& featureRes);
+    Mat pixelMatch(const Mat& recMatchedFrame);
 
     //helpers
     void showDifference(const Mat& image1, const Mat& image2, string title);
     void showDifferenceEdge(const Mat& image1, const Mat& image2, string name);
-    Mat pixelWiseMatch(const Mat& img1, const Mat& img2, const Mat& initialHomo);
+    Mat pixelWiseMatch(const Mat& img1, const Mat& img2);
 };

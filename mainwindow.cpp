@@ -3,7 +3,7 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 
-#define MATCH_STEP 2
+#define MATCH_STEP 0
 #define MATCH_LAT_LENGTH 0.0001
 #define MATCH_LON_LENGTH 0.0001
 #define MATCH_HEAD_LENGTH 2
@@ -78,7 +78,9 @@ void MainWindow::process()
     ui->text_log->appendPlainText(QString(" Homo Norm: ") + QString::number(norm(featureRes)) + QString("\n"));
 
     //pixel-wise compare
-    Mat finalHomo = tracker->pixelMatch(matchedFrame, featureRes);
+    Mat recMatchedFrame;
+    warpPerspective(matchedFrame, recMatchedFrame, featureRes, targetFrame.size());
+    Mat finalHomo = tracker->pixelMatch(recMatchedFrame);
 
     //pixel benchmark
     Mat matchResC = targetFrame.clone();
@@ -89,7 +91,7 @@ void MainWindow::process()
 
     //detect lane
     Mat matchRes = targetFrame.clone();
-    detector->detectAndProject(matchedFrame, matchRes, finalHomo);
+    detector->detectAndProject(recMatchedFrame, matchRes, finalHomo);
     cout<<finalHomo<<endl;
 
     //put images onto GUI
@@ -113,19 +115,17 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->slider_MD->setValue(MD);
     ui->slider_NMT->setValue(NMT);
     ui->slider_RT->setValue(RT);
-    ui->slider_BDT->setValue(BDT);
     ui->slider_BDS->setValue(BDS);
     int bs = BS * 2 - 1;
     float bv = BV / 10.0f;
     int mnf = MNF;
     float ql = QL / 1000.0f;
     int md = MD;
-    float nmt = NMT / 100.0f;
+    int nmt = NMT;
     float rt = RT / 1.0f;
-    int bdt = ui->slider_BDT->value();
     float bds = ui->slider_BDS->value() * 2 - 1;
 
-    tracker = new Tracker(mnf, ql, md, bs, bv, nmt, rt, bdt, bds);
+    tracker = new Tracker(mnf, ql, md, bs, bv, nmt, rt, bds);
     detector = new LaneDetector();
     fetcher = new GSVFetcher();
 }
@@ -142,20 +142,18 @@ void MainWindow::changeParamAndReprocess()
     ui->label_MNF->setText(QString("Max Num Features: ") + QString::number(ui->slider_MNF->value()));
     ui->label_QL->setText(QString("Quality Level: ") + QString::number(ui->slider_QL->value() / 1000.0f));
     ui->label_MD->setText(QString("Min Distance: ") + QString::number(ui->slider_MD->value()));
-    ui->label_NMT->setText(QString("NN Match Thres: ") + QString::number(ui->slider_NMT->value() / 100.0f));
+    ui->label_NMT->setText(QString("NN Match Thres: ") + QString::number(ui->slider_NMT->value()));
     ui->label_RT->setText(QString("RANSAC Thres: ") + QString::number(ui->slider_RT->value() / 1.0f));
-    ui->label_BDT->setText(QString("Board Thres: ") + QString::number(ui->slider_BDT->value()));
     ui->label_BDS->setText(QString("Board Size: ") + QString::number(ui->slider_BDS->value()));
     int bs = ui->slider_BS->value() * 2 - 1;
     float bv = ui->slider_BV->value() / 10.0f;
     int mnf = ui->slider_MNF->value();
     float ql = ui->slider_QL->value() / 1000.0f;
     int md = ui->slider_MD->value();
-    float nmt = ui->slider_NMT->value() / 100.0f;
+    int nmt = ui->slider_NMT->value();
     float rt = ui->slider_RT->value() / 1.0f;
-    int bdt = ui->slider_BDT->value();
     float bds = ui->slider_BDS->value() * 2 - 1;
-    tracker->changeParam(mnf, ql, md, bs, bv, nmt, rt, bdt, bds);
+    tracker->changeParam(mnf, ql, md, bs, bv, nmt, rt, bds);
 
     process();
 }
@@ -190,7 +188,6 @@ void MainWindow::on_button_reset_clicked()
     ui->slider_MD->setValue(MD);
     ui->slider_NMT->setValue(NMT);
     ui->slider_RT->setValue(RT);
-    ui->slider_BDT->setValue(BDT);
     ui->slider_BDS->setValue(BDS);
     changeParamAndReprocess();
 }

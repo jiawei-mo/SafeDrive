@@ -13,7 +13,7 @@
 #define MNF 1000
 #define QL 10
 #define MD 5
-#define NMT 223
+#define NMT 74
 #define RT 7
 #define BDS 10
 

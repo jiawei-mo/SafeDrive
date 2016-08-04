@@ -49,7 +49,7 @@ public:
     Tracker(int mnf, float ql, int md, int bs, float bv, float nmt, float rt, int bds);
     void changeParam(int mnf, float ql, int md, int bs, float bv, float nmt, float rt, int bds);
     void setTarget(const Mat& frame);
-    Mat featureMatch(const Mat& frame, bool showImg);
+    int featureMatch(const Mat& frame, Mat& homography, bool showImg);
     Mat pixelMatch(const Mat& recMatchedFrame);
 
     //helpers

@@ -62,7 +62,7 @@ void Tracker::setTarget(const Mat& frame)
     detector->compute(targetFrame, targetKp, targetDesc);
 }
 
-Mat Tracker::featureMatch(const Mat& frame, bool showImg)
+int Tracker::featureMatch(const Mat& frame, Mat& homography, bool showImg)
 {
     //detect feature points on curFrame
     Mat curFrame = frame.clone();
@@ -102,7 +102,7 @@ Mat Tracker::featureMatch(const Mat& frame, bool showImg)
     }
 
     //find homography based on matches
-    Mat homography, inliner_mask;
+    Mat inliner_mask;
     if(targetMatchedKp.size() >= NN_MATCH_NUMBER)
     {
         homography = findHomography(curMatchedKp, targetMatchedKp, RANSAC, ransac_thres, inliner_mask);
@@ -118,7 +118,7 @@ Mat Tracker::featureMatch(const Mat& frame, bool showImg)
         }
         imshow("Match Result", matchedImg);
         cout<<"Match fail, norm exceeded!"<<endl;
-        return homography;
+        return -1;
     }
 
     vector<Point2f> projectedKp;
@@ -148,12 +148,10 @@ Mat Tracker::featureMatch(const Mat& frame, bool showImg)
 
     dist = dist / count;
     if(dist > PROJ_ERR_THRES) {
-        Mat failHomo = Mat::ones(3,3,CV_8U);
-        failHomo.at<unsigned int>(0,0) = HOMO_FAIL_NORM;
         cout<<"Match fail, proj error exceeded!"<<endl;
-        return failHomo;
+        return -1;
     }
-    return homography;
+    return count;
 }
 
 Mat Tracker::pixelMatch(const Mat& recMatchedFrame)
@@ -177,8 +175,10 @@ Mat Tracker::pixelMatch(const Mat& recMatchedFrame)
     matchedDots.convertTo(matchedDots, CV_8U);
     recMatchedFrame.copyTo(matchedROI, matchedDots);
 
-    imshow("1", matchedROI);
-    imshow("2", targetROI);
+    Mat combineImg = Mat::zeros(matchedROI.rows, 2*matchedROI.cols, matchedROI.type());
+    matchedROI.copyTo(combineImg(Rect(0, 0, matchedROI.cols, matchedROI.rows)));
+    targetROI.copyTo(combineImg(Rect(matchedROI.cols, 0, matchedROI.cols, matchedROI.rows)));
+    imshow("Pixel-wise ROI", combineImg);
 
     Mat recMatchedFrame64F, targetFrame64F;
     matchedROI.convertTo(recMatchedFrame64F, CV_64FC3);

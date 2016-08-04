@@ -16,11 +16,10 @@ void MainWindow::process()
       ui->text_log->appendPlainText("Error occured, image not read correctly");
       return;
     }
-
     tracker->setTarget(targetFrame);
 
     Mat featureRes;
-    float minNorm = HOMO_FAIL_NORM+1;
+    int maxP = -1;
     float minLat = lat;
     float minLon = lon;
     float minHead = head;
@@ -47,10 +46,10 @@ void MainWindow::process()
                                             curLon,
                                             curHead,
                                             curPitch);
-                    featureRes = tracker->featureMatch(curFrame, false);
-                    if(norm(featureRes) < minNorm)
+                    int curP = tracker->featureMatch(curFrame, featureRes, false);
+                    if(curP > maxP)
                     {
-                        minNorm = norm(featureRes);
+                        maxP = curP;
                         minLat = curLat;
                         minLon = curLon;
                         minHead = curHead;
@@ -64,7 +63,12 @@ void MainWindow::process()
 
     ui->text_log->appendPlainText("Matched Result:");
     Mat matchedFrame = fetcher->get(targetFrame.size(), minLat, minLon, minHead, minPitch);
-    featureRes = tracker->featureMatch(matchedFrame, true);
+    //image fetcher fail
+    if(norm(matchedFrame) < 1) {
+        ui->text_log->appendPlainText("Internet Fail!");
+        return;
+    }
+    tracker->featureMatch(matchedFrame, featureRes, true);
 
     //fail
     if(featureRes.empty() || norm(featureRes) >= HOMO_FAIL_NORM) {
@@ -85,14 +89,12 @@ void MainWindow::process()
     //pixel benchmark
     Mat matchResC = targetFrame.clone();
     detector->detectAndProject(matchedFrame, matchResC, featureRes);
-    cout<<featureRes<<endl;
-    imshow("Compare", matchResC);
-    tracker->showDifferenceEdge(matchedFrame, targetFrame, "compare diff");
+    imshow("Feature result", matchResC);
+    tracker->showDifferenceEdge(matchedFrame, targetFrame, "Feature result difference");
 
     //detect lane
     Mat matchRes = targetFrame.clone();
     detector->detectAndProject(recMatchedFrame, matchRes, finalHomo);
-    cout<<finalHomo<<endl;
 
     //put images onto GUI
     cvtColor(matchRes, matchRes, CV_BGR2RGB);

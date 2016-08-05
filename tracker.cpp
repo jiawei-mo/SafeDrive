@@ -81,25 +81,40 @@ int Tracker::featureMatch(const Mat& frame, Mat& homography, bool showImg)
     detector->compute(curFrame, curKp, curDesc);
 
     Mat matchedImg = Mat::zeros(frame.rows, 2*frame.cols, frame.type());
-    curFrame.copyTo(matchedImg(Rect(0, 0, frame.cols, frame.rows)));
-    targetFrame.copyTo(matchedImg(Rect(frame.cols, 0, frame.cols, frame.rows)));
+    Mat curFrameFeatures, targetFrameFeatures;
+    drawKeypoints(curFrame, curKp, curFrameFeatures);
+    drawKeypoints(targetFrame, targetKp, targetFrameFeatures);
+    curFrameFeatures.copyTo(matchedImg(Rect(0, 0, frame.cols, frame.rows)));
+    targetFrameFeatures.copyTo(matchedImg(Rect(frame.cols, 0, frame.cols, frame.rows)));
 
     //matches
-    vector< vector<DMatch> > matches;
-    vector<Point2f> targetMatchedKp, curMatchedKp;
-    matcher->knnMatch(curDesc, targetDesc, matches, 2);
-    for(int i=0; i<(int)matches.size(); i++)
+    vector< vector<DMatch> > ctMatches, tcMatches;
+    vector<Point2f> curMatchedKp, targetMatchedKp;
+    matcher->knnMatch(curDesc, targetDesc, ctMatches, 2);
+    matcher->knnMatch(targetDesc, curDesc, tcMatches, 2);
+    unordered_map<int, int> matchMap;
+
+    for(int i=0; i<(int)tcMatches.size(); i++)
     {
-        circle(matchedImg, curKp[matches[i][0].queryIdx].pt, 2, CV_RGB(0, 0, 255));
-        Point2f targetKpTmp = targetKp[matches[i][0].trainIdx].pt;
-        targetKpTmp.x += frame.cols;
-        circle(matchedImg, targetKpTmp, 2, CV_RGB(0, 0, 255));
-        if(matches[i][0].distance < nn_match_thres*matches[i][1].distance)
+        if(tcMatches[i][0].distance < nn_match_thres*tcMatches[i][1].distance)
         {
-            curMatchedKp.push_back(curKp[matches[i][0].queryIdx].pt);
-            targetMatchedKp.push_back(targetKp[matches[i][0].trainIdx].pt);
+            matchMap[tcMatches[i][0].trainIdx] = tcMatches[i][0].queryIdx;
         }
     }
+
+    for(int i=0; i<(int)ctMatches.size(); i++)
+    {
+        if(ctMatches[i][0].distance < nn_match_thres*ctMatches[i][1].distance)
+        {
+//            if(matchMap[ctMatches[i][0].queryIdx] == ctMatches[i][0].trainIdx)
+            {
+                curMatchedKp.push_back(curKp[ctMatches[i][0].queryIdx].pt);
+                targetMatchedKp.push_back(targetKp[ctMatches[i][0].trainIdx].pt);
+            }
+        }
+    }
+
+
 
     //find homography based on matches
     Mat inliner_mask;

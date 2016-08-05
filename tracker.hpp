@@ -3,6 +3,8 @@
 
 #endif // TRACKER_HPP
 
+#include <unordered_map>
+
 #include "opencv2/opencv.hpp"
 #include "opencv2/videoio.hpp"
 #include "opencv2/features2d.hpp"

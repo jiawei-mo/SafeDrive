@@ -3,7 +3,7 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 
-#define MATCH_STEP 0
+#define MATCH_STEP 3
 #define MATCH_LAT_LENGTH 0.0001
 #define MATCH_LON_LENGTH 0.0001
 #define MATCH_HEAD_LENGTH 2
@@ -87,10 +87,10 @@ void MainWindow::process()
     Mat finalHomo = tracker->pixelMatch(recMatchedFrame);
 
     //pixel benchmark
-    Mat matchResC = targetFrame.clone();
-    detector->detectAndProject(matchedFrame, matchResC, featureRes);
-    imshow("Feature result", matchResC);
-    tracker->showDifferenceEdge(matchedFrame, targetFrame, "Feature result difference");
+//    Mat matchResC = targetFrame.clone();
+//    detector->detectAndProject(matchedFrame, matchResC, featureRes);
+//    imshow("Feature result", matchResC);
+//    tracker->showDifferenceEdge(matchedFrame, targetFrame, "Feature result difference");
 
     //detect lane
     Mat matchRes = targetFrame.clone();
@@ -225,11 +225,6 @@ void MainWindow::on_slider_BS_sliderReleased()
 }
 
 void MainWindow::on_slider_BV_sliderReleased()
-{
-    changeParamAndReprocess();
-}
-
-void MainWindow::on_slider_BDT_sliderReleased()
 {
     changeParamAndReprocess();
 }

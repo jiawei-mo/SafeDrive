@@ -61,8 +61,12 @@ void LaneDetector::detectAndProject(const Mat& detImg, Mat& projImg, const Mat& 
     vector<Point2f> yellowPoints;
     detect(detImg, whitePoints, yellowPoints, showImg);
     vector<Point2f> whiteProjectedPoints, yellowProjectedPoints;
-    perspectiveTransform(whitePoints, whiteProjectedPoints, homo);
-    perspectiveTransform(yellowPoints, yellowProjectedPoints, homo);
+    if(whitePoints.size() > 0) {
+        perspectiveTransform(whitePoints, whiteProjectedPoints, homo);
+    }
+    if(yellowPoints.size()) {
+        perspectiveTransform(yellowPoints, yellowProjectedPoints, homo);
+    }
 
     //draw lanes
     for(int i=0; i<(int)whiteProjectedPoints.size(); i++)

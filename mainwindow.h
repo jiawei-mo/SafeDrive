@@ -54,7 +54,6 @@ private slots:
     void on_slider_RT_sliderReleased();
     void on_slider_BS_sliderReleased();
     void on_slider_BV_sliderReleased();
-    void on_slider_BDT_sliderReleased();
     void on_slider_BDS_sliderReleased();
 };
 

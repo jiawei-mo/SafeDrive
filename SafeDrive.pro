@@ -21,7 +21,8 @@ SOURCES += main.cpp\
 HEADERS  += mainwindow.h \
     tracker.hpp \
     gsv_fetcher.hpp \
-    lane_detector.hpp
+    lane_detector.hpp \
+    parameters.hpp
 
 FORMS    += mainwindow.ui
 

@@ -3,12 +3,6 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 
-#define MATCH_STEP 3
-#define MATCH_LAT_LENGTH 0.0001
-#define MATCH_LON_LENGTH 0.0001
-#define MATCH_HEAD_LENGTH 2
-#define MATCH_PITCH_LENGTH 1
-
 void MainWindow::process()
 {
     Mat targetFrame = imread(targetString);
@@ -26,40 +20,61 @@ void MainWindow::process()
     float minPitch = pitch;
     Mat curFrame;
     #pragma omp parallel for
-    for(int a=0; a<MATCH_STEP; a++)
+    for(int a=0; a<MATCH_STEP_G; a++)
     {
-        float curLat = lat+MATCH_LAT_LENGTH*a;
+        float curLat = lat+MATCH_LAT_LENGTH*(a - MATCH_STEP_G / 2);
         #pragma omp parallel for
-        for(int b=0; b<MATCH_STEP; b++)
+        for(int b=0; b<MATCH_STEP_G; b++)
         {
-            float curLon = lon+MATCH_LON_LENGTH*b;
-            #pragma omp parallel for
-            for(int c=0; c<MATCH_STEP; c++)
+            float curLon = lon+MATCH_LON_LENGTH*(b - MATCH_STEP_G / 2);
+            curFrame = fetcher->get(targetFrame.size(),
+                                    curLat,
+                                    curLon,
+                                    head,
+                                    pitch);
+            int curP = tracker->featureMatch(curFrame, featureRes, false);
+            if(curP > maxP)
             {
-                float curHead = head+MATCH_HEAD_LENGTH*c;
-                #pragma omp parallel for
-                for(int d=0; d<MATCH_STEP; d++)
-                {
-                    float curPitch = pitch+MATCH_PITCH_LENGTH*d;
-                    curFrame = fetcher->get(targetFrame.size(),
-                                            curLat,
-                                            curLon,
-                                            curHead,
-                                            curPitch);
-                    int curP = tracker->featureMatch(curFrame, featureRes, false);
-                    if(curP > maxP)
-                    {
-                        maxP = curP;
-                        minLat = curLat;
-                        minLon = curLon;
-                        minHead = curHead;
-                        minPitch = curPitch;
-                    }
-                }
+                maxP = curP;
+                minLat = curLat;
+                minLon = curLon;
             }
         }
     }
 
+    #pragma omp parallel for
+    for(int c=0; c<MATCH_STEP_L; c++)
+    {
+        float curHead = head+MATCH_HEAD_LENGTH*(c - MATCH_STEP_L / 2);
+        curFrame = fetcher->get(targetFrame.size(),
+                                minLat,
+                                minLon,
+                                curHead,
+                                pitch);
+        int curP = tracker->featureMatch(curFrame, featureRes, false);
+        if(curP > maxP)
+        {
+            maxP = curP;
+            minHead = curHead;
+        }
+    }
+
+    #pragma omp parallel for
+    for(int d=0; d<MATCH_STEP_L; d++)
+    {
+        float curPitch = pitch+MATCH_PITCH_LENGTH*(d - MATCH_STEP_L / 2);
+        curFrame = fetcher->get(targetFrame.size(),
+                                minLat,
+                                minLon,
+                                minHead,
+                                curPitch);
+        int curP = tracker->featureMatch(curFrame, featureRes, false);
+        if(curP > maxP)
+        {
+            maxP = curP;
+            minPitch = curPitch;
+        }
+    }
 
     ui->text_log->appendPlainText("Matched Result:");
     Mat matchedFrame = fetcher->get(targetFrame.size(), minLat, minLon, minHead, minPitch);
@@ -118,16 +133,16 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->slider_NMT->setValue(NMT);
     ui->slider_RT->setValue(RT);
     ui->slider_BDS->setValue(BDS);
-    int bs = BS * 2 - 1;
-    float bv = BV / 10.0f;
-    int mnf = MNF;
-    float ql = QL / 1000.0f;
-    int md = MD;
-    float nmt = NMT / 100.0f;
-    float rt = RT / 1.0f;
-    float bds = ui->slider_BDS->value() * 2 - 1;
+    ui->label_BS->setText(QString("Blur Size: ") + QString::number(2*ui->slider_BS->value() + 1));
+    ui->label_BV->setText(QString("Blur Var: ") + QString::number(ui->slider_BV->value() / 10.0f));
+    ui->label_MNF->setText(QString("Max Num Features: ") + QString::number(ui->slider_MNF->value()));
+    ui->label_QL->setText(QString("Quality Level: ") + QString::number(ui->slider_QL->value() / 100.0f));
+    ui->label_MD->setText(QString("Min Distance: ") + QString::number(ui->slider_MD->value()));
+    ui->label_NMT->setText(QString("NN Match Thres: ") + QString::number(ui->slider_NMT->value() / 100.0f));
+    ui->label_RT->setText(QString("RANSAC Thres: ") + QString::number(ui->slider_RT->value() / 1.0f));
+    ui->label_BDS->setText(QString("Board Size: ") + QString::number(2*ui->slider_BDS->value() + 1));
 
-    tracker = new Tracker(mnf, ql, md, bs, bv, nmt, rt, bds);
+    tracker = new Tracker();
     detector = new LaneDetector();
     fetcher = new GSVFetcher();
 }
@@ -135,29 +150,6 @@ MainWindow::MainWindow(QWidget *parent) :
 MainWindow::~MainWindow()
 {
     delete ui;
-}
-
-void MainWindow::changeParamAndReprocess()
-{
-    ui->label_BS->setText(QString("Blur Size: ") + QString::number(ui->slider_BS->value()));
-    ui->label_BV->setText(QString("Blur Var: ") + QString::number(ui->slider_BV->value() / 10.0f));
-    ui->label_MNF->setText(QString("Max Num Features: ") + QString::number(ui->slider_MNF->value()));
-    ui->label_QL->setText(QString("Quality Level: ") + QString::number(ui->slider_QL->value() / 1000.0f));
-    ui->label_MD->setText(QString("Min Distance: ") + QString::number(ui->slider_MD->value()));
-    ui->label_NMT->setText(QString("NN Match Thres: ") + QString::number(ui->slider_NMT->value() / 100.0f));
-    ui->label_RT->setText(QString("RANSAC Thres: ") + QString::number(ui->slider_RT->value() / 1.0f));
-    ui->label_BDS->setText(QString("Board Size: ") + QString::number(ui->slider_BDS->value()));
-    int bs = ui->slider_BS->value() * 2 - 1;
-    float bv = ui->slider_BV->value() / 10.0f;
-    int mnf = ui->slider_MNF->value();
-    float ql = ui->slider_QL->value() / 1000.0f;
-    int md = ui->slider_MD->value();
-    float nmt = ui->slider_NMT->value() / 100.0f;
-    float rt = ui->slider_RT->value() / 1.0f;
-    float bds = ui->slider_BDS->value() * 2 - 1;
-    tracker->changeParam(mnf, ql, md, bs, bv, nmt, rt, bds);
-
-    process();
 }
 
 void MainWindow::on_button_start_clicked()
@@ -192,6 +184,29 @@ void MainWindow::on_button_reset_clicked()
     ui->slider_RT->setValue(RT);
     ui->slider_BDS->setValue(BDS);
     changeParamAndReprocess();
+}
+
+void MainWindow::changeParamAndReprocess()
+{
+    ui->label_BS->setText(QString("Blur Size: ") + QString::number(2*ui->slider_BS->value() + 1));
+    ui->label_BV->setText(QString("Blur Var: ") + QString::number(ui->slider_BV->value() / 10.0f));
+    ui->label_MNF->setText(QString("Max Num Features: ") + QString::number(ui->slider_MNF->value()));
+    ui->label_QL->setText(QString("Quality Level: ") + QString::number(ui->slider_QL->value() / 100.0f));
+    ui->label_MD->setText(QString("Min Distance: ") + QString::number(ui->slider_MD->value()));
+    ui->label_NMT->setText(QString("NN Match Thres: ") + QString::number(ui->slider_NMT->value() / 100.0f));
+    ui->label_RT->setText(QString("RANSAC Thres: ") + QString::number(ui->slider_RT->value() / 1.0f));
+    ui->label_BDS->setText(QString("Board Size: ") + QString::number(2*ui->slider_BDS->value() + 1));
+    int bs = ui->slider_BS->value() * 2 + 1;
+    float bv = ui->slider_BV->value() / 10.0f;
+    int mnf = ui->slider_MNF->value();
+    float ql = ui->slider_QL->value() / 100.0f;
+    int md = ui->slider_MD->value();
+    float nmt = ui->slider_NMT->value() / 100.0f;
+    float rt = ui->slider_RT->value() / 1.0f;
+    float bds = ui->slider_BDS->value() * 2 + 1;
+    tracker->changeParam(mnf, ql, md, bs, bv, nmt, rt, bds);
+
+    process();
 }
 
 void MainWindow::on_slider_MNF_sliderReleased()

@@ -2,30 +2,14 @@
 
 Tracker::Tracker()
 {
-    max_num_features = 1000;
-    quality_level = 0.01f;
-    min_distance = 7;
-    blur_size = 3;
-    blur_var = 1.2;
-    nn_match_thres = 0.9f;
-    ransac_thres = 20.0f;
-    board_thres = 200;
-    board_size = 10;
-    targetKp.clear();
-    detector = ORB::create();
-    matcher = DescriptorMatcher::create("BruteForce-Hamming");
-}
-
-Tracker::Tracker(int mnf, float ql, int md, int bs, float bv, float nmt, float rt, int bds)
-{
-    max_num_features = mnf;
-    quality_level = ql;
-    min_distance = md;
-    blur_size = bs;
-    blur_var = bv;
-    nn_match_thres = nmt;
-    ransac_thres = rt;
-    board_size = bds;
+    blur_size = BS*2 + 1;
+    blur_var = BV / 10.0f;
+    max_num_features = MNF;
+    quality_level = QL / 100.0f;
+    min_distance = MD;
+    nn_match_thres = NMT / 100.0f;
+    ransac_thres = RT / 1.0f;
+    board_size = BDS*2 + 1;
     targetKp.clear();
     detector = ORB::create();
     matcher = DescriptorMatcher::create("BruteForce-Hamming");
@@ -106,7 +90,7 @@ int Tracker::featureMatch(const Mat& frame, Mat& homography, bool showImg)
     {
         if(ctMatches[i][0].distance < nn_match_thres*ctMatches[i][1].distance)
         {
-//            if(matchMap[ctMatches[i][0].queryIdx] == ctMatches[i][0].trainIdx)
+            if(matchMap[ctMatches[i][0].queryIdx] == ctMatches[i][0].trainIdx)
             {
                 curMatchedKp.push_back(curKp[ctMatches[i][0].queryIdx].pt);
                 targetMatchedKp.push_back(targetKp[ctMatches[i][0].trainIdx].pt);
@@ -173,6 +157,9 @@ Mat Tracker::pixelMatch(const Mat& recMatchedFrame)
 {
     Mat targetDots = Mat::zeros(targetFrame.size(), CV_32F);;
     Mat matchedDots = Mat::zeros(recMatchedFrame.size(), CV_32F);
+    if(inline_target.size() == 0) {
+        return Mat::ones(3, 3, CV_32F);
+    }
     for(unsigned int i=0; i<inline_target.size(); i++) {
         targetDots.at<float>(inline_target[i].y, inline_target[i].x) = 100.0;
         matchedDots.at<float>(inline_matched[i].y, inline_matched[i].x) = 100.0;

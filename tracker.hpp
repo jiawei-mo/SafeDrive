@@ -1,8 +1,6 @@
 #ifndef TRACKER_HPP
 #define TRACKER_HPP
 
-#endif // TRACKER_HPP
-
 #include <unordered_map>
 
 #include "opencv2/opencv.hpp"
@@ -13,13 +11,11 @@
 #include "opencv2/reg/mappergradproj.hpp"
 #include "opencv2/reg/mapperpyramid.hpp"
 
+#include "parameters.hpp"
+
 using namespace cv;
 using namespace std;
 using namespace cv::reg;
-
-#define HOMO_FAIL_NORM 20000.0f
-#define PROJ_ERR_THRES 200.0f
-#define NN_MATCH_NUMBER 4
 
 class Tracker
 {
@@ -42,13 +38,10 @@ protected:
     float blur_var;
     float nn_match_thres;
     float ransac_thres;
-
-    int board_thres;
     int board_size;
 
 public:
     Tracker();
-    Tracker(int mnf, float ql, int md, int bs, float bv, float nmt, float rt, int bds);
     void changeParam(int mnf, float ql, int md, int bs, float bv, float nmt, float rt, int bds);
     void setTarget(const Mat& frame);
     int featureMatch(const Mat& frame, Mat& homography, bool showImg);
@@ -59,3 +52,5 @@ public:
     void showDifferenceEdge(const Mat& image1, const Mat& image2, string name);
     Mat pixelWiseMatch(const Mat& img1, const Mat& img2);
 };
+
+#endif // TRACKER_HPP

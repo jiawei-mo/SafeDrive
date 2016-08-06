@@ -1,8 +1,6 @@
 #ifndef GSVFETCHER_HPP
 #define GSVFETCHER_HPP
 
-#endif // GSVFETCHER_HPP
-
 #include "opencv2/opencv.hpp"
 #include "opencv2/videoio.hpp"
 #include "opencv2/features2d.hpp"
@@ -18,3 +16,5 @@ public:
 private:
     string key;
 };
+
+#endif // GSVFETCHER_HPP

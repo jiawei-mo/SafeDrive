@@ -8,14 +8,7 @@
 #include <string.h>
 #include <fstream>
 
-#define BS 3
-#define BV 4
-#define MNF 1000
-#define QL 10
-#define MD 5
-#define NMT 74
-#define RT 7
-#define BDS 10
+#include "parameters.hpp"
 
 namespace Ui {
 class MainWindow;

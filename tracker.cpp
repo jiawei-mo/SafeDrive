@@ -115,6 +115,7 @@ int Tracker::featureMatch(const Mat& frame, Mat& homography, bool showImg)
             targetMatchedKp[i].x += frame.cols;
             line(matchedImg, curMatchedKp[i], targetMatchedKp[i], CV_RGB(255, 0, 0));
         }
+        namedWindow("Match Result", WINDOW_NORMAL);
         imshow("Match Result", matchedImg);
         cout<<"Match fail, norm exceeded!"<<endl;
         return -1;
@@ -142,6 +143,7 @@ int Tracker::featureMatch(const Mat& frame, Mat& homography, bool showImg)
         }
     }
     if(showImg) {
+        namedWindow("Match Result", WINDOW_NORMAL);
         imshow("Match Result", matchedImg);
     }
 
@@ -180,6 +182,7 @@ Mat Tracker::pixelMatch(const Mat& recMatchedFrame)
     Mat combineImg = Mat::zeros(matchedROI.rows, 2*matchedROI.cols, matchedROI.type());
     matchedROI.copyTo(combineImg(Rect(0, 0, matchedROI.cols, matchedROI.rows)));
     targetROI.copyTo(combineImg(Rect(matchedROI.cols, 0, matchedROI.cols, matchedROI.rows)));
+    namedWindow("Pixel-wise ROI", WINDOW_NORMAL);
     imshow("Pixel-wise ROI", combineImg);
 
     Mat recMatchedFrame64F, targetFrame64F;
@@ -227,10 +230,11 @@ void Tracker::showDifference(const Mat& image1, const Mat& image2, string title)
 
     Mat imgSh;
     imgDiff.convertTo(imgSh, CV_8UC3);
+    namedWindow(title, WINDOW_NORMAL);
     imshow(title, imgSh);
 }
 
-void Tracker::showDifferenceEdge(const Mat& image1, const Mat& image2, string name)
+void Tracker::showDifferenceEdge(const Mat& image1, const Mat& image2, string title)
 {
     Mat img1Tmp, img2Tmp, img1Edge, img2Edge;
     image1.convertTo(img1Tmp, CV_8UC3);
@@ -244,7 +248,8 @@ void Tracker::showDifferenceEdge(const Mat& image1, const Mat& image2, string na
     redImg.copyTo(res, img1Edge);
     blueImg.copyTo(res, img2Edge);
 
-    imshow(name, res);
+    namedWindow(title, WINDOW_NORMAL);
+    imshow(title, res);
 
     return;
 }

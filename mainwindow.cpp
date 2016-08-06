@@ -104,6 +104,7 @@ void MainWindow::process()
     //pixel benchmark
 //    Mat matchResC = targetFrame.clone();
 //    detector->detectAndProject(matchedFrame, matchResC, featureRes);
+//    namedWindow("Feature result", WINDOW_NORMAL);
 //    imshow("Feature result", matchResC);
 //    tracker->showDifferenceEdge(matchedFrame, targetFrame, "Feature result difference");
 

@@ -16,7 +16,7 @@
 #define BDS 9      //2* + 1
 
 #define MATCH_STEP_G 3
-#define MATCH_STEP_L 10
+#define MATCH_STEP_L 5
 #define MATCH_LAT_LENGTH 0.0001
 #define MATCH_LON_LENGTH 0.0001
 #define MATCH_HEAD_LENGTH 1

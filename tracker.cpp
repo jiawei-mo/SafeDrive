@@ -46,7 +46,7 @@ void Tracker::setTarget(const Mat& frame)
     detector->compute(targetFrame, targetKp, targetDesc);
 }
 
-int Tracker::featureMatch(const Mat& frame, Mat& homography, bool showImg)
+int Tracker::featureMatch(const Mat& frame, Mat& homography, bool showImg, string windowName)
 {
     //detect feature points on curFrame
     Mat curFrame = frame.clone();
@@ -143,8 +143,8 @@ int Tracker::featureMatch(const Mat& frame, Mat& homography, bool showImg)
         }
     }
     if(showImg) {
-        namedWindow("Match Result", WINDOW_NORMAL);
-        imshow("Match Result", matchedImg);
+        namedWindow(windowName, WINDOW_NORMAL);
+        imshow(windowName, matchedImg);
     }
 
     dist = dist / count;

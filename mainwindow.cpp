@@ -59,9 +59,10 @@ void MainWindow::process()
         mHead = lHead + (rHead-lHead) / 2;
         curFrame = fetcher->get(targetFrame.size(), mLat, mLon, mHead, mPitch);
         mP = tracker->featureMatch(curFrame, featureRes);
+//        mP = tracker->featureMatch(curFrame, featureRes, true, to_string(mHead));
     }
 
-    //Head
+    //Pitch
     float lPitch = mPitch-5;
     lFrame = fetcher->get(targetFrame.size(), mLat, mLon, mHead, lPitch);
     lP = tracker->featureMatch(lFrame, featureRes);
@@ -176,11 +177,11 @@ void MainWindow::process()
     Mat finalHomo = tracker->pixelMatch(recMatchedFrame);
 
     //pixel benchmark
-    Mat matchResC = targetFrame.clone();
-    detector->detectAndProject(matchedFrame, matchResC, featureRes);
-    namedWindow("Feature result", WINDOW_NORMAL);
-    imshow("Feature result", matchResC);
-    tracker->showDifferenceEdge(matchedFrame, targetFrame, "Feature result difference");
+//    Mat matchResC = targetFrame.clone();
+//    detector->detectAndProject(matchedFrame, matchResC, featureRes);
+//    namedWindow("Feature result", WINDOW_NORMAL);
+//    imshow("Feature result", matchResC);
+//    tracker->showDifferenceEdge(matchedFrame, targetFrame, "Feature result difference");
 
     //detect lane
     Mat matchRes = targetFrame.clone();

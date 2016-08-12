@@ -158,35 +158,42 @@ int Tracker::featureMatch(const Mat& frame, Mat& homography, bool showImg, strin
 Mat Tracker::pixelMatch(const Mat& recMatchedFrame)
 {
     Mat targetDots = Mat::zeros(targetFrame.size(), CV_32F);;
-    Mat matchedDots = Mat::zeros(recMatchedFrame.size(), CV_32F);
+    Mat recMatchedDots = Mat::zeros(recMatchedFrame.size(), CV_32F);
     if(inline_target.size() == 0) {
         return Mat::ones(3, 3, CV_32F);
     }
     for(unsigned int i=0; i<inline_target.size(); i++) {
-        targetDots.at<float>(inline_target[i].y, inline_target[i].x) = 100.0;
-        matchedDots.at<float>(inline_matched[i].y, inline_matched[i].x) = 100.0;
+        targetDots.at<float>(inline_target[i].y, inline_target[i].x) = 1.0;
+        recMatchedDots.at<float>(inline_matched[i].y, inline_matched[i].x) = 1.0;
     }
 
-    Mat matchedROI, targetROI;
+    GaussianBlur(targetDots, targetDots, Size(board_size, board_size), 10, 10);
+    GaussianBlur(recMatchedDots, recMatchedDots, Size(board_size, board_size), 10, 10);
 
-    blur(targetDots, targetDots, Size(board_size, board_size));
-    threshold(targetDots, targetDots, 0, 1, cv::THRESH_BINARY);
-    targetDots.convertTo(targetDots, CV_8U);
-    targetFrame.copyTo(targetROI, targetDots);
+    Mat targetROI, recMatchedROI;
 
-    blur(matchedDots, matchedDots, Size(board_size, board_size));
-    threshold(matchedDots, matchedDots, 0, 1, cv::THRESH_BINARY);
-    matchedDots.convertTo(matchedDots, CV_8U);
-    recMatchedFrame.copyTo(matchedROI, matchedDots);
+    Mat targetDotsC3;
+    vector<Mat> targetChannels(3, targetDots);
+    merge(targetChannels, targetDotsC3);
+    Mat targetFrame32F;
+    targetFrame.convertTo(targetFrame32F, CV_32FC3);
+    targetROI = targetFrame32F.mul(targetDotsC3);
 
-    Mat combineImg = Mat::zeros(matchedROI.rows, 2*matchedROI.cols, matchedROI.type());
-    matchedROI.copyTo(combineImg(Rect(0, 0, matchedROI.cols, matchedROI.rows)));
-    targetROI.copyTo(combineImg(Rect(matchedROI.cols, 0, matchedROI.cols, matchedROI.rows)));
+    Mat recMatchedDotsC3;
+    vector<Mat> recMatchedChannels(3, recMatchedDots);
+    merge(recMatchedChannels, recMatchedDotsC3);
+    Mat recMatchedFrame32F;
+    recMatchedFrame.convertTo(recMatchedFrame32F, CV_32FC3);
+    recMatchedROI = recMatchedFrame32F.mul(recMatchedDotsC3);
+
+    Mat combineImg = Mat::zeros(recMatchedROI.rows, 2*recMatchedROI.cols, recMatchedROI.type());
+    recMatchedROI.copyTo(combineImg(Rect(0, 0, recMatchedROI.cols, recMatchedROI.rows)));
+    targetROI.copyTo(combineImg(Rect(recMatchedROI.cols, 0, recMatchedROI.cols, recMatchedROI.rows)));
     namedWindow("Pixel-wise ROI", WINDOW_NORMAL);
     imshow("Pixel-wise ROI", combineImg);
 
     Mat recMatchedFrame64F, targetFrame64F;
-    matchedROI.convertTo(recMatchedFrame64F, CV_64FC3);
+    recMatchedROI.convertTo(recMatchedFrame64F, CV_64FC3);
     targetROI.convertTo(targetFrame64F, CV_64FC3);
     Mat homo = pixelWiseMatch(recMatchedFrame64F, targetFrame64F);
     return homo;
@@ -207,7 +214,7 @@ Mat Tracker::pixelWiseMatch(const Mat& img1, const Mat& img2)
     // Generate diffImg
     Mat dest;
     mapProj->inverseWarp(img2, dest);
-    showDifferenceEdge(img1, dest, "Pixel Difference");
+    showDifference(img1, dest, "Pixel Difference");
 
     return Mat(mapProj->getProjTr());
 }

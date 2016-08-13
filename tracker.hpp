@@ -13,9 +13,17 @@
 
 #include "parameters.hpp"
 
+#define GRID 2
+
 using namespace cv;
 using namespace std;
 using namespace cv::reg;
+
+struct matchComp {
+    bool operator()(DMatch a, DMatch b) {
+        return a.distance < b.distance;
+    }
+};
 
 class Tracker
 {
@@ -27,9 +35,6 @@ protected:
     Mat targetFrame;
     Mat targetDesc;
     vector<KeyPoint> targetKp;
-
-    vector<Point2f> inline_target;
-    vector<Point2f> inline_matched;
 
     int max_num_features;
     float quality_level;

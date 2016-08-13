@@ -1,9 +1,9 @@
 #ifndef PARAMETERS_HPP
 #define PARAMETERS_HPP
 
-#define HOMO_FAIL_NORM 20000.0f
-#define PROJ_ERR_THRES 200.0f
-#define NN_MATCH_NUMBER 4
+#define HOMO_FAIL_NORM 200.0f
+#define PROJ_ERR_THRES 2000.0f
+#define NN_MATCH_NUMBER 50
 
 
 #define BS 2        //2* + 1
@@ -13,7 +13,7 @@
 #define MD 5        //int
 #define NMT 96      //%
 #define RT 7        //float
-#define BDS 9      //2* + 1
+#define BDS 25      //2* + 1
 
 #define MATCH_STEP_G 3
 #define MATCH_STEP_L 5

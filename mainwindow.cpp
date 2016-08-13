@@ -158,10 +158,11 @@ void MainWindow::process()
         ui->text_log->appendPlainText("Internet Fail!");
         return;
     }
-    tracker->featureMatch(matchedFrame, featureRes, true, "Match Result");
+    int finalP = tracker->featureMatch(matchedFrame, featureRes, true, "Match Result");
+    cout<<finalP<<endl;
 
     //fail
-    if(featureRes.empty() || norm(featureRes) >= HOMO_FAIL_NORM) {
+    if(finalP < 4) {
         ui->text_log->appendPlainText("Fail!");
         return;
     }

@@ -26,9 +26,10 @@ void MainWindow::process()
         #pragma omp parallel for
         for(int b=0; b<MATCH_STEP_G; b++)
         {
+            cout<<"Lat:"<<mLat<<" Lon: "<<mLon<<" Head: "<<mHead<<" Pitch: "<<mPitch<<endl;
             float curLon = lon+MATCH_LON_LENGTH*(b - MATCH_STEP_G / 2);
             curFrame = fetcher->get(targetFrame.size(), curLat, curLon, mHead, mPitch);
-            int curP = tracker->featureMatch(curFrame, featureRes);
+            float curP = tracker->featureMatch(curFrame, featureRes);
             if(curP > mP)
             {
                 mP = curP;
@@ -48,6 +49,7 @@ void MainWindow::process()
     int rP = tracker->featureMatch(rFrame, featureRes);
     for(int c=0; c<MATCH_STEP_L; c++)
     {
+        cout<<"Lat:"<<mLat<<" Lon: "<<mLon<<" Head: "<<mHead<<" Pitch: "<<mPitch<<endl;
         if(lP > rP)
         {
             rHead = mHead;
@@ -72,6 +74,7 @@ void MainWindow::process()
     rP = tracker->featureMatch(rFrame, featureRes);
     for(int d=0; d<MATCH_STEP_L; d++)
     {
+        cout<<"Lat:"<<mLat<<" Lon: "<<mLon<<" Head: "<<mHead<<" Pitch: "<<mPitch<<endl;
         if(lP > rP)
         {
             rPitch = mPitch;
@@ -152,6 +155,7 @@ void MainWindow::process()
 //    }
 }
     ui->text_log->appendPlainText("Matched Result:");
+    cout<<"final"<<endl;
     Mat matchedFrame = fetcher->get(targetFrame.size(), mLat, mLon, mHead, mPitch);
     //image fetcher fail
     if(norm(matchedFrame) < 1) {
@@ -159,7 +163,6 @@ void MainWindow::process()
         return;
     }
     int finalP = tracker->featureMatch(matchedFrame, featureRes, true, "Match Result");
-    cout<<finalP<<endl;
 
     //fail
     if(finalP < 4) {
@@ -173,9 +176,8 @@ void MainWindow::process()
     ui->text_log->appendPlainText(QString(" Homo Norm: ") + QString::number(norm(featureRes)) + QString("\n"));
 
     //pixel-wise compare
-    Mat recMatchedFrame;
-    warpPerspective(matchedFrame, recMatchedFrame, featureRes, targetFrame.size());
-    Mat finalHomo = tracker->pixelMatch(recMatchedFrame);
+    Mat finalHomo = tracker->pixelMatch(matchedFrame);
+    cout<<"final home: "<<endl<<finalHomo<<endl;
 
     //pixel benchmark
 //    Mat matchResC = targetFrame.clone();
@@ -185,8 +187,8 @@ void MainWindow::process()
 //    tracker->showDifferenceEdge(matchedFrame, targetFrame, "Feature result difference");
 
     //detect lane
-    Mat matchRes = targetFrame.clone();
-    detector->detectAndProject(recMatchedFrame, matchRes, finalHomo);
+    Mat matchRes = targetFrame;
+    detector->detectAndProject(matchedFrame, matchRes, finalHomo);
 
     //put images onto GUI
     cvtColor(matchRes, matchRes, CV_BGR2RGB);
@@ -203,21 +205,31 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->setupUi(this);
 
     ui->slider_BS->setValue(BS);
-    ui->slider_BV->setValue(BV);
-    ui->slider_MNF->setValue(MNF);
-    ui->slider_QL->setValue(QL);
-    ui->slider_MD->setValue(MD);
-    ui->slider_NMT->setValue(NMT);
-    ui->slider_RT->setValue(RT);
-    ui->slider_BDS->setValue(BDS);
     ui->label_BS->setText(QString("Blur Size: ") + QString::number(2*ui->slider_BS->value() + 1));
+    ui->slider_BV->setValue(BV);
     ui->label_BV->setText(QString("Blur Var: ") + QString::number(ui->slider_BV->value() / 10.0f));
+    ui->slider_MNF->setValue(MNF);
     ui->label_MNF->setText(QString("Max Num Features: ") + QString::number(ui->slider_MNF->value()));
+    ui->slider_QL->setValue(QL);
     ui->label_QL->setText(QString("Quality Level: ") + QString::number(ui->slider_QL->value() / 100.0f));
+    ui->slider_MD->setValue(MD);
     ui->label_MD->setText(QString("Min Distance: ") + QString::number(ui->slider_MD->value()));
-    ui->label_NMT->setText(QString("NN Match Thres: ") + QString::number(ui->slider_NMT->value() / 100.0f));
+    ui->slider_NMT->setValue(NMT);
+    ui->label_NMT->setText(QString("NN Match Thres: ") + QString::number(ui->slider_NG->value() / 100.f));
+    ui->slider_RT->setValue(RT);
     ui->label_RT->setText(QString("RANSAC Thres: ") + QString::number(ui->slider_RT->value() / 1.0f));
+    ui->slider_BDS->setValue(BDS);
     ui->label_BDS->setText(QString("Board Size: ") + QString::number(2*ui->slider_BDS->value() + 1));
+    ui->slider_NG->setValue(NG);
+    ui->label_NG->setText(QString("Num Grid: ") + QString::number(ui->slider_NG->value()));
+    ui->slider_PG->setValue(PG);
+    ui->label_PG->setText(QString("Point Grid: ") + QString::number(ui->slider_PG->value()));
+    ui->slider_BSG->setValue(BSG);
+    ui->label_BSG->setText(QString("Blur Size Grid: ") + QString::number(2*ui->slider_BSG->value() + 1));
+    ui->slider_BVG->setValue(BVG);
+    ui->label_BVG->setText(QString("Blur Var Grid: ") + QString::number(ui->slider_BVG->value() / 10.0f));
+    ui->slider_BSCG->setValue(BSCG);
+    ui->label_BSCG->setText(QString("Blur Scale Grid: ") + QString::number(2*ui->slider_BSCG->value() + 1));
 
     tracker = new Tracker();
     detector = new LaneDetector();
@@ -260,6 +272,11 @@ void MainWindow::on_button_reset_clicked()
     ui->slider_NMT->setValue(NMT);
     ui->slider_RT->setValue(RT);
     ui->slider_BDS->setValue(BDS);
+    ui->slider_NG->setValue(NG);
+    ui->slider_PG->setValue(PG);
+    ui->slider_BSG->setValue(BSG);
+    ui->slider_BVG->setValue(BVG);
+    ui->slider_BSCG->setValue(BSCG);
     changeParamAndReprocess();
 }
 
@@ -273,6 +290,11 @@ void MainWindow::changeParamAndReprocess()
     ui->label_NMT->setText(QString("NN Match Thres: ") + QString::number(ui->slider_NMT->value() / 100.0f));
     ui->label_RT->setText(QString("RANSAC Thres: ") + QString::number(ui->slider_RT->value() / 1.0f));
     ui->label_BDS->setText(QString("Board Size: ") + QString::number(2*ui->slider_BDS->value() + 1));
+    ui->label_NG->setText(QString("Num Grid: ") + QString::number(ui->slider_NG->value()));
+    ui->label_PG->setText(QString("Point Grid: ") + QString::number(ui->slider_PG->value()));
+    ui->label_BSG->setText(QString("Blur Size Grid: ") + QString::number(2*ui->slider_BSG->value() + 1));
+    ui->label_BVG->setText(QString("Blur Var Grid: ") + QString::number(ui->slider_BVG->value() / 10.0f));
+    ui->label_BSCG->setText(QString("Blur Scale Grid: ") + QString::number(2*ui->slider_BSCG->value() + 1));
     int bs = ui->slider_BS->value() * 2 + 1;
     float bv = ui->slider_BV->value() / 10.0f;
     int mnf = ui->slider_MNF->value();
@@ -281,7 +303,12 @@ void MainWindow::changeParamAndReprocess()
     float nmt = ui->slider_NMT->value() / 100.0f;
     float rt = ui->slider_RT->value() / 1.0f;
     float bds = ui->slider_BDS->value() * 2 + 1;
-    tracker->changeParam(mnf, ql, md, bs, bv, nmt, rt, bds);
+    int ng = ui->slider_NG->value();
+    int pg = ui->slider_PG->value();
+    int bsg = ui->slider_BSG->value() * 2 + 1;
+    float bvg = ui->slider_BVG->value() / 10.0f;
+    int bscg = ui->slider_BSCG->value() * 2 + 1;
+    tracker->changeParam(mnf, ql, md, bs, bv, nmt, rt, bds, ng, pg, bsg, bvg, bscg);
 
     process();
 }
@@ -322,6 +349,33 @@ void MainWindow::on_slider_BV_sliderReleased()
 }
 
 void MainWindow::on_slider_BDS_sliderReleased()
+{
+    changeParamAndReprocess();
+}
+
+void MainWindow::on_slider_NG_sliderReleased()
+{
+    changeParamAndReprocess();
+}
+
+void MainWindow::on_slider_PG_sliderReleased()
+{
+    changeParamAndReprocess();
+}
+
+
+
+void MainWindow::on_slider_BSG_sliderReleased()
+{
+    changeParamAndReprocess();
+}
+
+void MainWindow::on_slider_BVG_sliderReleased()
+{
+    changeParamAndReprocess();
+}
+
+void MainWindow::on_slider_BSCG_sliderReleased()
 {
     changeParamAndReprocess();
 }

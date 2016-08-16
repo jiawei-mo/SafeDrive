@@ -43,11 +43,16 @@ private slots:
     void on_slider_MNF_sliderReleased();
     void on_slider_QL_sliderReleased();
     void on_slider_MD_sliderReleased();
-    void on_slider_NMT_sliderReleased();
     void on_slider_RT_sliderReleased();
     void on_slider_BS_sliderReleased();
     void on_slider_BV_sliderReleased();
     void on_slider_BDS_sliderReleased();
+    void on_slider_NG_sliderReleased();
+    void on_slider_PG_sliderReleased();
+    void on_slider_NMT_sliderReleased();
+    void on_slider_BSG_sliderReleased();
+    void on_slider_BVG_sliderReleased();
+    void on_slider_BSCG_sliderReleased();
 };
 
 #endif // MAINWINDOW_H

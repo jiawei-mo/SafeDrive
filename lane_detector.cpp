@@ -2,9 +2,8 @@
 
 void LaneDetector::detect(const Mat& img, vector<Point2f>& whitePoints, vector<Point2f>& yellowPoints, bool showImg)
 {
-    Mat imgCopy = img.clone();
     //ROI
-    Mat roi = imgCopy(Rect(0,img.rows/2,img.cols,img.rows/2));
+    Mat roi = img(Rect(0,img.rows/2,img.cols,img.rows/2));
 
     //Detection by color
     Mat whiteHist, yellowHist;

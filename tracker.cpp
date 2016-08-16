@@ -1,11 +1,11 @@
 #include "tracker.hpp"
 
-int checkArea(Point2f p, int n_c, int n_r) {
-    int step_c = n_c / GRID;
-    int step_r = n_r / GRID;
+int Tracker::checkArea(Point2f p, int n_c, int n_r) {
+    int step_c = n_c / num_grid;
+    int step_r = n_r / num_grid;
     int c = p.x / step_c;
     int r = p.y / step_r;
-    return r * GRID + c;
+    return r * num_grid + c;
 }
 
 Tracker::Tracker()
@@ -18,12 +18,17 @@ Tracker::Tracker()
     nn_match_thres = NMT / 100.0f;
     ransac_thres = RT / 1.0f;
     board_size = BDS*2 + 1;
+    num_grid = NG;
+    pp_grid = PG;
+    blur_size_grid = BSG*2 + 1;
+    blur_var_grid = BVG / 10.0f;
+    blur_scale_grid = BSCG*2 + 1;
     targetKp.clear();
     detector = ORB::create();
     matcher = DescriptorMatcher::create("BruteForce-Hamming");
 }
 
-void Tracker::changeParam(int mnf, float ql, int md, int bs, float bv, float nmt, float rt, int bds)
+void Tracker::changeParam(int mnf, float ql, int md, int bs, float bv, float nmt, float rt, int bds, int ng, int pg, int bsg, int bvg, int bscg)
 {
     max_num_features = mnf;
     quality_level = ql;
@@ -33,6 +38,11 @@ void Tracker::changeParam(int mnf, float ql, int md, int bs, float bv, float nmt
     nn_match_thres = nmt;
     ransac_thres = rt;
     board_size = bds;
+    num_grid = ng;
+    pp_grid = pg;
+    blur_size_grid = bsg*2 + 1;
+    blur_var_grid = bvg / 10.0f;
+    blur_scale_grid = bscg*2 + 1;
     targetKp.clear();
 }
 
@@ -54,7 +64,7 @@ void Tracker::setTarget(const Mat& frame)
     detector->compute(targetFrame, targetKp, targetDesc);
 }
 
-int Tracker::featureMatch(const Mat& frame, Mat& homography, bool showImg, string windowName)
+int Tracker::featureMatch(const Mat& frame, Mat& homography, bool showImg, string windowName, bool grid, bool inline_out, vector<Point2f> *inline_target, vector<Point2f> *inline_matched)
 {
     //detect feature points on curFrame
     Mat curFrame = frame.clone();
@@ -82,94 +92,92 @@ int Tracker::featureMatch(const Mat& frame, Mat& homography, bool showImg, strin
 
     //matches
     vector<Point2f> targetMatchedKp, curMatchedKp;
-    {
-    int grid_num = GRID*GRID;
-    vector<vector<KeyPoint> > gridTargetKp(grid_num, vector<KeyPoint>());
-    vector<Mat> gridTargetDesc(grid_num, Mat());
+    if(grid){
+        int grid_num = num_grid*num_grid;
+        vector<vector<KeyPoint> > gridTargetKp(grid_num, vector<KeyPoint>());
+        vector<Mat> gridTargetDesc(grid_num, Mat());
 
 
-    vector<vector<KeyPoint> > gridCurKp(grid_num, vector<KeyPoint>());
-    vector<Mat> gridCurDesc(grid_num, Mat());
+        vector<vector<KeyPoint> > gridCurKp(grid_num, vector<KeyPoint>());
+        vector<Mat> gridCurDesc(grid_num, Mat());
 
-    int n_c = targetFrame.cols;
-    int n_r = targetFrame.rows;
-    for(int i=0; i<(int)targetKp.size(); i++) {
-        int area = checkArea(targetKp[i].pt, n_c, n_r);
-        gridTargetKp[area].push_back(targetKp[i]);
-    }
-    for(int i=0; i<(int)curKp.size(); i++) {
-        int area = checkArea(curKp[i].pt, n_c, n_r);
-        gridCurKp[area].push_back(curKp[i]);
-    }
-
-    for(int i=0; i<grid_num; i++) {
-        detector->compute(targetFrame, gridTargetKp[i], gridTargetDesc[i]);
-        detector->compute(frame, gridCurKp[i], gridCurDesc[i]);
-    }
-
-    for(int i=0; i<grid_num; i++) {
-        vector<vector<DMatch> > matches;
-        if(gridTargetDesc[i].empty() || gridCurDesc[i].empty()) {
-            continue;
+        int n_c = targetFrame.cols;
+        int n_r = targetFrame.rows;
+        for(int i=0; i<(int)targetKp.size(); i++) {
+            int area = checkArea(targetKp[i].pt, n_c, n_r);
+            gridTargetKp[area].push_back(targetKp[i]);
         }
-        matcher->knnMatch(gridCurDesc[i], gridTargetDesc[i], matches, 2);
-        vector<DMatch> goodMatches;
-        for(int i=0; i<(int)matches.size(); i++) {
-            if(matches[i][0].distance < nn_match_thres*matches[i][1].distance)
-            {
-                matches[i][0].distance = matches[i][0].distance / matches[i][1].distance;
-                goodMatches.push_back(matches[i][0]);
+        for(int i=0; i<(int)curKp.size(); i++) {
+            int area = checkArea(curKp[i].pt, n_c, n_r);
+            gridCurKp[area].push_back(curKp[i]);
+        }
+
+        for(int i=0; i<grid_num; i++) {
+            detector->compute(targetFrame, gridTargetKp[i], gridTargetDesc[i]);
+            detector->compute(frame, gridCurKp[i], gridCurDesc[i]);
+        }
+
+        for(int i=0; i<grid_num; i++) {
+            vector<vector<DMatch> > matches;
+            if(gridTargetDesc[i].empty() || gridCurDesc[i].empty()) {
+                continue;
             }
-        }
-        vector<DMatch> matchHeap;
-        if(goodMatches.size() > NN_MATCH_NUMBER) {
-            matchHeap = vector<DMatch>(goodMatches.begin(), goodMatches.begin()+NN_MATCH_NUMBER);
-            make_heap(matchHeap.begin(), matchHeap.end(), matchComp());
-
-            for(int j=NN_MATCH_NUMBER; j<(int)goodMatches.size(); j++) {
-                if(matchHeap.front().distance > goodMatches[j].distance) {
-                    pop_heap(matchHeap.begin(), matchHeap.end(), matchComp());
-                    matchHeap.pop_back();
-                    matchHeap.push_back(goodMatches[j]);
-                    push_heap(matchHeap.begin(), matchHeap.end(), matchComp());
+            matcher->knnMatch(gridCurDesc[i], gridTargetDesc[i], matches, 2);
+            vector<DMatch> goodMatches;
+            for(int i=0; i<(int)matches.size(); i++) {
+                if(matches[i][0].distance < nn_match_thres*matches[i][1].distance)
+                {
+                    matches[i][0].distance = matches[i][0].distance / matches[i][1].distance;
+                    goodMatches.push_back(matches[i][0]);
                 }
             }
-        } else {
-            matchHeap = goodMatches;
+            vector<DMatch> matchHeap;
+            if((int)goodMatches.size() > pp_grid) {
+                matchHeap = vector<DMatch>(goodMatches.begin(), goodMatches.begin()+pp_grid);
+                make_heap(matchHeap.begin(), matchHeap.end(), matchComp());
+
+                for(int j=pp_grid; j<(int)goodMatches.size(); j++) {
+                    if(matchHeap.front().distance > goodMatches[j].distance) {
+                        pop_heap(matchHeap.begin(), matchHeap.end(), matchComp());
+                        matchHeap.pop_back();
+                        matchHeap.push_back(goodMatches[j]);
+                        push_heap(matchHeap.begin(), matchHeap.end(), matchComp());
+                    }
+                }
+            } else {
+                matchHeap = goodMatches;
+            }
+
+            for(int j=0; j<(int)matchHeap.size(); j++) {
+                curMatchedKp.push_back(gridCurKp[i][matchHeap[j].queryIdx].pt);
+                targetMatchedKp.push_back(gridTargetKp[i][matchHeap[j].trainIdx].pt);
+            }
+        }
+    } else {
+        vector< vector<DMatch> > ctMatches, tcMatches;
+        matcher->knnMatch(curDesc, targetDesc, ctMatches, 2);
+        matcher->knnMatch(targetDesc, curDesc, tcMatches, 2);
+        unordered_map<int, int> matchMap;
+
+        for(int i=0; i<(int)tcMatches.size(); i++)
+        {
+            if(tcMatches[i][0].distance < nn_match_thres*tcMatches[i][1].distance)
+            {
+                matchMap[tcMatches[i][0].trainIdx] = tcMatches[i][0].queryIdx;
+            }
         }
 
-        for(int j=0; j<(int)matchHeap.size(); j++) {
-            curMatchedKp.push_back(gridCurKp[i][matchHeap[j].queryIdx].pt);
-            targetMatchedKp.push_back(gridTargetKp[i][matchHeap[j].trainIdx].pt);
+        for(int i=0; i<(int)ctMatches.size(); i++)
+        {
+            if(ctMatches[i][0].distance < nn_match_thres*ctMatches[i][1].distance)
+            {
+                if(matchMap[ctMatches[i][0].queryIdx] == ctMatches[i][0].trainIdx)
+                {
+                    curMatchedKp.push_back(curKp[ctMatches[i][0].queryIdx].pt);
+                    targetMatchedKp.push_back(targetKp[ctMatches[i][0].trainIdx].pt);
+                }
+            }
         }
-    }
-    }
-
-    {
-//    vector< vector<DMatch> > ctMatches, tcMatches;
-//    matcher->knnMatch(curDesc, targetDesc, ctMatches, 2);
-//    matcher->knnMatch(targetDesc, curDesc, tcMatches, 2);
-//    unordered_map<int, int> matchMap;
-
-//    for(int i=0; i<(int)tcMatches.size(); i++)
-//    {
-//        if(tcMatches[i][0].distance < nn_match_thres*tcMatches[i][1].distance)
-//        {
-//            matchMap[tcMatches[i][0].trainIdx] = tcMatches[i][0].queryIdx;
-//        }
-//    }
-
-//    for(int i=0; i<(int)ctMatches.size(); i++)
-//    {
-//        if(ctMatches[i][0].distance < nn_match_thres*ctMatches[i][1].distance)
-//        {
-//            if(matchMap[ctMatches[i][0].queryIdx] == ctMatches[i][0].trainIdx)
-//            {
-//                curMatchedKp.push_back(curKp[ctMatches[i][0].queryIdx].pt);
-//                targetMatchedKp.push_back(targetKp[ctMatches[i][0].trainIdx].pt);
-//            }
-//        }
-//    }
     }
 
     //find homography based on matches
@@ -195,20 +203,36 @@ int Tracker::featureMatch(const Mat& frame, Mat& homography, bool showImg, strin
     //show inliner pairs between two images side by side
     int count = 0;
     float dist = 0.0;
-    for(int i=0; i<(int)targetMatchedKp.size(); i++)
-    {
-        if(inliner_mask.at<uchar>(i))
+    if(inline_out) {
+        for(int i=0; i<(int)targetMatchedKp.size(); i++)
         {
-            count++;
-            dist += (projectedKp[i].x - targetMatchedKp[i].x)*(projectedKp[i].x - targetMatchedKp[i].x);
-            dist += (projectedKp[i].y - targetMatchedKp[i].y)*(projectedKp[i].y - targetMatchedKp[i].y);
-            line(matchedImg, curMatchedKp[i], Point2f(targetMatchedKp[i].x+frame.cols, targetMatchedKp[i].y), CV_RGB(255, 0, 0));
-            circle(matchedImg, Point2f(projectedKp[i].x+frame.cols, projectedKp[i].y), 2, CV_RGB(0, 255, 0));
+            if(inliner_mask.at<uchar>(i))
+            {
+                count++;
+                dist += (projectedKp[i].x - targetMatchedKp[i].x)*(projectedKp[i].x - targetMatchedKp[i].x);
+                dist += (projectedKp[i].y - targetMatchedKp[i].y)*(projectedKp[i].y - targetMatchedKp[i].y);
+                line(matchedImg, curMatchedKp[i], Point2f(targetMatchedKp[i].x+frame.cols, targetMatchedKp[i].y), CV_RGB(255, 0, 0));
+                circle(matchedImg, Point2f(projectedKp[i].x+frame.cols, projectedKp[i].y), 2, CV_RGB(0, 255, 0));
+                inline_target->push_back(targetMatchedKp[i]);
+                inline_matched->push_back(curMatchedKp[i]);
+            }
+        }
+    } else {
+        for(int i=0; i<(int)targetMatchedKp.size(); i++)
+        {
+            if(inliner_mask.at<uchar>(i))
+            {
+                count++;
+                dist += (projectedKp[i].x - targetMatchedKp[i].x)*(projectedKp[i].x - targetMatchedKp[i].x);
+                dist += (projectedKp[i].y - targetMatchedKp[i].y)*(projectedKp[i].y - targetMatchedKp[i].y);
+                line(matchedImg, curMatchedKp[i], Point2f(targetMatchedKp[i].x+frame.cols, targetMatchedKp[i].y), CV_RGB(255, 0, 0));
+                circle(matchedImg, Point2f(projectedKp[i].x+frame.cols, projectedKp[i].y), 2, CV_RGB(0, 255, 0));
+            }
         }
     }
 
     dist = dist / count;
-    cout<<"dist: "<<dist<<endl;
+    cout<<"norm: "<<norm(homography)<<" dist: "<<dist<<endl;
     if(dist > PROJ_ERR_THRES) {
         cout<<"Match fail, proj error exceeded!"<<endl;
         return -1;
@@ -224,97 +248,9 @@ int Tracker::featureMatch(const Mat& frame, Mat& homography, bool showImg, strin
 
 Mat Tracker::pixelMatch(const Mat& recMatchedFrame)
 {
-    imshow("test", recMatchedFrame);
-    Mat curFrame = recMatchedFrame.clone();
-    GaussianBlur(curFrame, curFrame, Size(blur_size,blur_size), blur_var, blur_var);
-    Mat grayImg;
-    vector<Point2f> corners;
-    cvtColor(curFrame, grayImg, CV_BGR2GRAY);
-    goodFeaturesToTrack(grayImg, corners, max_num_features, quality_level, min_distance);
-
-    vector<KeyPoint> curKp;
-    for( size_t i = 0; i < corners.size(); i++ ) {
-        curKp.push_back(KeyPoint(corners[i], 1.f));
-    }
-
-    Mat curDesc;
-    detector->compute(curFrame, curKp, curDesc);
-
-    int grid_num = GRID*GRID;
-    vector<vector<KeyPoint> > gridTargetKp(grid_num, vector<KeyPoint>());
-    vector<Mat> gridTargetDesc(grid_num, Mat());
-
-
-    vector<vector<KeyPoint> > gridMatchedKp(grid_num, vector<KeyPoint>());
-    vector<Mat> gridMatchedDesc(grid_num, Mat());
-
-    int n_c = targetFrame.cols;
-    int n_r = targetFrame.rows;
-    for(int i=0; i<(int)targetKp.size(); i++) {
-        int area = checkArea(targetKp[i].pt, n_c, n_r);
-        gridTargetKp[area].push_back(targetKp[i]);
-    }
-    for(int i=0; i<(int)curKp.size(); i++) {
-        int area = checkArea(curKp[i].pt, n_c, n_r);
-        gridMatchedKp[area].push_back(curKp[i]);
-    }
-
-    for(int i=0; i<grid_num; i++) {
-        detector->compute(targetFrame, gridTargetKp[i], gridTargetDesc[i]);
-        detector->compute(recMatchedFrame, gridMatchedKp[i], gridMatchedDesc[i]);
-    }
-
-    vector<Point2f> gridTargetMatched, gridMatchedMatched;
-    for(int i=0; i<grid_num; i++) {
-        vector<vector<DMatch> > matches;
-        if(gridTargetDesc[i].empty() || gridMatchedDesc[i].empty()) {
-            continue;
-        }
-        matcher->knnMatch(gridMatchedDesc[i], gridTargetDesc[i], matches, 2);
-        vector<DMatch> goodMatches;
-        for(int i=0; i<(int)matches.size(); i++) {
-            if(matches[i][0].distance < nn_match_thres*matches[i][1].distance)
-            {
-                matches[i][0].distance = matches[i][0].distance / matches[i][1].distance;
-                goodMatches.push_back(matches[i][0]);
-            }
-        }
-        vector<DMatch> matchHeap;
-        if(goodMatches.size() > NN_MATCH_NUMBER) {
-            matchHeap = vector<DMatch>(goodMatches.begin(), goodMatches.begin()+NN_MATCH_NUMBER);
-            make_heap(matchHeap.begin(), matchHeap.end(), matchComp());
-
-            for(int j=NN_MATCH_NUMBER; j<(int)goodMatches.size(); j++) {
-                if(matchHeap.front().distance > goodMatches[j].distance) {
-                    pop_heap(matchHeap.begin(), matchHeap.end(), matchComp());
-                    matchHeap.pop_back();
-                    matchHeap.push_back(goodMatches[j]);
-                    push_heap(matchHeap.begin(), matchHeap.end(), matchComp());
-                }
-            }
-        } else {
-            matchHeap = goodMatches;
-        }
-
-        for(int j=0; j<(int)matchHeap.size(); j++) {
-            gridMatchedMatched.push_back(gridMatchedKp[i][matchHeap[j].queryIdx].pt);
-            gridTargetMatched.push_back(gridTargetKp[i][matchHeap[j].trainIdx].pt);
-        }
-    }
-
-    Mat inliner_mask;
-    findHomography(gridMatchedMatched, gridTargetMatched, RANSAC, ransac_thres, inliner_mask);
     vector<Point2f> inline_target, inline_matched;
-
-    for(int i=0; i<(int)gridTargetMatched.size(); i++)
-    {
-        if(inliner_mask.at<uchar>(i))
-        {
-            inline_target.push_back(gridTargetMatched[i]);
-            inline_matched.push_back(gridMatchedMatched[i]);
-        }
-    }
-
+    Mat tmp;
+    featureMatch(recMatchedFrame, tmp, true, "Grid Match Res", true, true, &inline_target, &inline_matched);
     Mat targetDots = Mat::zeros(targetFrame.size(), CV_32F);;
     Mat recMatchedDots = Mat::zeros(recMatchedFrame.size(), CV_32F);
     if(inline_target.size() == 0) {
@@ -328,24 +264,21 @@ Mat Tracker::pixelMatch(const Mat& recMatchedFrame)
         recMatchedDots.at<float>(inline_matched[i].y, inline_matched[i].x) = 1.0;
     }
 
-    GaussianBlur(targetDots, targetDots, Size(board_size, board_size), 10, 10);
-    GaussianBlur(recMatchedDots, recMatchedDots, Size(board_size, board_size), 10, 10);
-
     Mat targetROI, recMatchedROI;
+    GaussianBlur(targetFrame, targetROI, Size(blur_size_grid, blur_size_grid), blur_var_grid*blur_scale_grid, blur_var_grid*blur_scale_grid);
+    GaussianBlur(recMatchedFrame, recMatchedROI, Size(blur_size_grid, blur_size_grid), blur_var_grid*blur_scale_grid, blur_var_grid*blur_scale_grid);
 
-    Mat targetDotsC3;
-    vector<Mat> targetChannels(3, targetDots);
-    merge(targetChannels, targetDotsC3);
-    Mat targetFrame32F;
-    targetFrame.convertTo(targetFrame32F, CV_32FC3);
-    targetROI = targetFrame32F.mul(targetDotsC3);
+    blur(targetDots, targetDots, Size(board_size, board_size));
+    threshold(targetDots, targetDots, 0, 1, cv::THRESH_BINARY);
+    targetDots.convertTo(targetDots, CV_8U);
+    targetFrame.copyTo(targetROI, targetDots);
+    GaussianBlur(targetROI, targetROI, Size(blur_size_grid, blur_size_grid), blur_var_grid, blur_var_grid);
 
-    Mat recMatchedDotsC3;
-    vector<Mat> recMatchedChannels(3, recMatchedDots);
-    merge(recMatchedChannels, recMatchedDotsC3);
-    Mat recMatchedFrame32F;
-    recMatchedFrame.convertTo(recMatchedFrame32F, CV_32FC3);
-    recMatchedROI = recMatchedFrame32F.mul(recMatchedDotsC3);
+    blur(recMatchedDots, recMatchedDots, Size(board_size, board_size));
+    threshold(recMatchedDots, recMatchedDots, 0, 1, cv::THRESH_BINARY);
+    recMatchedDots.convertTo(recMatchedDots, CV_8U);
+    recMatchedFrame.copyTo(recMatchedROI, recMatchedDots);
+    GaussianBlur(recMatchedROI, recMatchedROI, Size(blur_size_grid, blur_size_grid), blur_var_grid, blur_var_grid);
 
     Mat combineImg = Mat::zeros(recMatchedROI.rows, 2*recMatchedROI.cols, recMatchedROI.type());
     recMatchedROI.copyTo(combineImg(Rect(0, 0, recMatchedROI.cols, recMatchedROI.rows)));
@@ -366,7 +299,7 @@ Mat Tracker::pixelWiseMatch(const Mat& img1, const Mat& img2)
     Ptr<Map> res;
     MapperGradProj mapper;
     MapperPyramid mappPyr(mapper);
-    mappPyr.numIterPerScale_ = 10;
+//    mappPyr.numIterPerScale_ = 10;
     mappPyr.calculate(img1, img2, res);
 
     MapProjec* mapProj = dynamic_cast<MapProjec*>(res.get());
@@ -375,7 +308,7 @@ Mat Tracker::pixelWiseMatch(const Mat& img1, const Mat& img2)
     // Generate diffImg
     Mat dest;
     mapProj->inverseWarp(img2, dest);
-    showDifference(img1, dest, "Pixel Difference");
+    showDifferenceEdge(img1, dest, "Pixel Difference");
 
     return Mat(mapProj->getProjTr());
 }
@@ -393,7 +326,6 @@ void Tracker::showDifference(const Mat& image1, const Mat& image2, string title)
     Mat imgDiff;
     img1.copyTo(imgDiff);
     imgDiff -= img2;
-//    imshow("test", imgDiff);
     imgDiff /= 2.f;
     imgDiff += 128.f;
     Mat imgSh;

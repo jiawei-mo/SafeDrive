@@ -13,8 +13,6 @@
 
 #include "parameters.hpp"
 
-#define GRID 2
-
 using namespace cv;
 using namespace std;
 using namespace cv::reg;
@@ -27,6 +25,8 @@ struct matchComp {
 
 class Tracker
 {
+private:
+    int checkArea(Point2f p, int n_c, int n_r);
 protected:
     Ptr<ORB> detector;
     Ptr<DescriptorMatcher> matcher;
@@ -44,12 +44,17 @@ protected:
     float nn_match_thres;
     float ransac_thres;
     int board_size;
+    int num_grid;
+    int pp_grid;
+    int blur_size_grid;
+    float blur_var_grid;
+    int blur_scale_grid;
 
 public:
     Tracker();
-    void changeParam(int mnf, float ql, int md, int bs, float bv, float nmt, float rt, int bds);
+    void changeParam(int mnf, float ql, int md, int bs, float bv, float nmt, float rt, int bds, int ng, int pg, int bsg, int bvg, int bscg);
     void setTarget(const Mat& frame);
-    int featureMatch(const Mat& frame, Mat& homography, bool showImg=false, string windowName="No Name");
+    int featureMatch(const Mat& frame, Mat& homography, bool showImg=false, string windowName="No Name", bool grid=false, bool inline_out=false, vector<Point2f> *inline_target=nullptr, vector<Point2f> *inline_matched=nullptr);
     Mat pixelMatch(const Mat& recMatchedFrame);
 
     //helpers

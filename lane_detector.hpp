@@ -11,7 +11,7 @@ class LaneDetector
 {
 public:
     void detect(const Mat& img, vector<Point2f> &whitePoints, vector<Point2f> &yellowPoints, bool showImg=false);
-    void detectAndProject(const Mat& detImg, Mat& projImg, const Mat &homo, bool showImg=false);
+    void detectAndShow(const Mat& detImg, Mat& projImg, const Mat &homo, string windowName, bool showLane=false);
 };
 
 #endif // LANE_DETECTOR_HPP

@@ -48,8 +48,7 @@ void Tracker::changeParam(int mnf, float ql, int md, int bs, float bv, float nmt
 
 void Tracker::setTarget(const Mat& frame)
 {
-    targetFrame = frame.clone();
-    GaussianBlur(targetFrame, targetFrame, Size(blur_size,blur_size), blur_var, blur_var);
+    GaussianBlur(frame, targetFrame, Size(blur_size,blur_size), blur_var, blur_var);
     Mat grayImg;
     vector<Point2f> corners;
     cvtColor(targetFrame, grayImg, CV_BGR2GRAY);
@@ -67,8 +66,8 @@ void Tracker::setTarget(const Mat& frame)
 int Tracker::featureMatch(const Mat& frame, Mat& homography, bool showImg, string windowName, bool grid, bool inline_out, vector<Point2f> *inline_target, vector<Point2f> *inline_matched)
 {
     //detect feature points on curFrame
-    Mat curFrame = frame.clone();
-    GaussianBlur(curFrame, curFrame, Size(blur_size,blur_size), blur_var, blur_var);
+    Mat curFrame;
+    GaussianBlur(frame, curFrame, Size(blur_size,blur_size), blur_var, blur_var);
     Mat grayImg;
     vector<Point2f> corners;
     cvtColor(curFrame, grayImg, CV_BGR2GRAY);
@@ -239,7 +238,6 @@ int Tracker::featureMatch(const Mat& frame, Mat& homography, bool showImg, strin
     }
 
     if(showImg) {
-        namedWindow(windowName, WINDOW_NORMAL);
         imshow(windowName, matchedImg);
     }
 
@@ -265,8 +263,8 @@ Mat Tracker::pixelMatch(const Mat& recMatchedFrame)
     }
 
     Mat targetROI, recMatchedROI;
-    GaussianBlur(targetFrame, targetROI, Size(blur_size_grid, blur_size_grid), blur_var_grid*blur_scale_grid, blur_var_grid*blur_scale_grid);
-    GaussianBlur(recMatchedFrame, recMatchedROI, Size(blur_size_grid, blur_size_grid), blur_var_grid*blur_scale_grid, blur_var_grid*blur_scale_grid);
+    GaussianBlur(targetFrame, targetROI, Size(3*blur_size_grid, 3*blur_size_grid), blur_var_grid*blur_scale_grid, blur_var_grid*blur_scale_grid);
+    GaussianBlur(recMatchedFrame, recMatchedROI, Size(3*blur_size_grid, 3*blur_size_grid), blur_var_grid*blur_scale_grid, blur_var_grid*blur_scale_grid);
 
     blur(targetDots, targetDots, Size(board_size, board_size));
     threshold(targetDots, targetDots, 0, 1, cv::THRESH_BINARY);
@@ -283,7 +281,6 @@ Mat Tracker::pixelMatch(const Mat& recMatchedFrame)
     Mat combineImg = Mat::zeros(recMatchedROI.rows, 2*recMatchedROI.cols, recMatchedROI.type());
     recMatchedROI.copyTo(combineImg(Rect(0, 0, recMatchedROI.cols, recMatchedROI.rows)));
     targetROI.copyTo(combineImg(Rect(recMatchedROI.cols, 0, recMatchedROI.cols, recMatchedROI.rows)));
-    namedWindow("Pixel-wise ROI", WINDOW_NORMAL);
     imshow("Pixel-wise ROI", combineImg);
 
     Mat recMatchedFrame64F, targetFrame64F;
@@ -330,7 +327,6 @@ void Tracker::showDifference(const Mat& image1, const Mat& image2, string title)
     imgDiff += 128.f;
     Mat imgSh;
     imgDiff.convertTo(imgSh, CV_8UC3);
-    namedWindow(title, WINDOW_NORMAL);
     imshow(title, imgSh);
 }
 
@@ -339,8 +335,8 @@ void Tracker::showDifferenceEdge(const Mat& image1, const Mat& image2, string ti
     Mat img1Tmp, img2Tmp, img1Edge, img2Edge;
     image1.convertTo(img1Tmp, CV_8UC3);
     image2.convertTo(img2Tmp, CV_8UC3);
-    Canny( img1Tmp, img1Edge, 50, 150, 3);
-    Canny( img2Tmp, img2Edge, 50, 150, 3);
+    Canny( img1Tmp, img1Edge, 50, 100, 3);
+    Canny( img2Tmp, img2Edge, 50, 100, 3);
 
     Mat res(image1.size(), CV_8UC3, Scalar(0, 0, 0));
     Mat redImg(image1.size(), CV_8UC3, Scalar(255, 0, 0));
@@ -348,7 +344,6 @@ void Tracker::showDifferenceEdge(const Mat& image1, const Mat& image2, string ti
     redImg.copyTo(res, img1Edge);
     blueImg.copyTo(res, img2Edge);
 
-    namedWindow(title, WINDOW_NORMAL);
     imshow(title, res);
 
     return;

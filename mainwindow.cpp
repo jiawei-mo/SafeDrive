@@ -19,84 +19,6 @@ void MainWindow::process()
     float mHead = head;
     float mPitch = pitch;
     Mat curFrame;
-    #pragma omp parallel for
-    for(int a=0; a<MATCH_STEP_G; a++)
-    {
-        float curLat = lat+MATCH_LAT_LENGTH*(a - MATCH_STEP_G / 2);
-        #pragma omp parallel for
-        for(int b=0; b<MATCH_STEP_G; b++)
-        {
-            cout<<"Lat:"<<mLat<<" Lon: "<<mLon<<" Head: "<<mHead<<" Pitch: "<<mPitch<<endl;
-            float curLon = lon+MATCH_LON_LENGTH*(b - MATCH_STEP_G / 2);
-            curFrame = fetcher->get(targetFrame.size(), curLat, curLon, mHead, mPitch);
-            float curP = tracker->featureMatch(curFrame, featureRes);
-            if(curP > mP)
-            {
-                mP = curP;
-                mLat = curLat;
-                mLon = curLon;
-            }
-        }
-    }
-
-    //Head
-    float lHead = mHead-10;
-    Mat lFrame = fetcher->get(targetFrame.size(), mLat, mLon, lHead, mPitch);
-    int lP = tracker->featureMatch(lFrame, featureRes);
-
-    float rHead = mHead+10;
-    Mat rFrame = fetcher->get(targetFrame.size(), mLat, mLon, rHead, mPitch);
-    int rP = tracker->featureMatch(rFrame, featureRes);
-    for(int c=0; c<MATCH_STEP_L; c++)
-    {
-        cout<<"Lat:"<<mLat<<" Lon: "<<mLon<<" Head: "<<mHead<<" Pitch: "<<mPitch<<endl;
-        if(lP > rP)
-        {
-            rHead = mHead;
-            rP = mP;
-        } else {
-            lHead = mHead;
-            lP = mP;
-        }
-        mHead = lHead + (rHead-lHead) / 2;
-        curFrame = fetcher->get(targetFrame.size(), mLat, mLon, mHead, mPitch);
-        mP = tracker->featureMatch(curFrame, featureRes);
-//        mP = tracker->featureMatch(curFrame, featureRes, true, to_string(mHead));
-    }
-
-    //Pitch
-    float lPitch = mPitch-5;
-    lFrame = fetcher->get(targetFrame.size(), mLat, mLon, mHead, lPitch);
-    lP = tracker->featureMatch(lFrame, featureRes);
-
-    float rPitch = mPitch+5;
-    rFrame = fetcher->get(targetFrame.size(), mLat, mLon, mHead, rPitch);
-    rP = tracker->featureMatch(rFrame, featureRes);
-    for(int d=0; d<MATCH_STEP_L; d++)
-    {
-        cout<<"Lat:"<<mLat<<" Lon: "<<mLon<<" Head: "<<mHead<<" Pitch: "<<mPitch<<endl;
-        if(lP > rP)
-        {
-            rPitch = mPitch;
-            rP = mP;
-        } else {
-            lPitch = mPitch;
-            lP = mP;
-        }
-        mPitch = lPitch + (rPitch-lPitch) / 2;
-        curFrame = fetcher->get(targetFrame.size(), mLat, mLon, mHead, mPitch);
-        mP = tracker->featureMatch(curFrame, featureRes);
-    }
-
-
-    {
-//    Mat featureRes;
-//    int maxP = -1;
-//    float mLat = lat;
-//    float mLon = lon;
-//    float mHead = head;
-//    float mPitch = pitch;
-//    Mat curFrame;
 //    #pragma omp parallel for
 //    for(int a=0; a<MATCH_STEP_G; a++)
 //    {
@@ -104,56 +26,68 @@ void MainWindow::process()
 //        #pragma omp parallel for
 //        for(int b=0; b<MATCH_STEP_G; b++)
 //        {
+//            cout<<"Lat:"<<mLat<<" Lon: "<<mLon<<" Head: "<<mHead<<" Pitch: "<<mPitch<<endl;
 //            float curLon = lon+MATCH_LON_LENGTH*(b - MATCH_STEP_G / 2);
-//            curFrame = fetcher->get(targetFrame.size(),
-//                                    curLat,
-//                                    curLon,
-//                                    head,
-//                                    pitch);
-//            int curP = tracker->featureMatch(curFrame, featureRes, false);
-//            if(curP > maxP)
+//            curFrame = fetcher->get(targetFrame.size(), curLat, curLon, mHead, mPitch);
+//            float curP = tracker->featureMatch(curFrame, featureRes);
+//            if(curP > mP)
 //            {
-//                maxP = curP;
+//                mP = curP;
 //                mLat = curLat;
 //                mLon = curLon;
 //            }
 //        }
 //    }
 
-//    #pragma omp parallel for
+//    //Head
+//    float lHead = mHead-10;
+//    Mat lFrame = fetcher->get(targetFrame.size(), mLat, mLon, lHead, mPitch);
+//    int lP = tracker->featureMatch(lFrame, featureRes);
+
+//    float rHead = mHead+10;
+//    Mat rFrame = fetcher->get(targetFrame.size(), mLat, mLon, rHead, mPitch);
+//    int rP = tracker->featureMatch(rFrame, featureRes);
 //    for(int c=0; c<MATCH_STEP_L; c++)
 //    {
-//        float curHead = head+MATCH_HEAD_LENGTH*(c - MATCH_STEP_L / 2);
-//        curFrame = fetcher->get(targetFrame.size(),
-//                                mLat,
-//                                mLon,
-//                                curHead,
-//                                pitch);
-//        int curP = tracker->featureMatch(curFrame, featureRes, false);
-//        if(curP > maxP)
+//        cout<<"Lat:"<<mLat<<" Lon: "<<mLon<<" Head: "<<mHead<<" Pitch: "<<mPitch<<endl;
+//        if(lP > rP)
 //        {
-//            maxP = curP;
-//            mHead = curHead;
+//            rHead = mHead;
+//            rP = mP;
+//        } else {
+//            lHead = mHead;
+//            lP = mP;
 //        }
+//        mHead = lHead + (rHead-lHead) / 2;
+//        curFrame = fetcher->get(targetFrame.size(), mLat, mLon, mHead, mPitch);
+//        mP = tracker->featureMatch(curFrame, featureRes);
+////        mP = tracker->featureMatch(curFrame, featureRes, true, to_string(mHead));
 //    }
 
-//    #pragma omp parallel for
+//    //Pitch
+//    float lPitch = mPitch-5;
+//    lFrame = fetcher->get(targetFrame.size(), mLat, mLon, mHead, lPitch);
+//    lP = tracker->featureMatch(lFrame, featureRes);
+
+//    float rPitch = mPitch+5;
+//    rFrame = fetcher->get(targetFrame.size(), mLat, mLon, mHead, rPitch);
+//    rP = tracker->featureMatch(rFrame, featureRes);
 //    for(int d=0; d<MATCH_STEP_L; d++)
 //    {
-//        float curPitch = pitch+MATCH_PITCH_LENGTH*(d - MATCH_STEP_L / 2);
-//        curFrame = fetcher->get(targetFrame.size(),
-//                                mLat,
-//                                mLon,
-//                                mHead,
-//                                curPitch);
-//        int curP = tracker->featureMatch(curFrame, featureRes, false);
-//        if(curP > maxP)
+//        cout<<"Lat:"<<mLat<<" Lon: "<<mLon<<" Head: "<<mHead<<" Pitch: "<<mPitch<<endl;
+//        if(lP > rP)
 //        {
-//            maxP = curP;
-//            mPitch = curPitch;
+//            rPitch = mPitch;
+//            rP = mP;
+//        } else {
+//            lPitch = mPitch;
+//            lP = mP;
 //        }
+//        mPitch = lPitch + (rPitch-lPitch) / 2;
+//        curFrame = fetcher->get(targetFrame.size(), mLat, mLon, mHead, mPitch);
+//        mP = tracker->featureMatch(curFrame, featureRes);
 //    }
-}
+
     ui->text_log->appendPlainText("Matched Result:");
     cout<<"final"<<endl;
     Mat matchedFrame = fetcher->get(targetFrame.size(), mLat, mLon, mHead, mPitch);
@@ -180,20 +114,12 @@ void MainWindow::process()
     cout<<"final home: "<<endl<<finalHomo<<endl;
 
     //pixel benchmark
-//    Mat matchResC = targetFrame.clone();
-//    detector->detectAndProject(matchedFrame, matchResC, featureRes);
-//    namedWindow("Feature result", WINDOW_NORMAL);
-//    imshow("Feature result", matchResC);
-//    tracker->showDifferenceEdge(matchedFrame, targetFrame, "Feature result difference");
+    Mat matchResC = targetFrame.clone();
+    detector->detectAndShow(matchedFrame, matchResC, featureRes, "Feature based result");
+    tracker->showDifferenceEdge(matchedFrame, targetFrame, "Feature result difference");
 
     //detect lane
-    Mat matchRes = targetFrame;
-    detector->detectAndProject(matchedFrame, matchRes, finalHomo);
-
-    //put images onto GUI
-    cvtColor(matchRes, matchRes, CV_BGR2RGB);
-    QImage QresImg((uchar*)matchRes.data, matchRes.cols, matchRes.rows, matchRes.step, QImage::Format_RGB888);
-    ui->label_result->setPixmap(QPixmap::fromImage(QresImg));
+    detector->detectAndShow(matchedFrame, targetFrame, finalHomo, "Final Result");
 
     return;
 }

@@ -42,7 +42,6 @@ void LaneDetector::detect(const Mat& img, vector<Point2f>& whitePoints, vector<P
         {
             laneImg.at<Vec3b>(yellowPoints[i]) = Vec3b(0, 255, 255);
         }
-        namedWindow("Lane Result", WINDOW_NORMAL);
         imshow("Lane Result", laneImg);
     }
 }
@@ -55,11 +54,11 @@ bool imgBoundValid(const Mat& img, Point2f pt) {
     return a && b && c && d;
 }
 
-void LaneDetector::detectAndProject(const Mat& detImg, Mat& projImg, const Mat& homo, bool showImg)
+void LaneDetector::detectAndShow(const Mat& detImg, Mat& projImg, const Mat& homo, string windowName, bool showLane)
 {
     vector<Point2f> whitePoints;
     vector<Point2f> yellowPoints;
-    detect(detImg, whitePoints, yellowPoints, showImg);
+    detect(detImg, whitePoints, yellowPoints, showLane);
     vector<Point2f> whiteProjectedPoints, yellowProjectedPoints;
     if(whitePoints.size() > 0) {
         perspectiveTransform(whitePoints, whiteProjectedPoints, homo);
@@ -81,4 +80,5 @@ void LaneDetector::detectAndProject(const Mat& detImg, Mat& projImg, const Mat& 
             projImg.at<Vec3b>(yellowProjectedPoints[i]) = Vec3b(0, 255, 255);
         }
     }
+    imshow(windowName, projImg);
 }

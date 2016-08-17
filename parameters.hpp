@@ -16,7 +16,7 @@
 #define NG 7
 #define PG 40
 #define BSG 2
-#define BVG 4
+#define BVG 12
 #define BSCG 5
 
 #define MATCH_STEP_G 3

@@ -5,11 +5,6 @@
 
 void MainWindow::process()
 {
-    Mat targetFrame = imread(targetString);
-    if( targetFrame.empty() ) {
-      ui->text_log->appendPlainText("Error occured, image not read correctly");
-      return;
-    }
     tracker->setTarget(targetFrame);
 
     Mat featureRes;
@@ -90,12 +85,14 @@ void MainWindow::process()
 
     ui->text_log->appendPlainText("Matched Result:");
     cout<<"final"<<endl;
-    Mat matchedFrame = fetcher->get(targetFrame.size(), mLat, mLon, mHead, mPitch);
+    Mat matchedFrame;
+    fetcher->get(matchedFrame, targetFrame.size(), mLat, mLon, mHead, mPitch);
     //image fetcher fail
-    if(norm(matchedFrame) < 1) {
+    if(matchedFrame.empty()) {
         ui->text_log->appendPlainText("Internet Fail!");
         return;
     }
+
     int finalP = tracker->featureMatch(matchedFrame, featureRes, true, "Match Result");
 
     //fail
@@ -114,12 +111,12 @@ void MainWindow::process()
     cout<<"final home: "<<endl<<finalHomo<<endl;
 
     //pixel benchmark
-    Mat matchResC = targetFrame.clone();
-    detector->detectAndShow(matchedFrame, matchResC, featureRes, "Feature based result");
-    tracker->showDifferenceEdge(matchedFrame, targetFrame, "Feature result difference");
+//    detector->detectAndShow(matchedFrame, targetFrame, featureRes, "Feature based result");
+//    tracker->showDifferenceEdge(matchedFrame, targetFrame, "Feature result difference");
 
     //detect lane
-    detector->detectAndShow(matchedFrame, targetFrame, finalHomo, "Final Result");
+    Mat projImg = targetFrame.clone();
+    detector->detectAndShow(matchedFrame, projImg, finalHomo, "Final result");
 
     return;
 }
@@ -129,33 +126,6 @@ MainWindow::MainWindow(QWidget *parent) :
     ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
-
-    ui->slider_BS->setValue(BS);
-    ui->label_BS->setText(QString("Blur Size: ") + QString::number(2*ui->slider_BS->value() + 1));
-    ui->slider_BV->setValue(BV);
-    ui->label_BV->setText(QString("Blur Var: ") + QString::number(ui->slider_BV->value() / 10.0f));
-    ui->slider_MNF->setValue(MNF);
-    ui->label_MNF->setText(QString("Max Num Features: ") + QString::number(ui->slider_MNF->value()));
-    ui->slider_QL->setValue(QL);
-    ui->label_QL->setText(QString("Quality Level: ") + QString::number(ui->slider_QL->value() / 100.0f));
-    ui->slider_MD->setValue(MD);
-    ui->label_MD->setText(QString("Min Distance: ") + QString::number(ui->slider_MD->value()));
-    ui->slider_NMT->setValue(NMT);
-    ui->label_NMT->setText(QString("NN Match Thres: ") + QString::number(ui->slider_NG->value() / 100.f));
-    ui->slider_RT->setValue(RT);
-    ui->label_RT->setText(QString("RANSAC Thres: ") + QString::number(ui->slider_RT->value() / 1.0f));
-    ui->slider_BDS->setValue(BDS);
-    ui->label_BDS->setText(QString("Board Size: ") + QString::number(2*ui->slider_BDS->value() + 1));
-    ui->slider_NG->setValue(NG);
-    ui->label_NG->setText(QString("Num Grid: ") + QString::number(ui->slider_NG->value()));
-    ui->slider_PG->setValue(PG);
-    ui->label_PG->setText(QString("Point Grid: ") + QString::number(ui->slider_PG->value()));
-    ui->slider_BSG->setValue(BSG);
-    ui->label_BSG->setText(QString("Blur Size Grid: ") + QString::number(2*ui->slider_BSG->value() + 1));
-    ui->slider_BVG->setValue(BVG);
-    ui->label_BVG->setText(QString("Blur Var Grid: ") + QString::number(ui->slider_BVG->value() / 10.0f));
-    ui->slider_BSCG->setValue(BSCG);
-    ui->label_BSCG->setText(QString("Blur Scale Grid: ") + QString::number(2*ui->slider_BSCG->value() + 1));
 
     tracker = new Tracker();
     detector = new LaneDetector();
@@ -170,7 +140,12 @@ MainWindow::~MainWindow()
 void MainWindow::on_button_start_clicked()
 {
     string targetNameFull = ui->text_TFN->toPlainText().toStdString();
-    targetString = targetNameFull.substr(7, targetNameFull.length()-8);
+    string targetString = targetNameFull.substr(7, targetNameFull.length()-8);
+    targetFrame = imread(targetString);
+    if( targetFrame.empty() ) {
+      ui->text_log->appendPlainText("Error occured, image not read correctly");
+      return;
+    }
     string paramNameFull = ui->text_PM->toPlainText().toStdString();
     string paramName = paramNameFull.substr(7, paramNameFull.length()-8);
     ifstream params(paramName);
@@ -203,6 +178,8 @@ void MainWindow::on_button_reset_clicked()
     ui->slider_BSG->setValue(BSG);
     ui->slider_BVG->setValue(BVG);
     ui->slider_BSCG->setValue(BSCG);
+    ui->slider_MTG->setValue(MTG);
+    ui->slider_RTG->setValue(RTG);
     changeParamAndReprocess();
 }
 
@@ -221,6 +198,8 @@ void MainWindow::changeParamAndReprocess()
     ui->label_BSG->setText(QString("Blur Size Grid: ") + QString::number(2*ui->slider_BSG->value() + 1));
     ui->label_BVG->setText(QString("Blur Var Grid: ") + QString::number(ui->slider_BVG->value() / 10.0f));
     ui->label_BSCG->setText(QString("Blur Scale Grid: ") + QString::number(2*ui->slider_BSCG->value() + 1));
+    ui->label_MTG->setText(QString("Match Thres Grid: ") + QString::number(ui->slider_MTG->value() / 100.0f));
+    ui->label_RTG->setText(QString("RANSAC Thres Grid: ") + QString::number(ui->slider_RTG->value() / 1.0f));
     int bs = ui->slider_BS->value() * 2 + 1;
     float bv = ui->slider_BV->value() / 10.0f;
     int mnf = ui->slider_MNF->value();
@@ -234,7 +213,9 @@ void MainWindow::changeParamAndReprocess()
     int bsg = ui->slider_BSG->value() * 2 + 1;
     float bvg = ui->slider_BVG->value() / 10.0f;
     int bscg = ui->slider_BSCG->value() * 2 + 1;
-    tracker->changeParam(mnf, ql, md, bs, bv, nmt, rt, bds, ng, pg, bsg, bvg, bscg);
+    float mtg = ui->slider_MTG->value() / 100.f;
+    float rtg = ui->slider_RTG->value() / 1.0f;
+    tracker->changeParam(mnf, ql, md, bs, bv, nmt, rt, bds, ng, pg, bsg, bvg, bscg, mtg, rtg);
 
     process();
 }
@@ -302,6 +283,16 @@ void MainWindow::on_slider_BVG_sliderReleased()
 }
 
 void MainWindow::on_slider_BSCG_sliderReleased()
+{
+    changeParamAndReprocess();
+}
+
+void MainWindow::on_slider_MTG_sliderReleased()
+{
+    changeParamAndReprocess();
+}
+
+void MainWindow::on_slider_RTG_sliderReleased()
 {
     changeParamAndReprocess();
 }

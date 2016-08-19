@@ -29,7 +29,7 @@ private:
     LaneDetector *detector;
     GSVFetcher *fetcher;
 
-    string targetString;
+    Mat targetFrame;
     float lat;
     float lon;
     float head;
@@ -53,6 +53,8 @@ private slots:
     void on_slider_BSG_sliderReleased();
     void on_slider_BVG_sliderReleased();
     void on_slider_BSCG_sliderReleased();
+    void on_slider_MTG_sliderReleased();
+    void on_slider_RTG_sliderReleased();
 };
 
 #endif // MAINWINDOW_H

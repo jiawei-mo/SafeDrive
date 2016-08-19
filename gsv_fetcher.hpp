@@ -12,7 +12,7 @@ class GSVFetcher
 public:
     GSVFetcher();
     GSVFetcher(string _key);
-    Mat get(Size size, float lan, float lon, float head, float pitch);
+    void get(Mat &output, Size size, float lan, float lon, float head, float pitch);
 private:
     string key;
 };

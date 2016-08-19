@@ -10,7 +10,7 @@ GSVFetcher::GSVFetcher(string _key)
     GSVFetcher::key = _key;
 }
 
-Mat GSVFetcher::get(Size size, float lan, float lon, float head, float pitch)
+void GSVFetcher::get(Mat& output, Size size, float lan, float lon, float head, float pitch)
 {
     double width = size.width;
     double height = size.height;
@@ -18,11 +18,10 @@ Mat GSVFetcher::get(Size size, float lan, float lon, float head, float pitch)
     s<<"https://maps.googleapis.com/maps/api/streetview?size="<<width<<"x"<<height<<"&location="<<lan<<","<<lon
             <<"&heading="<<head<<"&pitch="<<pitch<<"&key="<<GSVFetcher::key;
     VideoCapture cap(s.str());
-    Mat res = Mat::zeros(size, CV_8UC3);
     if(!cap.isOpened())
     {
-        return res;
+        return;
     }
-    cap >> res;
-    return res;
+    cap >> output;
+    return;
 }

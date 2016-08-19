@@ -54,16 +54,15 @@ bool imgBoundValid(const Mat& img, Point2f pt) {
     return a && b && c && d;
 }
 
-void LaneDetector::detectAndShow(const Mat& detImg, Mat& projImg, const Mat& homo, string windowName, bool showLane)
+void LaneDetector::detectAndShow(const Mat& detImg, Mat& projImg, const Mat& homo, string WindowName)
 {
-    vector<Point2f> whitePoints;
-    vector<Point2f> yellowPoints;
-    detect(detImg, whitePoints, yellowPoints, showLane);
+    vector<Point2f> whitePoints, yellowPoints;
+    detect(detImg, whitePoints, yellowPoints, false);
     vector<Point2f> whiteProjectedPoints, yellowProjectedPoints;
     if(whitePoints.size() > 0) {
         perspectiveTransform(whitePoints, whiteProjectedPoints, homo);
     }
-    if(yellowPoints.size()) {
+    if(yellowPoints.size() > 0) {
         perspectiveTransform(yellowPoints, yellowProjectedPoints, homo);
     }
 
@@ -71,14 +70,14 @@ void LaneDetector::detectAndShow(const Mat& detImg, Mat& projImg, const Mat& hom
     for(int i=0; i<(int)whiteProjectedPoints.size(); i++)
     {
         if((imgBoundValid(projImg, whiteProjectedPoints[i]))) {
-            projImg.at<Vec3b>(whiteProjectedPoints[i]) = Vec3b(255, 255, 255);
+            projImg.at<Vec3b>((int)whiteProjectedPoints[i].y, (int)whiteProjectedPoints[i].x) = Vec3b(255, 255, 255);
         }
     }
     for(int i=0; i<(int)yellowProjectedPoints.size(); i++)
     {
         if((imgBoundValid(projImg, yellowProjectedPoints[i]))) {
-            projImg.at<Vec3b>(yellowProjectedPoints[i]) = Vec3b(0, 255, 255);
+            projImg.at<Vec3b>((int)yellowProjectedPoints[i].y, (int)yellowProjectedPoints[i].x) = Vec3b(0, 255, 255);
         }
     }
-    imshow(windowName, projImg);
+    imshow(WindowName, projImg);
 }

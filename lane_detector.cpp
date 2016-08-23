@@ -42,6 +42,7 @@ void LaneDetector::detect(const Mat& img, vector<Point2f>& whitePoints, vector<P
         {
             laneImg.at<Vec3b>(yellowPoints[i]) = Vec3b(0, 255, 255);
         }
+        namedWindow("Lane Result", WINDOW_NORMAL);
         imshow("Lane Result", laneImg);
     }
 }
@@ -79,5 +80,6 @@ void LaneDetector::detectAndShow(const Mat& detImg, Mat& projImg, const Mat& hom
             projImg.at<Vec3b>((int)yellowProjectedPoints[i].y, (int)yellowProjectedPoints[i].x) = Vec3b(0, 255, 255);
         }
     }
+    namedWindow(WindowName, WINDOW_NORMAL);
     imshow(WindowName, projImg);
 }

@@ -57,7 +57,7 @@ public:
     void changeParam(int mnf, float ql, int md, int bs, float bv, float nmt, float rt, int bds, int ng, int pg, int bsg, int bvg, int bscg, float mtg, float rtg);
     void setTarget(const Mat& frame);
     int featureMatch(const Mat& frame, Mat& homography, bool showImg=false, string windowName="No Name");
-    void gridInline(const Mat& frame, vector<Point2f> *inline_target, vector<Point2f> *inline_matched);
+    void gridInline(const Mat& targetFrameCropped, const Mat &matchedFrameCropped, vector<Point2f> *inline_target, vector<Point2f> *inline_matched);
     Mat pixelMatch(const Mat& recMatchedFrame);
 
     //helpers

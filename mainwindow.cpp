@@ -7,94 +7,90 @@ void MainWindow::process()
 {
     tracker->setTarget(targetFrame);
 
+    //***********************************************search for most similar image***************************************************************
     Mat featureRes;
     int mP = -1;
     float mLat = lat;
     float mLon = lon;
     float mHead = head;
     float mPitch = pitch;
-    Mat curFrame;
-//    #pragma omp parallel for
-//    for(int a=0; a<MATCH_STEP_G; a++)
-//    {
-//        float curLat = lat+MATCH_LAT_LENGTH*(a - MATCH_STEP_G / 2);
-//        #pragma omp parallel for
-//        for(int b=0; b<MATCH_STEP_G; b++)
-//        {
-//            cout<<"Lat:"<<mLat<<" Lon: "<<mLon<<" Head: "<<mHead<<" Pitch: "<<mPitch<<endl;
-//            float curLon = lon+MATCH_LON_LENGTH*(b - MATCH_STEP_G / 2);
-//            curFrame = fetcher->get(targetFrame.size(), curLat, curLon, mHead, mPitch);
-//            float curP = tracker->featureMatch(curFrame, featureRes);
-//            if(curP > mP)
-//            {
-//                mP = curP;
-//                mLat = curLat;
-//                mLon = curLon;
-//            }
-//        }
-//    }
+    Mat curFrame, lFrame, rFrame;
 
-//    //Head
-//    float lHead = mHead-10;
-//    Mat lFrame = fetcher->get(targetFrame.size(), mLat, mLon, lHead, mPitch);
-//    int lP = tracker->featureMatch(lFrame, featureRes);
-
-//    float rHead = mHead+10;
-//    Mat rFrame = fetcher->get(targetFrame.size(), mLat, mLon, rHead, mPitch);
-//    int rP = tracker->featureMatch(rFrame, featureRes);
-//    for(int c=0; c<MATCH_STEP_L; c++)
-//    {
-//        cout<<"Lat:"<<mLat<<" Lon: "<<mLon<<" Head: "<<mHead<<" Pitch: "<<mPitch<<endl;
-//        if(lP > rP)
-//        {
-//            rHead = mHead;
-//            rP = mP;
-//        } else {
-//            lHead = mHead;
-//            lP = mP;
-//        }
-//        mHead = lHead + (rHead-lHead) / 2;
-//        curFrame = fetcher->get(targetFrame.size(), mLat, mLon, mHead, mPitch);
-//        mP = tracker->featureMatch(curFrame, featureRes);
-////        mP = tracker->featureMatch(curFrame, featureRes, true, to_string(mHead));
-//    }
-
-//    //Pitch
-//    float lPitch = mPitch-5;
-//    lFrame = fetcher->get(targetFrame.size(), mLat, mLon, mHead, lPitch);
-//    lP = tracker->featureMatch(lFrame, featureRes);
-
-//    float rPitch = mPitch+5;
-//    rFrame = fetcher->get(targetFrame.size(), mLat, mLon, mHead, rPitch);
-//    rP = tracker->featureMatch(rFrame, featureRes);
-//    for(int d=0; d<MATCH_STEP_L; d++)
-//    {
-//        cout<<"Lat:"<<mLat<<" Lon: "<<mLon<<" Head: "<<mHead<<" Pitch: "<<mPitch<<endl;
-//        if(lP > rP)
-//        {
-//            rPitch = mPitch;
-//            rP = mP;
-//        } else {
-//            lPitch = mPitch;
-//            lP = mP;
-//        }
-//        mPitch = lPitch + (rPitch-lPitch) / 2;
-//        curFrame = fetcher->get(targetFrame.size(), mLat, mLon, mHead, mPitch);
-//        mP = tracker->featureMatch(curFrame, featureRes);
-//    }
-
-    ui->text_log->appendPlainText("Matched Result:");
-    cout<<"final"<<endl;
-    Mat matchedFrame;
-    fetcher->get(matchedFrame, targetFrame.size(), mLat, mLon, mHead, mPitch);
-    //image fetcher fail
-    if(matchedFrame.empty()) {
-        ui->text_log->appendPlainText("Internet Fail!");
-        return;
+    //Lat/Lon grid search
+    #pragma omp parallel for
+    for(int a=0; a<MATCH_STEP_G; a++)
+    {
+        float curLat = lat+MATCH_LAT_LENGTH*(a - MATCH_STEP_G / 2);
+        #pragma omp parallel for
+        for(int b=0; b<MATCH_STEP_G; b++)
+        {
+            float curLon = lon+MATCH_LON_LENGTH*(b - MATCH_STEP_G / 2);
+            fetcher->get(curFrame, targetFrame.size(), curLat, curLon, mHead, mPitch);
+            float curP = tracker->featureMatch(curFrame, featureRes);
+            if(curP > mP)
+            {
+                mP = curP;
+                mLat = curLat;
+                mLon = curLon;
+            }
+        }
     }
 
-    int finalP = tracker->featureMatch(matchedFrame, featureRes, true, "Match Result");
+    //Head
+    float lHead = mHead-10;
+    fetcher->get(lFrame, targetFrame.size(), mLat, mLon, lHead, mPitch);
+    int lP = tracker->featureMatch(lFrame, featureRes);
 
+    float rHead = mHead+10;
+    fetcher->get(rFrame, targetFrame.size(), mLat, mLon, rHead, mPitch);
+    int rP = tracker->featureMatch(rFrame, featureRes);
+    for(int c=0; c<MATCH_STEP_L; c++)
+    {
+        if(lP > rP)
+        {
+            rHead = mHead;
+            rP = mP;
+        } else {
+            lHead = mHead;
+            lP = mP;
+        }
+        mHead = lHead + (rHead-lHead) / 2;
+        fetcher->get(curFrame, targetFrame.size(), mLat, mLon, mHead, mPitch);
+        mP = tracker->featureMatch(curFrame, featureRes);
+//        mP = tracker->featureMatch(curFrame, featureRes, true, to_string(mHead));
+    }
+
+    //Pitch
+    float lPitch = mPitch-5;
+    fetcher->get(lFrame, targetFrame.size(), mLat, mLon, mHead, lPitch);
+    lP = tracker->featureMatch(lFrame, featureRes);
+
+    float rPitch = mPitch+5;
+    fetcher->get(rFrame, targetFrame.size(), mLat, mLon, mHead, rPitch);
+    rP = tracker->featureMatch(rFrame, featureRes);
+    for(int d=0; d<MATCH_STEP_L; d++)
+    {
+        if(lP > rP)
+        {
+            rPitch = mPitch;
+            rP = mP;
+        } else {
+            lPitch = mPitch;
+            lP = mP;
+        }
+        mPitch = lPitch + (rPitch-lPitch) / 2;
+        fetcher->get(curFrame, targetFrame.size(), mLat, mLon, mHead, mPitch);
+        mP = tracker->featureMatch(curFrame, featureRes);
+    }
+
+    Mat matchedFrame = curFrame;
+    int finalP = tracker->featureMatch(matchedFrame, featureRes, true, "Match Result");
+    //***********************************************search for most similar image***************************************************************
+
+
+
+    // show result to GUI
+    {
     //fail
     if(finalP < 4) {
         ui->text_log->appendPlainText("Fail!");
@@ -103,18 +99,27 @@ void MainWindow::process()
 
     //success
     ui->text_log->appendPlainText("Success!");
-    ui->text_log->appendPlainText(QString("Latitude: ") + QString::number(mLat) + QString(" Longitude: ") + QString::number(mLon) + QString(" Heading: ") + QString::number(mHead) + QString(" Pitch: ") + QString::number(mPitch));
-    ui->text_log->appendPlainText(QString(" Homo Norm: ") + QString::number(norm(featureRes)) + QString("\n"));
+    ui->text_log->appendPlainText(QString("Latitude: ") + QString::number(mLat)
+                                  + QString(" Longitude: ") + QString::number(mLon)
+                                  + QString(" Heading: ") + QString::number(mHead)
+                                  + QString(" Pitch: ") + QString::number(mPitch));
+    }
+
+
 
     //pixel-wise compare
     Mat finalHomo = tracker->pixelMatch(matchedFrame);
     cout<<"final home: "<<endl<<finalHomo<<endl;
 
+
+
     //pixel benchmark
 //    detector->detectAndShow(matchedFrame, targetFrame, featureRes, "Feature based result");
 //    tracker->showDifferenceEdge(matchedFrame, targetFrame, "Feature result difference");
 
-    //detect lane
+
+
+    //detect lane and show final result
     Mat projImg = targetFrame.clone();
     detector->detectAndShow(matchedFrame, projImg, finalHomo, "Final result");
 

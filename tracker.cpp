@@ -5,7 +5,6 @@ int Tracker::checkArea(Point2f p, int n_c, int n_r) {
     int step_r = n_r / num_grid + 1;
     int c = p.x / step_c;
     int r = p.y / step_r;
-    cout<<"input c/r: "<<step_c<<" "<<step_r<<" c: "<<c<<" r: "<<r<<endl;
     return r * num_grid + c;
 }
 
@@ -70,7 +69,7 @@ void Tracker::setTarget(const Mat& frame)
 
 int Tracker::featureMatch(const Mat& frame, Mat& homography, bool showImg, string windowName)
 {
-    //detect feature points on curFrame
+    //detect feature points and extract descriptors on curFrame
     Mat curFrame;
     GaussianBlur(frame, curFrame, Size(blur_size,blur_size), blur_var, blur_var);
     Mat grayImg;
@@ -86,15 +85,19 @@ int Tracker::featureMatch(const Mat& frame, Mat& homography, bool showImg, strin
     Mat curDesc;
     detector->compute(curFrame, curKp, curDesc);
 
-    Mat matchedImg = Mat::zeros(frame.rows, 2*frame.cols, frame.type());
-    Mat curFrameFeatures = curFrame.clone();
-    Mat targetFrameFeatures = targetFrame.clone();
-    drawKeypoints(curFrameFeatures, curKp, curFrameFeatures);
-    drawKeypoints(targetFrameFeatures, targetKp, targetFrameFeatures);
-    curFrameFeatures.copyTo(matchedImg(Rect(0, 0, frame.cols, frame.rows)));
-    targetFrameFeatures.copyTo(matchedImg(Rect(frame.cols, 0, frame.cols, frame.rows)));
+    // match result image
+    Mat matchedImg;
+    if(showImg) {
+        matchedImg = Mat::zeros(frame.rows, 2*frame.cols, frame.type());
+        Mat curFrameFeatures = curFrame.clone();
+        Mat targetFrameFeatures = targetFrame.clone();
+        drawKeypoints(curFrameFeatures, curKp, curFrameFeatures);
+        drawKeypoints(targetFrameFeatures, targetKp, targetFrameFeatures);
+        curFrameFeatures.copyTo(matchedImg(Rect(0, 0, frame.cols, frame.rows)));
+        targetFrameFeatures.copyTo(matchedImg(Rect(frame.cols, 0, frame.cols, frame.rows)));
+    }
 
-    //matches
+    //two-way matches
     vector<Point2f> targetMatchedKp, curMatchedKp;
     vector< vector<DMatch> > ctMatches, tcMatches;
     matcher->knnMatch(curDesc, targetDesc, ctMatches, 2);
@@ -121,19 +124,21 @@ int Tracker::featureMatch(const Mat& frame, Mat& homography, bool showImg, strin
         }
     }
 
-    //find homography based on matches
+    //find homography based on matches using RANSAC
     Mat inliner_mask;
     homography = findHomography(curMatchedKp, targetMatchedKp, RANSAC, ransac_thres, inliner_mask);
 
-    //track fail
-    if(homography.empty() || norm(homography)>=HOMO_FAIL_NORM)
+    //FAIL: norm exceeded
+    if(norm(homography)>=HOMO_FAIL_NORM)
     {
-        for(int i=0; i<(int)targetMatchedKp.size(); i++)
-        {
-            targetMatchedKp[i].x += frame.cols;
-            line(matchedImg, curMatchedKp[i], targetMatchedKp[i], CV_RGB(255, 0, 0));
+        if(showImg) {
+            for(int i=0; i<(int)targetMatchedKp.size(); i++)
+            {
+                targetMatchedKp[i].x += frame.cols;
+                line(matchedImg, curMatchedKp[i], targetMatchedKp[i], CV_RGB(255, 0, 0));
+            }
+            imshow("Match fail Result", matchedImg);
         }
-//        imshow("Match fail Result", matchedImg);
         cout<<"Match fail, norm exceeded!"<<endl;
         return -1;
     }
@@ -142,23 +147,26 @@ int Tracker::featureMatch(const Mat& frame, Mat& homography, bool showImg, strin
     perspectiveTransform(curMatchedKp, projectedKp, homography);
 
     //show inliner pairs between two images side by side
-    int count = 0;
-    float dist = 0.0;
+    int inliner_counter = 0;
+    float inliner_dist = 0.0;
     for(int i=0; i<(int)targetMatchedKp.size(); i++)
     {
         if(inliner_mask.at<uchar>(i))
         {
-            count++;
-            dist += (projectedKp[i].x - targetMatchedKp[i].x)*(projectedKp[i].x - targetMatchedKp[i].x);
-            dist += (projectedKp[i].y - targetMatchedKp[i].y)*(projectedKp[i].y - targetMatchedKp[i].y);
-            line(matchedImg, curMatchedKp[i], Point2f(targetMatchedKp[i].x+frame.cols, targetMatchedKp[i].y), CV_RGB(255, 0, 0));
-            circle(matchedImg, Point2f(projectedKp[i].x+frame.cols, projectedKp[i].y), 2, CV_RGB(0, 255, 0));
+            inliner_counter++;
+            inliner_dist += (projectedKp[i].x - targetMatchedKp[i].x)*(projectedKp[i].x - targetMatchedKp[i].x);
+            inliner_dist += (projectedKp[i].y - targetMatchedKp[i].y)*(projectedKp[i].y - targetMatchedKp[i].y);
+            if(showImg) {
+                line(matchedImg, curMatchedKp[i], Point2f(targetMatchedKp[i].x+frame.cols, targetMatchedKp[i].y), CV_RGB(255, 0, 0));
+                circle(matchedImg, Point2f(projectedKp[i].x+frame.cols, projectedKp[i].y), 2, CV_RGB(0, 255, 0));
+            }
         }
     }
 
-    dist = dist / count;
-    cout<<"norm: "<<norm(homography)<<" dist: "<<dist<<endl;
-    if(dist > PROJ_ERR_THRES) {
+    //FAIL: proj error exceeded
+    inliner_dist = inliner_dist / inliner_counter;
+    cout<<"norm: "<<norm(homography)<<" inliner_dist: "<<inliner_dist<<endl;
+    if(inliner_dist > PROJ_ERR_THRES) {
         cout<<"Match fail, proj error exceeded!"<<endl;
         return -1;
     }
@@ -167,12 +175,12 @@ int Tracker::featureMatch(const Mat& frame, Mat& homography, bool showImg, strin
         imshow(windowName, matchedImg);
     }
 
-    return count;
+    return inliner_counter;
 }
 
 void Tracker::gridInline(const Mat& frame, vector<Point2f> *inline_target, vector<Point2f> *inline_matched)
 {
-    //detect feature points on curFrame
+    //detect feature points and extract descriptors on curFrame
     Mat curFrame;
     GaussianBlur(frame, curFrame, Size(blur_size,blur_size), blur_var, blur_var);
     Mat grayImg;
@@ -193,12 +201,12 @@ void Tracker::gridInline(const Mat& frame, vector<Point2f> *inline_target, vecto
     curFrameFeatures.copyTo(matchedImg(Rect(0, 0, frame.cols, frame.rows)));
     targetFrameFeatures.copyTo(matchedImg(Rect(frame.cols, 0, frame.cols, frame.rows)));
 
-    //matches
+    //************************************************grid matches**************************************************************
     vector<Point2f> targetMatchedKp, curMatchedKp;
     int grid_num = num_grid*num_grid;
+
     vector<vector<KeyPoint> > gridTargetKp(grid_num, vector<KeyPoint>());
     vector<Mat> gridTargetDesc(grid_num, Mat());
-
 
     vector<vector<KeyPoint> > gridCurKp(grid_num, vector<KeyPoint>());
     vector<Mat> gridCurDesc(grid_num, Mat());
@@ -211,7 +219,6 @@ void Tracker::gridInline(const Mat& frame, vector<Point2f> *inline_target, vecto
     }
     for(int i=0; i<(int)curKp.size(); i++) {
         int area = checkArea(curKp[i].pt, n_c, n_r);
-        cout<<gridCurDesc.size()<<" "<<area<<endl;
         gridCurKp[area].push_back(curKp[i]);
     }
 
@@ -256,7 +263,9 @@ void Tracker::gridInline(const Mat& frame, vector<Point2f> *inline_target, vecto
             targetMatchedKp.push_back(gridTargetKp[i][matchHeap[j].trainIdx].pt);
         }
     }
+    //************************************************grid matches**************************************************************
 
+    //RANSAC to remove outliers
     Mat inliner_mask;
     findHomography(curMatchedKp, targetMatchedKp, RANSAC, ransac_thres_grid, inliner_mask);
 
@@ -318,7 +327,6 @@ Mat Tracker::pixelMatch(const Mat& recMatchedFrame)
     return homo;
 }
 
-//return pair<homo, diffImg>
 Mat Tracker::pixelWiseMatch(const Mat& img1, const Mat& img2)
 {
     Ptr<Map> res;

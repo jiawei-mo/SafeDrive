@@ -270,7 +270,7 @@
      </rect>
     </property>
     <property name="plainText">
-     <string>file:///home/kimiwings/SafeDrive/test/test2.jpg
+     <string>file:///home/kimiwings/SafeDrive/test/test0.jpg
 </string>
     </property>
    </widget>
@@ -336,7 +336,7 @@
      </rect>
     </property>
     <property name="plainText">
-     <string>file:///home/kimiwings/SafeDrive/test/test2.txt
+     <string>file:///home/kimiwings/SafeDrive/test/test0.txt
 </string>
     </property>
    </widget>

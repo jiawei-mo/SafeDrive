@@ -114,8 +114,9 @@ void MainWindow::process()
 
 
     //pixel benchmark
-//    detector->detectAndShow(matchedFrame, targetFrame, featureRes, "Feature based result");
-//    tracker->showDifferenceEdge(matchedFrame, targetFrame, "Feature result difference");
+    Mat toCompare = targetFrame.clone();
+    detector->detectAndShow(matchedFrame, toCompare, featureRes, "Feature based result");
+    tracker->showDifferenceEdge(matchedFrame, toCompare, "Feature result difference");
 
 
 

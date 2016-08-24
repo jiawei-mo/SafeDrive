@@ -310,17 +310,14 @@ Mat Tracker::pixelMatch(const Mat& recMatchedFrame)
     if(inline_target.size() == 0) {
         return Mat::ones(3, 3, CV_32F);
     }
-    Mat targetGray, recMatchedGray;
-    cvtColor(targetCropped, targetGray, CV_BGR2GRAY);
-    cvtColor(recMatchedCropped, recMatchedGray, CV_BGR2GRAY);
     for(unsigned int i=0; i<inline_target.size(); i++) {
         targetDots.at<float>(inline_target[i].y, inline_target[i].x) = 1.0;
         recMatchedDots.at<float>(inline_matched[i].y, inline_matched[i].x) = 1.0;
     }
 
     Mat targetROI, recMatchedROI;
-    GaussianBlur(targetCropped, targetROI, Size(3*blur_size_grid, 3*blur_size_grid), blur_var_grid*blur_scale_grid, blur_var_grid*blur_scale_grid);
-    GaussianBlur(recMatchedCropped, recMatchedROI, Size(3*blur_size_grid, 3*blur_size_grid), blur_var_grid*blur_scale_grid, blur_var_grid*blur_scale_grid);
+//    GaussianBlur(targetCropped, targetROI, Size(3*blur_size_grid, 3*blur_size_grid), blur_var_grid*blur_scale_grid, blur_var_grid*blur_scale_grid);
+//    GaussianBlur(recMatchedCropped, recMatchedROI, Size(3*blur_size_grid, 3*blur_size_grid), blur_var_grid*blur_scale_grid, blur_var_grid*blur_scale_grid);
 
     blur(targetDots, targetDots, Size(board_size, board_size));
     threshold(targetDots, targetDots, 0, 1, cv::THRESH_BINARY);
@@ -334,6 +331,7 @@ Mat Tracker::pixelMatch(const Mat& recMatchedFrame)
     recMatchedCropped.copyTo(recMatchedROI, recMatchedDots);
     GaussianBlur(recMatchedROI, recMatchedROI, Size(blur_size_grid, blur_size_grid), blur_var_grid, blur_var_grid);
 
+    // show ROI image
     Mat combineImg = Mat::zeros(recMatchedROI.rows, 2*recMatchedROI.cols, recMatchedROI.type());
     recMatchedROI.copyTo(combineImg(Rect(0, 0, recMatchedROI.cols, recMatchedROI.rows)));
     targetROI.copyTo(combineImg(Rect(recMatchedROI.cols, 0, recMatchedROI.cols, recMatchedROI.rows)));
@@ -352,7 +350,7 @@ Mat Tracker::pixelWiseMatch(const Mat& img1, const Mat& img2)
     Ptr<Map> res;
     MapperGradProj mapper;
     MapperPyramid mappPyr(mapper);
-//    mappPyr.numIterPerScale_ = 10;
+    mappPyr.numIterPerScale_ = 20;
     mappPyr.calculate(img1, img2, res);
 
     MapProjec* mapProj = dynamic_cast<MapProjec*>(res.get());

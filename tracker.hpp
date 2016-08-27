@@ -7,9 +7,9 @@
 #include "opencv2/videoio.hpp"
 #include "opencv2/features2d.hpp"
 
-#include "opencv2/reg/mapprojec.hpp"
-#include "opencv2/reg/mappergradproj.hpp"
-#include "opencv2/reg/mapperpyramid.hpp"
+#include "mapprojec.hpp"
+#include "mappergradproj.hpp"
+#include "mapperpyramid.hpp"
 
 #include "parameters.hpp"
 

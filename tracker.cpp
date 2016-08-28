@@ -22,7 +22,6 @@ Tracker::Tracker()
     pp_grid = PG;
     blur_size_grid = BSG*2 + 1;
     blur_var_grid = BVG / 10.0f;
-    blur_scale_grid = BSCG*2 + 1;
     match_thres_grid = MTG / 100.0f;
     ransac_thres_grid = RTG / 1.0f;
     targetKp.clear();
@@ -30,7 +29,7 @@ Tracker::Tracker()
     matcher = DescriptorMatcher::create("BruteForce-Hamming");
 }
 
-void Tracker::changeParam(int mnf, float ql, int md, int bs, float bv, float nmt, float rt, int bds, int ng, int pg, int bsg, int bvg, int bscg, float mtg, float rtg)
+void Tracker::changeParam(int mnf, float ql, int md, int bs, float bv, float nmt, float rt, int bds, int ng, int pg, int bsg, int bvg, float mtg, float rtg)
 {
     max_num_features = mnf;
     quality_level = ql;
@@ -44,7 +43,6 @@ void Tracker::changeParam(int mnf, float ql, int md, int bs, float bv, float nmt
     pp_grid = pg;
     blur_size_grid = bsg;
     blur_var_grid = bvg;
-    blur_scale_grid = bscg;
     match_thres_grid = mtg;
     ransac_thres_grid = rtg;
     targetKp.clear();
@@ -182,39 +180,39 @@ int Tracker::featureMatch(const Mat& frame, Mat& homography, bool showImg, strin
     return inliner_counter;
 }
 
-void Tracker::gridInline(const Mat& targetFrameCropped, const Mat& matchedFrameCropped, vector<Point2f> *inline_target, vector<Point2f> *inline_matched)
+void Tracker::gridInline(const Mat& matchedFrame, vector<Point2f> *inline_matched, Mat& homo)
 {
-    //detect feature points and extract descriptors on cropped targetframe
-    Mat targetCroppedBlurred;
-    GaussianBlur(targetFrameCropped, targetCroppedBlurred, Size(blur_size,blur_size), blur_var, blur_var);
-    Mat targetCroppedGrayImg;
-    vector<Point2f> targetCroppedCorners;
-    cvtColor(targetCroppedBlurred, targetCroppedGrayImg, CV_BGR2GRAY);
-    goodFeaturesToTrack(targetCroppedGrayImg, targetCroppedCorners, max_num_features, quality_level, min_distance);
-    vector<KeyPoint> targetCroppedKp;
-    for( size_t i = 0; i < targetCroppedCorners.size(); i++ ) {
-        targetCroppedKp.push_back(KeyPoint(targetCroppedCorners[i], 1.f));
+    //detect feature points and extract descriptors on  targetframe
+    Mat targetFrameBlurred;
+    GaussianBlur(targetFrame, targetFrameBlurred, Size(blur_size,blur_size), blur_var, blur_var);
+    Mat targetFrameGrayImg;
+    vector<Point2f> targetFrameCorners;
+    cvtColor(targetFrameBlurred, targetFrameGrayImg, CV_BGR2GRAY);
+    goodFeaturesToTrack(targetFrameGrayImg, targetFrameCorners, max_num_features, quality_level, min_distance);
+    vector<KeyPoint> targetFrameKp;
+    for( size_t i = 0; i < targetFrameCorners.size(); i++ ) {
+        targetFrameKp.push_back(KeyPoint(targetFrameCorners[i], 1.f));
     }
 
-    //detect feature points and extract descriptors on cropped curFrame
-    Mat curCroppedBlurred;
-    GaussianBlur(matchedFrameCropped, curCroppedBlurred, Size(blur_size,blur_size), blur_var, blur_var);
-    Mat curCroppedGrayImg;
-    vector<Point2f> curCroppedCorners;
-    cvtColor(curCroppedBlurred, curCroppedGrayImg, CV_BGR2GRAY);
-    goodFeaturesToTrack(curCroppedGrayImg, curCroppedCorners, max_num_features, quality_level, min_distance);
-    vector<KeyPoint> curCroppedKp;
-    for( size_t i = 0; i < curCroppedCorners.size(); i++ ) {
-        curCroppedKp.push_back(KeyPoint(curCroppedCorners[i], 1.f));
+    //detect feature points and extract descriptors on  curFrame
+    Mat curBlurred;
+    GaussianBlur(matchedFrame, curBlurred, Size(blur_size,blur_size), blur_var, blur_var);
+    Mat curGrayImg;
+    vector<Point2f> curCorners;
+    cvtColor(curBlurred, curGrayImg, CV_BGR2GRAY);
+    goodFeaturesToTrack(curGrayImg, curCorners, max_num_features, quality_level, min_distance);
+    vector<KeyPoint> curKp;
+    for( size_t i = 0; i < curCorners.size(); i++ ) {
+        curKp.push_back(KeyPoint(curCorners[i], 1.f));
     }
 
-    Mat matchedImg = Mat::zeros(targetFrameCropped.rows, 2*targetFrameCropped.cols, targetFrameCropped.type());
-    Mat curFrameFeatures = curCroppedBlurred.clone();
-    Mat targetFrameFeatures = targetCroppedBlurred.clone();
-    drawKeypoints(curFrameFeatures, curCroppedKp, curFrameFeatures);
-    drawKeypoints(targetFrameFeatures, targetCroppedKp, targetFrameFeatures);
-    curFrameFeatures.copyTo(matchedImg(Rect(0, 0, curCroppedBlurred.cols, curCroppedBlurred.rows)));
-    targetFrameFeatures.copyTo(matchedImg(Rect(targetCroppedBlurred.cols, 0, targetCroppedBlurred.cols, targetCroppedBlurred.rows)));
+    Mat matchedImg = Mat::zeros(targetFrame.rows, 2*targetFrame.cols, targetFrame.type());
+    Mat curFrameFeatures = curBlurred.clone();
+    Mat targetFrameFeatures = targetFrameBlurred.clone();
+    drawKeypoints(curFrameFeatures, curKp, curFrameFeatures);
+    drawKeypoints(targetFrameFeatures, targetFrameKp, targetFrameFeatures);
+    curFrameFeatures.copyTo(matchedImg(Rect(0, 0, curBlurred.cols, curBlurred.rows)));
+    targetFrameFeatures.copyTo(matchedImg(Rect(targetFrameBlurred.cols, 0, targetFrameBlurred.cols, targetFrameBlurred.rows)));
 
     //************************************************grid matches**************************************************************
     vector<Point2f> targetMatchedKp, curMatchedKp;
@@ -226,20 +224,20 @@ void Tracker::gridInline(const Mat& targetFrameCropped, const Mat& matchedFrameC
     vector<vector<KeyPoint> > gridCurKp(grid_num, vector<KeyPoint>());
     vector<Mat> gridCurDesc(grid_num, Mat());
 
-    int n_c = targetCroppedBlurred.cols;
-    int n_r = targetCroppedBlurred.rows;
-    for(int i=0; i<(int)targetCroppedKp.size(); i++) {
-        int area = checkArea(targetCroppedKp[i].pt, n_c, n_r);
-        gridTargetKp[area].push_back(targetCroppedKp[i]);
+    int n_c = targetFrameBlurred.cols;
+    int n_r = targetFrameBlurred.rows;
+    for(int i=0; i<(int)targetFrameKp.size(); i++) {
+        int area = checkArea(targetFrameKp[i].pt, n_c, n_r);
+        gridTargetKp[area].push_back(targetFrameKp[i]);
     }
-    for(int i=0; i<(int)curCroppedKp.size(); i++) {
-        int area = checkArea(curCroppedKp[i].pt, n_c, n_r);
-        gridCurKp[area].push_back(curCroppedKp[i]);
+    for(int i=0; i<(int)curKp.size(); i++) {
+        int area = checkArea(curKp[i].pt, n_c, n_r);
+        gridCurKp[area].push_back(curKp[i]);
     }
 
     for(int i=0; i<grid_num; i++) {
-        detector->compute(targetCroppedBlurred, gridTargetKp[i], gridTargetDesc[i]);
-        detector->compute(curCroppedBlurred, gridCurKp[i], gridCurDesc[i]);
+        detector->compute(targetFrameBlurred, gridTargetKp[i], gridTargetDesc[i]);
+        detector->compute(curBlurred, gridCurKp[i], gridCurDesc[i]);
     }
 
     for(int i=0; i<grid_num; i++) {
@@ -282,14 +280,13 @@ void Tracker::gridInline(const Mat& targetFrameCropped, const Mat& matchedFrameC
 
     //RANSAC to remove outliers
     Mat inliner_mask;
-    findHomography(curMatchedKp, targetMatchedKp, RANSAC, ransac_thres_grid, inliner_mask);
+    homo = findHomography(curMatchedKp, targetMatchedKp, RANSAC, ransac_thres_grid, inliner_mask);
 
     for(int i=0; i<(int)targetMatchedKp.size(); i++)
     {
         if(inliner_mask.at<uchar>(i))
         {
-            line(matchedImg, curMatchedKp[i], Point2f(targetMatchedKp[i].x+targetCroppedBlurred.cols, targetMatchedKp[i].y), CV_RGB(255, 0, 0));
-            inline_target->push_back(targetMatchedKp[i]);
+            line(matchedImg, curMatchedKp[i], Point2f(targetMatchedKp[i].x+targetFrameBlurred.cols, targetMatchedKp[i].y), CV_RGB(255, 0, 0));
             inline_matched->push_back(curMatchedKp[i]);
         }
     }
@@ -301,57 +298,48 @@ void Tracker::gridInline(const Mat& targetFrameCropped, const Mat& matchedFrameC
 Mat Tracker::pixelMatch(const Mat& recMatchedFrame)
 {
     //crop
-    Mat recMatchedCropped = recMatchedFrame(Rect(0, 0, recMatchedFrame.cols, recMatchedFrame.rows));
-    Mat targetCropped = targetFrame(Rect(0, 0, targetFrame.cols, targetFrame.rows));
-    vector<Point2f> inline_target, inline_matched;
-    gridInline(targetCropped, recMatchedCropped, &inline_target, &inline_matched);
-    Mat targetDots = Mat::zeros(targetCropped.size(), CV_32F);;
-    Mat recMatchedDots = Mat::zeros(recMatchedCropped.size(), CV_32F);
-    if(inline_target.size() == 0) {
+    vector<Point2f> inline_matched;
+    Mat initialH;
+    gridInline(recMatchedFrame, &inline_matched, initialH);
+
+    Mat matchedROI = Mat::zeros(recMatchedFrame.size(), CV_32F);
+    if(inline_matched.size() == 0) {
         return Mat::ones(3, 3, CV_32F);
     }
-    for(unsigned int i=0; i<inline_target.size(); i++) {
-        targetDots.at<float>(inline_target[i].y, inline_target[i].x) = 1.0;
-        recMatchedDots.at<float>(inline_matched[i].y, inline_matched[i].x) = 1.0;
+    for(unsigned int i=0; i<inline_matched.size(); i++) {
+        matchedROI.at<float>(inline_matched[i].y, inline_matched[i].x) = 1.0;
     }
 
-    Mat targetROI, recMatchedROI;
-//    GaussianBlur(targetCropped, targetROI, Size(3*blur_size_grid, 3*blur_size_grid), blur_var_grid*blur_scale_grid, blur_var_grid*blur_scale_grid);
-//    GaussianBlur(recMatchedCropped, recMatchedROI, Size(3*blur_size_grid, 3*blur_size_grid), blur_var_grid*blur_scale_grid, blur_var_grid*blur_scale_grid);
+    blur(matchedROI, matchedROI, Size(board_size, board_size));
+    threshold(matchedROI, matchedROI, 0, 1, cv::THRESH_BINARY);
+    matchedROI.convertTo(matchedROI, CV_8U);
 
-    blur(targetDots, targetDots, Size(board_size, board_size));
-    threshold(targetDots, targetDots, 0, 1, cv::THRESH_BINARY);
-    targetDots.convertTo(targetDots, CV_8U);
-    targetCropped.copyTo(targetROI, targetDots);
-    GaussianBlur(targetROI, targetROI, Size(blur_size_grid, blur_size_grid), blur_var_grid, blur_var_grid);
+    Mat combineImg = Mat::zeros(recMatchedFrame.rows, 2*recMatchedFrame.cols, recMatchedFrame.type());
+    recMatchedFrame.copyTo(combineImg(Rect(0, 0, recMatchedFrame.cols, recMatchedFrame.rows)), matchedROI);
+    targetFrame.copyTo(combineImg(Rect(recMatchedFrame.cols, 0, recMatchedFrame.cols, recMatchedFrame.rows)));
+    namedWindow("Pixel-wise matchedROI", WINDOW_NORMAL);
+    imshow("Pixel-wise matchedROI", combineImg);
 
-    blur(recMatchedDots, recMatchedDots, Size(board_size, board_size));
-    threshold(recMatchedDots, recMatchedDots, 0, 1, cv::THRESH_BINARY);
-    recMatchedDots.convertTo(recMatchedDots, CV_8U);
-    recMatchedCropped.copyTo(recMatchedROI, recMatchedDots);
-    GaussianBlur(recMatchedROI, recMatchedROI, Size(blur_size_grid, blur_size_grid), blur_var_grid, blur_var_grid);
+    Mat recMatchedFrameBlurred, targetFrameBlurred;
+    GaussianBlur(recMatchedFrame, recMatchedFrameBlurred, Size(blur_size_grid,blur_size_grid), blur_var_grid, blur_var_grid);
+    GaussianBlur(targetFrame, targetFrameBlurred, Size(blur_size_grid,blur_size_grid), blur_var_grid, blur_var_grid);
 
-    // show ROI image
-    Mat combineImg = Mat::zeros(recMatchedROI.rows, 2*recMatchedROI.cols, recMatchedROI.type());
-    recMatchedROI.copyTo(combineImg(Rect(0, 0, recMatchedROI.cols, recMatchedROI.rows)));
-    targetROI.copyTo(combineImg(Rect(recMatchedROI.cols, 0, recMatchedROI.cols, recMatchedROI.rows)));
-    namedWindow("Pixel-wise ROI", WINDOW_NORMAL);
-    imshow("Pixel-wise ROI", combineImg);
-
-    Mat recMatchedROI64F, targetROI64F;
-    recMatchedROI.convertTo(recMatchedROI64F, CV_64FC3);
-    targetROI.convertTo(targetROI64F, CV_64FC3);
-    Mat homo = pixelWiseMatch(recMatchedROI64F, targetROI64F);
+    Mat recMatched64F, target64F;
+    recMatchedFrameBlurred.convertTo(recMatched64F, CV_64FC3);
+    targetFrameBlurred.convertTo(target64F, CV_64FC3);
+    Mat homo = pixelWiseMatch(recMatched64F, target64F, matchedROI, initialH);
     return homo;
 }
 
-Mat Tracker::pixelWiseMatch(const Mat& img1, const Mat& img2)
+Mat Tracker::pixelWiseMatch(const Mat& img1, const Mat& img2, const Mat& matchedROI, const Mat& initialH)
 {
+//    Ptr<Map> res(new MapProjec(initialH));
     Ptr<Map> res;
     MapperGradProj mapper;
     MapperPyramid mappPyr(mapper);
-    mappPyr.numIterPerScale_ = 20;
-    mappPyr.calculate(img1, img2, res);
+//    mappPyr.numLev_ = 5;
+    mappPyr.numIterPerScale_ = 10;
+    mappPyr.calculate(img1, img2, res, matchedROI);
 
     MapProjec* mapProj = dynamic_cast<MapProjec*>(res.get());
     mapProj->normalize();
@@ -390,8 +378,8 @@ void Tracker::showDifferenceEdge(const Mat& image1, const Mat& image2, string ti
     Mat img1Tmp, img2Tmp, img1Edge, img2Edge;
     image1.convertTo(img1Tmp, CV_8UC3);
     image2.convertTo(img2Tmp, CV_8UC3);
-    Canny( img1Tmp, img1Edge, 10, 30, 3);
-    Canny( img2Tmp, img2Edge, 10, 30, 3);
+    Canny( img1Tmp, img1Edge, 50, 150, 3);
+    Canny( img2Tmp, img2Edge, 50, 150, 3);
 
     Mat res(image1.size(), CV_8UC3, Scalar(0, 0, 0));
     Mat redImg(image1.size(), CV_8UC3, Scalar(255, 0, 0));

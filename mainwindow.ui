@@ -270,7 +270,7 @@
      </rect>
     </property>
     <property name="plainText">
-     <string>file:///home/kimiwings/SafeDrive/test/test0.jpg
+     <string>file:///home/kimiwings/SafeDrive/test/test2.jpg
 </string>
     </property>
    </widget>
@@ -314,9 +314,9 @@
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>640</y>
+      <y>620</y>
       <width>351</width>
-      <height>61</height>
+      <height>81</height>
      </rect>
     </property>
     <property name="tabChangesFocus">
@@ -336,7 +336,7 @@
      </rect>
     </property>
     <property name="plainText">
-     <string>file:///home/kimiwings/SafeDrive/test/test0.txt
+     <string>file:///home/kimiwings/SafeDrive/test/test2_optimal.txt
 </string>
     </property>
    </widget>
@@ -511,16 +511,19 @@
      </rect>
     </property>
     <property name="minimum">
-     <number>1</number>
+     <number>0</number>
     </property>
     <property name="maximum">
      <number>10</number>
+    </property>
+    <property name="singleStep">
+     <number>1</number>
     </property>
     <property name="pageStep">
      <number>7</number>
     </property>
     <property name="value">
-     <number>1</number>
+     <number>0</number>
     </property>
     <property name="orientation">
      <enum>Qt::Horizontal</enum>
@@ -577,49 +580,11 @@
      <string>Blur Var Grid</string>
     </property>
    </widget>
-   <widget class="QLabel" name="label_BSCG">
-    <property name="geometry">
-     <rect>
-      <x>20</x>
-      <y>550</y>
-      <width>161</width>
-      <height>20</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>Blur Scale Grid</string>
-    </property>
-   </widget>
-   <widget class="QSlider" name="slider_BSCG">
-    <property name="geometry">
-     <rect>
-      <x>200</x>
-      <y>550</y>
-      <width>160</width>
-      <height>16</height>
-     </rect>
-    </property>
-    <property name="minimum">
-     <number>1</number>
-    </property>
-    <property name="maximum">
-     <number>30</number>
-    </property>
-    <property name="pageStep">
-     <number>7</number>
-    </property>
-    <property name="value">
-     <number>1</number>
-    </property>
-    <property name="orientation">
-     <enum>Qt::Horizontal</enum>
-    </property>
-   </widget>
    <widget class="QSlider" name="slider_RTG">
     <property name="geometry">
      <rect>
       <x>200</x>
-      <y>610</y>
+      <y>580</y>
       <width>160</width>
       <height>16</height>
      </rect>
@@ -641,7 +606,7 @@
     <property name="geometry">
      <rect>
       <x>20</x>
-      <y>610</y>
+      <y>580</y>
       <width>161</width>
       <height>20</height>
      </rect>
@@ -654,7 +619,7 @@
     <property name="geometry">
      <rect>
       <x>200</x>
-      <y>580</y>
+      <y>550</y>
       <width>160</width>
       <height>16</height>
      </rect>
@@ -676,7 +641,7 @@
     <property name="geometry">
      <rect>
       <x>20</x>
-      <y>580</y>
+      <y>550</y>
       <width>161</width>
       <height>20</height>
      </rect>

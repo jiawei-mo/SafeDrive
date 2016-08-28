@@ -54,7 +54,7 @@ MapperPyramid::MapperPyramid(const Mapper& baseMapper)
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-void MapperPyramid::calculate(const Mat& img1, const Mat& image2, Ptr<Map>& res) const
+void MapperPyramid::calculate(const Mat& img1, const Mat& image2, Ptr<Map>& res, const Mat& roi) const
 {
     Mat img2;
 
@@ -69,24 +69,27 @@ void MapperPyramid::calculate(const Mat& img1, const Mat& image2, Ptr<Map>& res)
     cv::Ptr<Map> ident = baseMapper_.getMap();
 
     // Precalculate pyramid images
-    vector<Mat> pyrIm1(numLev_), pyrIm2(numLev_);
+    vector<Mat> pyrIm1(numLev_), pyrIm2(numLev_), pyrROI(numLev_);
     pyrIm1[0] = img1;
     pyrIm2[0] = img2;
+    pyrROI[0] = roi;
     for(size_t im_i = 1; im_i < numLev_; ++im_i) {
         pyrDown(pyrIm1[im_i - 1], pyrIm1[im_i]);
         pyrDown(pyrIm2[im_i - 1], pyrIm2[im_i]);
+        pyrDown(pyrROI[im_i - 1], pyrROI[im_i]);
     }
 
-    Mat currRef, currImg;
+    Mat currRef, currImg, currROI;
     for(size_t lv_i = 0; lv_i < numLev_; ++lv_i) {
         currRef = pyrIm1[numLev_ - 1 - lv_i];
         currImg = pyrIm2[numLev_ - 1 - lv_i];
+        currROI = pyrROI[numLev_ - 1 - lv_i];
         // Scale the transformation as we are incresing the resolution in each iteration
         if(lv_i != 0) {
             ident->scale(2.);
         }
         for(size_t it_i = 0; it_i < numIterPerScale_; ++it_i) {
-            baseMapper_.calculate(currRef, currImg, ident);
+            baseMapper_.calculate(currRef, currImg, ident, currROI);
         }
     }
 

@@ -55,7 +55,7 @@ public:
     MapperGradProj(void);
     ~MapperGradProj(void);
 
-    virtual void calculate(const cv::Mat& img1, const cv::Mat& img2, cv::Ptr<Map>& res) const;
+    virtual void calculate(const cv::Mat& img1, const cv::Mat& img2, cv::Ptr<Map>& res, const Mat &roi) const;
 
     cv::Ptr<Map> getMap(void) const;
 };

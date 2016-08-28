@@ -83,7 +83,8 @@ void MainWindow::process()
         mP = tracker->featureMatch(curFrame, featureRes);
     }
 
-    Mat matchedFrame = curFrame;
+    Mat matchedFrame;
+    fetcher->get(matchedFrame, targetFrame.size(), mLat, mLon, mHead, mPitch);
     int finalP = tracker->featureMatch(matchedFrame, featureRes, true, "Match Result");
     //***********************************************search for most similar image***************************************************************
 
@@ -114,9 +115,9 @@ void MainWindow::process()
 
 
     //pixel benchmark
-    Mat toCompare = targetFrame.clone();
-    detector->detectAndShow(matchedFrame, toCompare, featureRes, "Feature based result");
-    tracker->showDifferenceEdge(matchedFrame, toCompare, "Feature result difference");
+//    Mat toCompare = targetFrame.clone();
+//    detector->detectAndShow(matchedFrame, toCompare, featureRes, "Feature based result");
+//    tracker->showDifferenceEdge(matchedFrame, toCompare, "Feature result difference");
 
 
 
@@ -183,7 +184,6 @@ void MainWindow::on_button_reset_clicked()
     ui->slider_PG->setValue(PG);
     ui->slider_BSG->setValue(BSG);
     ui->slider_BVG->setValue(BVG);
-    ui->slider_BSCG->setValue(BSCG);
     ui->slider_MTG->setValue(MTG);
     ui->slider_RTG->setValue(RTG);
     changeParamAndReprocess();
@@ -203,7 +203,6 @@ void MainWindow::changeParamAndReprocess()
     ui->label_PG->setText(QString("Point Grid: ") + QString::number(ui->slider_PG->value()));
     ui->label_BSG->setText(QString("Blur Size Grid: ") + QString::number(2*ui->slider_BSG->value() + 1));
     ui->label_BVG->setText(QString("Blur Var Grid: ") + QString::number(ui->slider_BVG->value() / 10.0f));
-    ui->label_BSCG->setText(QString("Blur Scale Grid: ") + QString::number(2*ui->slider_BSCG->value() + 1));
     ui->label_MTG->setText(QString("Match Thres Grid: ") + QString::number(ui->slider_MTG->value() / 100.0f));
     ui->label_RTG->setText(QString("RANSAC Thres Grid: ") + QString::number(ui->slider_RTG->value() / 1.0f));
     int bs = ui->slider_BS->value() * 2 + 1;
@@ -218,10 +217,9 @@ void MainWindow::changeParamAndReprocess()
     int pg = ui->slider_PG->value();
     int bsg = ui->slider_BSG->value() * 2 + 1;
     float bvg = ui->slider_BVG->value() / 10.0f;
-    int bscg = ui->slider_BSCG->value() * 2 + 1;
     float mtg = ui->slider_MTG->value() / 100.f;
     float rtg = ui->slider_RTG->value() / 1.0f;
-    tracker->changeParam(mnf, ql, md, bs, bv, nmt, rt, bds, ng, pg, bsg, bvg, bscg, mtg, rtg);
+    tracker->changeParam(mnf, ql, md, bs, bv, nmt, rt, bds, ng, pg, bsg, bvg, mtg, rtg);
 
     process();
 }
@@ -284,11 +282,6 @@ void MainWindow::on_slider_BSG_sliderReleased()
 }
 
 void MainWindow::on_slider_BVG_sliderReleased()
-{
-    changeParamAndReprocess();
-}
-
-void MainWindow::on_slider_BSCG_sliderReleased()
 {
     changeParamAndReprocess();
 }

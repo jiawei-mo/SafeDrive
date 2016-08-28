@@ -57,7 +57,7 @@ MapperGradProj::~MapperGradProj(void)
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 void MapperGradProj::calculate(
-    const cv::Mat& img1, const cv::Mat& image2, cv::Ptr<Map>& res) const
+    const cv::Mat& img1, const cv::Mat& image2, cv::Ptr<Map>& res, const cv::Mat& roi) const
 {
     Mat gradx, grady, imgDiff;
     Mat img2;
@@ -80,41 +80,51 @@ void MapperGradProj::calculate(
     Mat grid_r, grid_c;
     grid(img1, grid_r, grid_c);
 
+    Mat gradxROI = Mat::zeros(gradx.size(), gradx.type());
+    Mat gradyROI = Mat::zeros(grady.size(), grady.type());
+    Mat grid_cROI = Mat::zeros(grid_c.size(), grid_c.type());
+    Mat grid_rROI = Mat::zeros(grid_r.size(), grid_r.type());
+
+    gradx.copyTo(gradxROI, roi);
+    grady.copyTo(gradyROI, roi);
+    grid_c.copyTo(grid_cROI, roi);
+    grid_r.copyTo(grid_rROI, roi);
+
     // Calculate parameters using least squares
     Matx<double, 8, 8> A;
     Vec<double, 8> b;
     // For each value in A, all the matrix elements are added and then the channels are also added,
     // so we have two calls to "sum". The result can be found in the first element of the final
     // Scalar object.
-    Mat xIx = grid_c.mul(gradx);
-    Mat xIy = grid_c.mul(grady);
-    Mat yIx = grid_r.mul(gradx);
-    Mat yIy = grid_r.mul(grady);
-    Mat Ix2 = gradx.mul(gradx);
-    Mat Iy2 = grady.mul(grady);
-    Mat xy = grid_c.mul(grid_r);
-    Mat IxIy = gradx.mul(grady);
-    Mat x2 = grid_c.mul(grid_c);
-    Mat y2 = grid_r.mul(grid_r);
+    Mat xIx = grid_cROI.mul(gradxROI);
+    Mat xIy = grid_cROI.mul(gradyROI);
+    Mat yIx = grid_rROI.mul(gradxROI);
+    Mat yIy = grid_rROI.mul(gradyROI);
+    Mat Ix2 = gradxROI.mul(gradxROI);
+    Mat Iy2 = gradyROI.mul(gradyROI);
+    Mat xy = grid_cROI.mul(grid_rROI);
+    Mat IxIy = gradxROI.mul(gradyROI);
+    Mat x2 = grid_cROI.mul(grid_cROI);
+    Mat y2 = grid_rROI.mul(grid_rROI);
     Mat G = xIx + yIy;
     Mat G2 = sqr(G);
-    Mat IxG = gradx.mul(G);
-    Mat IyG = grady.mul(G);
+    Mat IxG = gradxROI.mul(G);
+    Mat IyG = gradyROI.mul(G);
 
     A(0, 0) = sum(sum(x2.mul(Ix2)))[0];
     A(1, 0) = sum(sum(xy.mul(Ix2)))[0];
-    A(2, 0) = sum(sum(grid_c.mul(Ix2)))[0];
+    A(2, 0) = sum(sum(grid_cROI.mul(Ix2)))[0];
     A(3, 0) = sum(sum(x2.mul(IxIy)))[0];
     A(4, 0) = sum(sum(xy.mul(IxIy)))[0];
-    A(5, 0) = sum(sum(grid_c.mul(IxIy)))[0];
+    A(5, 0) = sum(sum(grid_cROI.mul(IxIy)))[0];
     A(6, 0) = -sum(sum(x2.mul(IxG)))[0];
     A(7, 0) = -sum(sum(xy.mul(IxG)))[0];
 
     A(1, 1) = sum(sum(y2.mul(Ix2)))[0];
-    A(2, 1) = sum(sum(grid_r.mul(Ix2)))[0];
+    A(2, 1) = sum(sum(grid_rROI.mul(Ix2)))[0];
     A(3, 1) = A(4, 0);
     A(4, 1) = sum(sum(y2.mul(IxIy)))[0];
-    A(5, 1) = sum(sum(grid_r.mul(IxIy)))[0];
+    A(5, 1) = sum(sum(grid_rROI.mul(IxIy)))[0];
     A(6, 1) = A(7, 0);
     A(7, 1) = -sum(sum(y2.mul(IxG)))[0];
 
@@ -122,23 +132,23 @@ void MapperGradProj::calculate(
     A(3, 2) = A(5, 0);
     A(4, 2) = A(5, 1);
     A(5, 2) = sum(sum(IxIy))[0];
-    A(6, 2) = -sum(sum(grid_c.mul(IxG)))[0];
-    A(7, 2) = -sum(sum(grid_r.mul(IxG)))[0];
+    A(6, 2) = -sum(sum(grid_cROI.mul(IxG)))[0];
+    A(7, 2) = -sum(sum(grid_rROI.mul(IxG)))[0];
 
     A(3, 3) = sum(sum(x2.mul(Iy2)))[0];
     A(4, 3) = sum(sum(xy.mul(Iy2)))[0];
-    A(5, 3) = sum(sum(grid_c.mul(Iy2)))[0];
+    A(5, 3) = sum(sum(grid_cROI.mul(Iy2)))[0];
     A(6, 3) = -sum(sum(x2.mul(IyG)))[0];
     A(7, 3) = -sum(sum(xy.mul(IyG)))[0];
 
     A(4, 4) = sum(sum(y2.mul(Iy2)))[0];
-    A(5, 4) = sum(sum(grid_r.mul(Iy2)))[0];
+    A(5, 4) = sum(sum(grid_rROI.mul(Iy2)))[0];
     A(6, 4) = A(7, 3);
     A(7, 4) = -sum(sum(y2.mul(IyG)))[0];
 
     A(5, 5) = sum(sum(Iy2))[0];
-    A(6, 5) = -sum(sum(grid_c.mul(IyG)))[0];
-    A(7, 5) = -sum(sum(grid_r.mul(IyG)))[0];
+    A(6, 5) = -sum(sum(grid_cROI.mul(IyG)))[0];
+    A(7, 5) = -sum(sum(grid_rROI.mul(IyG)))[0];
 
     A(6, 6) = sum(sum(x2.mul(G2)))[0];
     A(7, 6) = sum(sum(xy.mul(G2)))[0];
@@ -184,12 +194,12 @@ void MapperGradProj::calculate(
     // Calculation of b
     b(0) = -sum(sum(imgDiff.mul(xIx)))[0];
     b(1) = -sum(sum(imgDiff.mul(yIx)))[0];
-    b(2) = -sum(sum(imgDiff.mul(gradx)))[0];
+    b(2) = -sum(sum(imgDiff.mul(gradxROI)))[0];
     b(3) = -sum(sum(imgDiff.mul(xIy)))[0];
     b(4) = -sum(sum(imgDiff.mul(yIy)))[0];
-    b(5) = -sum(sum(imgDiff.mul(grady)))[0];
-    b(6) = sum(sum(imgDiff.mul(grid_c.mul(G))))[0];
-    b(7) = sum(sum(imgDiff.mul(grid_r.mul(G))))[0];
+    b(5) = -sum(sum(imgDiff.mul(gradyROI)))[0];
+    b(6) = sum(sum(imgDiff.mul(grid_cROI.mul(G))))[0];
+    b(7) = sum(sum(imgDiff.mul(grid_rROI.mul(G))))[0];
 
     // Calculate affine transformation. We use Cholesky decomposition, as A is symmetric.
     Vec<double, 8> k = A.inv(DECOMP_CHOLESKY)*b;

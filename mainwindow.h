@@ -52,7 +52,6 @@ private slots:
     void on_slider_NMT_sliderReleased();
     void on_slider_BSG_sliderReleased();
     void on_slider_BVG_sliderReleased();
-    void on_slider_BSCG_sliderReleased();
     void on_slider_MTG_sliderReleased();
     void on_slider_RTG_sliderReleased();
 };

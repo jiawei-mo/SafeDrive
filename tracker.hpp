@@ -48,22 +48,21 @@ protected:
     int pp_grid;
     int blur_size_grid;
     float blur_var_grid;
-    int blur_scale_grid;
     float match_thres_grid;
     float ransac_thres_grid;
 
 public:
     Tracker();
-    void changeParam(int mnf, float ql, int md, int bs, float bv, float nmt, float rt, int bds, int ng, int pg, int bsg, int bvg, int bscg, float mtg, float rtg);
+    void changeParam(int mnf, float ql, int md, int bs, float bv, float nmt, float rt, int bds, int ng, int pg, int bsg, int bvg, float mtg, float rtg);
     void setTarget(const Mat& frame);
     int featureMatch(const Mat& frame, Mat& homography, bool showImg=false, string windowName="No Name");
-    void gridInline(const Mat& targetFrameCropped, const Mat &matchedFrameCropped, vector<Point2f> *inline_target, vector<Point2f> *inline_matched);
+    void gridInline(const Mat &matchedFrameCropped, vector<Point2f> *inline_matched, Mat &homo);
     Mat pixelMatch(const Mat& recMatchedFrame);
 
     //helpers
     void showDifference(const Mat& image1, const Mat& image2, string title);
     void showDifferenceEdge(const Mat& image1, const Mat& image2, string name);
-    Mat pixelWiseMatch(const Mat& img1, const Mat& img2);
+    Mat pixelWiseMatch(const Mat& img1, const Mat& img2, const Mat &roi, const Mat &initialH);
 };
 
 #endif // TRACKER_HPP

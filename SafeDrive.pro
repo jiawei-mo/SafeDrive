@@ -48,7 +48,6 @@ LIBS += -lopencv_videoio
 LIBS += -lopencv_features2d
 LIBS += -lopencv_calib3d
 LIBS += -lopencv_imgcodecs
-LIBS += -lopencv_reg
 
 CONFIG += c++11
 QMAKE_CXXFLAGS += -fopenmp

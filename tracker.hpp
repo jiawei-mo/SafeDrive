@@ -7,15 +7,12 @@
 #include "opencv2/videoio.hpp"
 #include "opencv2/features2d.hpp"
 
-#include "mapprojec.hpp"
-#include "mappergradproj.hpp"
-#include "mapperpyramid.hpp"
+#include "ecc.hpp"
 
 #include "parameters.hpp"
 
 using namespace cv;
 using namespace std;
-using namespace cv::reg;
 
 struct matchComp {
     bool operator()(DMatch a, DMatch b) {

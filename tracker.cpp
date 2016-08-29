@@ -324,32 +324,34 @@ Mat Tracker::pixelMatch(const Mat& recMatchedFrame)
     GaussianBlur(recMatchedFrame, recMatchedFrameBlurred, Size(blur_size_grid,blur_size_grid), blur_var_grid, blur_var_grid);
     GaussianBlur(targetFrame, targetFrameBlurred, Size(blur_size_grid,blur_size_grid), blur_var_grid, blur_var_grid);
 
-    Mat recMatched64F, target64F;
-    recMatchedFrameBlurred.convertTo(recMatched64F, CV_64FC3);
-    targetFrameBlurred.convertTo(target64F, CV_64FC3);
-    Mat homo = pixelWiseMatch(recMatched64F, target64F, matchedROI, initialH);
-    return homo;
-}
+//    Mat recMatched64F, target64F;
+//    recMatchedFrameBlurred.convertTo(recMatched64F, CV_64FC3);
+//    targetFrameBlurred.convertTo(target64F, CV_64FC3);
+//    Mat homo = pixelWiseMatch(recMatched64F, target64F, matchedROI, initialH);
+//    return homo;
 
-Mat Tracker::pixelWiseMatch(const Mat& img1, const Mat& img2, const Mat& matchedROI, const Mat& initialH)
-{
-//    Ptr<Map> res(new MapProjec(initialH));
-    Ptr<Map> res;
-    MapperGradProj mapper;
-    MapperPyramid mappPyr(mapper);
-//    mappPyr.numLev_ = 5;
-    mappPyr.numIterPerScale_ = 10;
-    mappPyr.calculate(img1, img2, res, matchedROI);
 
-    MapProjec* mapProj = dynamic_cast<MapProjec*>(res.get());
-    mapProj->normalize();
 
-    // Generate diffImg
-    Mat dest;
-    mapProj->inverseWarp(img2, dest);
-    showDifferenceEdge(img1, dest, "Pixel Difference");
 
-    return Mat(mapProj->getProjTr());
+    Mat recMatched_gray, target_gray;
+    cvtColor(recMatchedFrame, recMatched_gray, CV_BGR2GRAY);
+    cvtColor(targetFrame, target_gray, CV_BGR2GRAY);
+    Mat wrap_matrix;
+    initialH.convertTo(wrap_matrix, CV_32F);
+
+    int number_of_iterations = 50;
+    double termination_eps = 1e-10;
+
+    TermCriteria criteria (TermCriteria::COUNT+TermCriteria::EPS, number_of_iterations, termination_eps);
+
+    ECC *myECC = new ECC();
+    myECC->findTransformECC(recMatched_gray,
+                     target_gray,
+                     wrap_matrix,
+                     MOTION_HOMOGRAPHY,
+                     criteria,
+                     matchedROI);
+    return wrap_matrix;
 }
 
 void Tracker::showDifference(const Mat& image1, const Mat& image2, string title)

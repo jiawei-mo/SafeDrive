@@ -112,13 +112,14 @@ void MainWindow::process()
     Mat finalHomo = tracker->pixelMatch(matchedFrame);
     cout<<"final home: "<<endl<<finalHomo<<endl;
 
-
+    Mat pixelDiff;
+    warpPerspective(matchedFrame, pixelDiff, finalHomo, matchedFrame.size());
+    tracker->showDifferenceEdge(pixelDiff, targetFrame, "Final Difference");
 
     //pixel benchmark
 //    Mat toCompare = targetFrame.clone();
 //    detector->detectAndShow(matchedFrame, toCompare, featureRes, "Feature based result");
 //    tracker->showDifferenceEdge(matchedFrame, toCompare, "Feature result difference");
-
 
 
     //detect lane and show final result

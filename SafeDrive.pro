@@ -17,24 +17,14 @@ SOURCES += main.cpp\
     gsv_fetcher.cpp \
     tracker.cpp \
     lane_detector.cpp \
-    map.cpp \
-    mapper.cpp \
-    mappergradproj.cpp \
-    mapperpyramid.cpp \
-    mapprojec.cpp \
-    precomp.cpp
+    ecc.cpp
 
 HEADERS  += mainwindow.h \
     tracker.hpp \
     gsv_fetcher.hpp \
     lane_detector.hpp \
     parameters.hpp \
-    map.hpp \
-    mapper.hpp \
-    mappergradproj.hpp \
-    mapperpyramid.hpp \
-    mapprojec.hpp \
-    precomp.hpp
+    ecc.hpp
 
 FORMS    += mainwindow.ui
 

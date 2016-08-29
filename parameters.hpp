@@ -4,8 +4,8 @@
 #define HOMO_FAIL_NORM 2000.0f
 #define PROJ_ERR_THRES 2000.0f
 
-#define MATCH_STEP_G 0
-#define MATCH_STEP_L 0
+#define MATCH_STEP_G 3
+#define MATCH_STEP_L 5
 #define MATCH_LAT_LENGTH 0.0001
 #define MATCH_LON_LENGTH 0.0001
 #define MATCH_HEAD_LENGTH 1
@@ -23,8 +23,8 @@
 #define PG 40       //int
 #define BSG 1       //2* + 1
 #define BVG 2       // /10
-#define MTG 80      //%
-#define RTG 40      //float
+#define MTG 94      //%
+#define RTG 80      //float
 
 
 #endif // PARAMETERS_HPP

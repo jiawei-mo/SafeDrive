@@ -67,7 +67,7 @@ void Tracker::setTarget(const Mat& frame)
     detector->compute(targetFrameBlured, targetKp, targetDesc);
 }
 
-int Tracker::featureMatch(const Mat& frame, Mat& homography, bool showImg, string windowName)
+double Tracker::featureMatch(const Mat& frame, Mat& homography, bool showImg, string windowName)
 {
     //detect feature points and extract descriptors on curFrame
     Mat curFrame;
@@ -141,11 +141,13 @@ int Tracker::featureMatch(const Mat& frame, Mat& homography, bool showImg, strin
             imshow("Match fail Result", matchedImg);
         }
         cout<<"Match fail, norm exceeded!"<<endl;
-        return -1;
+        return 10000.0;
     }
 
     vector<Point2f> projectedKp;
-    perspectiveTransform(curMatchedKp, projectedKp, homography);
+    if(curMatchedKp.size() > 0){
+        perspectiveTransform(curMatchedKp, projectedKp, homography);
+    }
 
     //show inliner pairs between two images side by side
     int inliner_counter = 0;
@@ -166,10 +168,14 @@ int Tracker::featureMatch(const Mat& frame, Mat& homography, bool showImg, strin
 
     //FAIL: proj error exceeded
     inliner_dist = inliner_dist / inliner_counter;
-    cout<<"norm: "<<norm(homography)<<" inliner_dist: "<<inliner_dist<<endl;
     if(inliner_dist > PROJ_ERR_THRES) {
         cout<<"Match fail, proj error exceeded!"<<endl;
-        return -1;
+        return 10000.0;
+    }
+
+    if(inliner_counter < 20) {
+        cout<<"Match fail, not enough inliner!"<<endl;
+        return 10000.0;
     }
 
     if(showImg) {
@@ -177,7 +183,8 @@ int Tracker::featureMatch(const Mat& frame, Mat& homography, bool showImg, strin
         imshow(windowName, matchedImg);
     }
 
-    return inliner_counter;
+    cout<<"norm: "<<norm(homography)<<" inliner_dist: "<<inliner_dist<<endl;
+    return inliner_dist;
 }
 
 void Tracker::gridInline(const Mat& matchedFrame, vector<Point2f> *inline_matched, Mat& homo)

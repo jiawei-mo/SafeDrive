@@ -9,7 +9,7 @@ void MainWindow::process()
 
     //***********************************************search for most similar image***************************************************************
     Mat featureRes;
-    int mP = -1;
+    float mD(HOMO_FAIL_NORM), curD, lD, rD;
     float mLat = lat;
     float mLon = lon;
     float mHead = head;
@@ -17,19 +17,19 @@ void MainWindow::process()
     Mat curFrame, lFrame, rFrame;
 
     //Lat/Lon grid search
-    #pragma omp parallel for
+//    #pragma omp parallel for
     for(int a=0; a<MATCH_STEP_G; a++)
     {
         float curLat = lat+MATCH_LAT_LENGTH*(a - MATCH_STEP_G / 2);
-        #pragma omp parallel for
+//        #pragma omp parallel for
         for(int b=0; b<MATCH_STEP_G; b++)
         {
             float curLon = lon+MATCH_LON_LENGTH*(b - MATCH_STEP_G / 2);
             fetcher->get(curFrame, targetFrame.size(), curLat, curLon, mHead, mPitch);
-            float curP = tracker->featureMatch(curFrame, featureRes);
-            if(curP > mP)
+            curD = tracker->featureMatch(curFrame, featureRes);
+            if(curD < mD)
             {
-                mP = curP;
+                mD = curD;
                 mLat = curLat;
                 mLon = curLon;
             }
@@ -37,55 +37,67 @@ void MainWindow::process()
     }
 
     //Head
-    float lHead = mHead-10;
+    float lHead = mHead-5;
     fetcher->get(lFrame, targetFrame.size(), mLat, mLon, lHead, mPitch);
-    int lP = tracker->featureMatch(lFrame, featureRes);
+    lD = tracker->featureMatch(lFrame, featureRes);
 
-    float rHead = mHead+10;
+    float rHead = mHead+5;
     fetcher->get(rFrame, targetFrame.size(), mLat, mLon, rHead, mPitch);
-    int rP = tracker->featureMatch(rFrame, featureRes);
+    rD = tracker->featureMatch(rFrame, featureRes);
     for(int c=0; c<MATCH_STEP_L; c++)
     {
-        if(lP > rP)
-        {
-            rHead = mHead;
-            rP = mP;
-        } else {
-            lHead = mHead;
-            lP = mP;
-        }
         mHead = lHead + (rHead-lHead) / 2;
         fetcher->get(curFrame, targetFrame.size(), mLat, mLon, mHead, mPitch);
-        mP = tracker->featureMatch(curFrame, featureRes);
-//        mP = tracker->featureMatch(curFrame, featureRes, true, to_string(mHead));
+        mD = tracker->featureMatch(curFrame, featureRes);
+        if(lD < rD)
+        {
+            rHead = mHead;
+            rD = mD;
+        } else {
+            lHead = mHead;
+            lD = mD;
+        }
+    }
+    if(lD<mD && lD<rD) {
+        mHead = lHead;
+    } else if(rD<mD && rD<lD) {
+        mHead = rHead;
     }
 
-    //Pitch
-    float lPitch = mPitch-5;
-    fetcher->get(lFrame, targetFrame.size(), mLat, mLon, mHead, lPitch);
-    lP = tracker->featureMatch(lFrame, featureRes);
 
-    float rPitch = mPitch+5;
+    //Pitch
+    float lPitch = mPitch-2;
+    fetcher->get(lFrame, targetFrame.size(), mLat, mLon, mHead, lPitch);
+    lD = tracker->featureMatch(lFrame, featureRes);
+
+    float rPitch = mPitch+2;
     fetcher->get(rFrame, targetFrame.size(), mLat, mLon, mHead, rPitch);
-    rP = tracker->featureMatch(rFrame, featureRes);
+    rD = tracker->featureMatch(rFrame, featureRes);
     for(int d=0; d<MATCH_STEP_L; d++)
     {
-        if(lP > rP)
-        {
-            rPitch = mPitch;
-            rP = mP;
-        } else {
-            lPitch = mPitch;
-            lP = mP;
-        }
         mPitch = lPitch + (rPitch-lPitch) / 2;
         fetcher->get(curFrame, targetFrame.size(), mLat, mLon, mHead, mPitch);
-        mP = tracker->featureMatch(curFrame, featureRes);
+        mD = tracker->featureMatch(curFrame, featureRes);
+        if(lD < rD)
+        {
+            rPitch = mPitch;
+            rD = mD;
+        } else {
+            lPitch = mPitch;
+            lD = mD;
+        }
+    }
+    cout<<lD<<" "<<mD<<" "<<rD<<endl;
+    cout<<rPitch<<endl;
+    if(lD<mD && lD<rD) {
+        mPitch = lPitch;
+    } else if(rD<mD && rD<lD) {
+        mPitch = rPitch;
     }
 
     Mat matchedFrame;
     fetcher->get(matchedFrame, targetFrame.size(), mLat, mLon, mHead, mPitch);
-    int finalP = tracker->featureMatch(matchedFrame, featureRes, true, "Match Result");
+//    int finalP = tracker->featureMatch(matchedFrame, featureRes, true, "Match Result");
     //***********************************************search for most similar image***************************************************************
 
 
@@ -93,10 +105,10 @@ void MainWindow::process()
     // show result to GUI
     {
     //fail
-    if(finalP < 4) {
-        ui->text_log->appendPlainText("Fail!");
-        return;
-    }
+//    if(finalP < 4) {
+//        ui->text_log->appendPlainText("Fail!");
+//        return;
+//    }
 
     //success
     ui->text_log->appendPlainText("Success!");
@@ -109,12 +121,16 @@ void MainWindow::process()
 
 
     //pixel-wise compare
-    Mat finalHomo = tracker->pixelMatch(matchedFrame);
+    Mat recMatchedFrame;
+    warpPerspective(matchedFrame, recMatchedFrame, featureRes, matchedFrame.size());
+
+    Mat finalHomo = tracker->pixelMatch(recMatchedFrame);
     cout<<"final home: "<<endl<<finalHomo<<endl;
 
-    Mat pixelDiff;
-    warpPerspective(matchedFrame, pixelDiff, finalHomo, matchedFrame.size());
-    tracker->showDifferenceEdge(pixelDiff, targetFrame, "Final Difference");
+
+    Mat finalRecMatchedFrame;
+    warpPerspective(recMatchedFrame, finalRecMatchedFrame, finalHomo, recMatchedFrame.size());
+    tracker->showDifferenceEdge(finalRecMatchedFrame, targetFrame, "Final Difference");
 
     //pixel benchmark
 //    Mat toCompare = targetFrame.clone();
@@ -124,7 +140,7 @@ void MainWindow::process()
 
     //detect lane and show final result
     Mat projImg = targetFrame.clone();
-    detector->detectAndShow(matchedFrame, projImg, finalHomo, "Final result");
+    detector->detectAndShow(recMatchedFrame, projImg, finalHomo, "Final result");
 
     return;
 }

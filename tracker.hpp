@@ -23,7 +23,7 @@ struct matchComp {
 class Tracker
 {
 private:
-    int checkArea(Point2f p, int n_c, int n_r);
+    int checkArea(Point2f p, int n_c, int n_r, int num_grid);
 protected:
     Ptr<ORB> detector;
     Ptr<DescriptorMatcher> matcher;
@@ -38,21 +38,20 @@ protected:
     int min_distance;
     int blur_size;
     float blur_var;
-    float match_thres_tight;
-    float ransac_thres_tight;
+    int num_grid_feature;
+    float match_thres_feature;
+    float ransac_thres_feature;
     int board_size;
-    int num_grid;
     int pp_grid;
-    int blur_size_grid;
-    float blur_var_grid;
-    float match_thres_loose;
-    float ransac_thres_loose;
+    int num_grid_pixel;
+    float match_thres_pixel;
+    float ransac_thres_pixel;
 
 public:
     Tracker();
-    void changeParam(int mnf, float ql, int md, int bs, float bv, float nmt, float rt, int bds, int ng, int pg, int bsg, int bvg, float mtg, float rtg);
+    void changeParam(int bs, float bv, int mnf, float ql, int md,  int ngf, float mtf, float rtf, int bds, int pg, int ngp, float mtp, float rtp);
     void setTarget(const Mat& frame);
-    double featureMatch(const Mat& frame, Mat& homography, vector<Point2f> *inline_matched, float match_thres=-1, float ransac_thres=-1, bool showImg=false, string windowName="No Window");
+    int featureMatch(const Mat& frame, Mat& homography, vector<Point2f> *inline_matched, int num_grid=-1, float match_thres=-1, float ransac_thres=-1, bool showImg=false, string windowName="No Window");
     Mat pixelMatch(const Mat& recMatchedFrame);
 
     //helpers

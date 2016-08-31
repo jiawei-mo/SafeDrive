@@ -1,6 +1,6 @@
 #include "tracker.hpp"
 
-int Tracker::checkArea(Point2f p, int n_c, int n_r) {
+int Tracker::checkArea(Point2f p, int n_c, int n_r, int num_grid) {
     int step_c = n_c / num_grid + 1;
     int step_r = n_r / num_grid + 1;
     int c = p.x / step_c;
@@ -15,37 +15,33 @@ Tracker::Tracker()
     max_num_features = MNF;
     quality_level = QL / 100.0f;
     min_distance = MD;
-    match_thres_tight = NMT / 100.0f;
-    ransac_thres_tight = RT / 1.0f;
+    num_grid_feature = NGF;
+    match_thres_feature = MTF / 100.0f;
+    ransac_thres_feature = RTF / 1.0f;
     board_size = BDS*2 + 1;
-    num_grid = NG;
     pp_grid = PG;
-    blur_size_grid = BSG*2 + 1;
-    blur_var_grid = BVG / 10.0f;
-    match_thres_loose = MTG / 100.0f;
-    ransac_thres_loose = RTG / 1.0f;
-    targetKp.clear();
+    num_grid_pixel = NGP;
+    match_thres_pixel = MTP / 100.0f;
+    ransac_thres_pixel = RTP / 1.0f;
     detector = ORB::create();
     matcher = DescriptorMatcher::create("BruteForce-Hamming");
 }
 
-void Tracker::changeParam(int mnf, float ql, int md, int bs, float bv, float nmt, float rt, int bds, int ng, int pg, int bsg, int bvg, float mtg, float rtg)
+void Tracker::changeParam(int bs, float bv, int mnf, float ql, int md,  int ngf, float mtf, float rtf, int bds, int pg, int ngp, float mtp, float rtp)
 {
+    blur_size = bs;
+    blur_var = bv;
     max_num_features = mnf;
     quality_level = ql;
     min_distance = md;
-    blur_size = bs;
-    blur_var = bv;
-    match_thres_tight = nmt;
-    ransac_thres_tight = rt;
+    num_grid_feature = ngf;
+    match_thres_feature = mtf;
+    ransac_thres_feature = rtf;
     board_size = bds;
-    num_grid = ng;
     pp_grid = pg;
-    blur_size_grid = bsg;
-    blur_var_grid = bvg;
-    match_thres_loose = mtg;
-    ransac_thres_loose = rtg;
-    targetKp.clear();
+    num_grid_pixel = ngp;
+    match_thres_pixel = mtp;
+    ransac_thres_pixel = rtp;
 }
 
 void Tracker::setTarget(const Mat& frame)
@@ -58,19 +54,23 @@ void Tracker::setTarget(const Mat& frame)
     cvtColor(targetFrameBlured, grayImg, CV_BGR2GRAY);
     goodFeaturesToTrack(grayImg, corners, max_num_features, quality_level, min_distance);
 
+    targetKp.clear();
     for( size_t i = 0; i < corners.size(); i++ ) {
         targetKp.push_back(KeyPoint(corners[i], 1.f));
     }
     detector->compute(targetFrameBlured, targetKp, targetDesc);
 }
 
-double Tracker::featureMatch(const Mat& frame, Mat& homography, vector<Point2f> *inline_matched, float match_thres, float ransac_thres, bool showImg, string windowName)
+int Tracker::featureMatch(const Mat& frame, Mat& homography, vector<Point2f> *inline_matched, int num_grid, float match_thres, float ransac_thres, bool showImg, string windowName)
 {
+    if(num_grid<0) {
+        num_grid = num_grid_feature;
+    }
     if(match_thres<0) {
-        match_thres = match_thres_tight;
+        match_thres = match_thres_feature;
     }
     if(ransac_thres<0) {
-        ransac_thres = ransac_thres_tight;
+        ransac_thres = ransac_thres_feature;
     }
     //detect feature points and extract descriptors on curFrame
     Mat curBlured;
@@ -84,9 +84,6 @@ double Tracker::featureMatch(const Mat& frame, Mat& homography, vector<Point2f> 
     for( size_t i = 0; i < corners.size(); i++ ) {
         curKp.push_back(KeyPoint(corners[i], 1.f));
     }
-
-    Mat curDesc;
-    detector->compute(curBlured, curKp, curDesc);
 
     // match result image
     Mat matchedImg;
@@ -113,16 +110,17 @@ double Tracker::featureMatch(const Mat& frame, Mat& homography, vector<Point2f> 
     int n_c = targetFrame.cols;
     int n_r = targetFrame.rows;
     for(int i=0; i<(int)targetKp.size(); i++) {
-        int area = checkArea(targetKp[i].pt, n_c, n_r);
+        int area = checkArea(targetKp[i].pt, n_c, n_r, num_grid);
         gridTargetKp[area].push_back(targetKp[i]);
     }
     for(int i=0; i<(int)curKp.size(); i++) {
-        int area = checkArea(curKp[i].pt, n_c, n_r);
+        int area = checkArea(curKp[i].pt, n_c, n_r, num_grid);
         gridCurKp[area].push_back(curKp[i]);
     }
 
     Mat targetFrameBlured;
     GaussianBlur(targetFrame, targetFrameBlured, Size(blur_size,blur_size), blur_var, blur_var);
+
     for(int i=0; i<grid_num; i++) {
         detector->compute(targetFrameBlured, gridTargetKp[i], gridTargetDesc[i]);
         detector->compute(curBlured, gridCurKp[i], gridCurDesc[i]);
@@ -158,16 +156,13 @@ double Tracker::featureMatch(const Mat& frame, Mat& homography, vector<Point2f> 
         } else {
             matchHeap = goodMatches;
         }
-
         for(int j=0; j<(int)matchHeap.size(); j++) {
             curMatchedKp.push_back(gridCurKp[i][matchHeap[j].queryIdx].pt);
             targetMatchedKp.push_back(gridTargetKp[i][matchHeap[j].trainIdx].pt);
         }
     }
-
-    if(curMatchedKp.size() < 20) {
-        cout<<"Match fail, not enough matches: "<<curMatchedKp.size()<<endl;
-        return PROJ_ERR_THRES;
+    if(curMatchedKp.size() == 0) {
+        return -1;
     }
     //************************************************grid matches**************************************************************
 
@@ -175,22 +170,6 @@ double Tracker::featureMatch(const Mat& frame, Mat& homography, vector<Point2f> 
     //find homography based on matches using RANSAC
     Mat inliner_mask;
     homography = findHomography(curMatchedKp, targetMatchedKp, RANSAC, ransac_thres, inliner_mask);
-
-    //FAIL: norm exceeded
-    if(norm(homography)>=HOMO_FAIL_NORM)
-    {
-        if(showImg) {
-            for(int i=0; i<(int)targetMatchedKp.size(); i++)
-            {
-                targetMatchedKp[i].x += frame.cols;
-                line(matchedImg, curMatchedKp[i], targetMatchedKp[i], CV_RGB(255, 0, 0));
-            }
-            namedWindow("Match fail Result", WINDOW_NORMAL);
-            imshow("Match fail Result", matchedImg);
-        }
-        cout<<"Match fail, norm exceeded!"<<endl;
-        return PROJ_ERR_THRES;
-    }
 
     vector<Point2f> projectedKp;
     if(curMatchedKp.size() > 0){
@@ -216,28 +195,23 @@ double Tracker::featureMatch(const Mat& frame, Mat& homography, vector<Point2f> 
         }
     }
 
-    //FAIL: proj error exceeded
-    inliner_dist = inliner_dist / inliner_counter;
-
-    if(inliner_counter < 20) {
-        cout<<"Match fail, not enough inliner: "<<inliner_counter<<endl;
-        return PROJ_ERR_THRES;
-    }
-
     if(showImg) {
         namedWindow(windowName, WINDOW_NORMAL);
         imshow(windowName, matchedImg);
     }
 
     cout<<"norm: "<<norm(homography)<<" inliner_dist: "<<inliner_dist<<endl;
-    return inliner_dist;
+    return inliner_counter;
 }
 
 Mat Tracker::pixelMatch(const Mat& recMatchedFrame)
 {
     vector<Point2f> inline_matched;
     Mat initialH;
-    featureMatch(recMatchedFrame, initialH, &inline_matched, match_thres_loose, ransac_thres_loose, true, "Grid inliners");
+    if(featureMatch(recMatchedFrame, initialH, &inline_matched, num_grid_pixel, match_thres_pixel, ransac_thres_pixel, true, "Grid inliners") < 0) {
+        cout<<"no common pixel!"<<endl;
+        return Mat::eye(3,3,CV_32F);
+    }
     Mat matchedROI = Mat::zeros(recMatchedFrame.size(), CV_32F);
     if(inline_matched.size() == 0) {
         return Mat::ones(3, 3, CV_32F);
@@ -263,9 +237,8 @@ Mat Tracker::pixelMatch(const Mat& recMatchedFrame)
     cvtColor(recMatchedFrame, recMatched_gray, CV_BGR2GRAY);
     cvtColor(targetFrame, target_gray, CV_BGR2GRAY);
     Mat wrap_matrix = Mat::eye(3,3,CV_32F);
-//    initialH.convertTo(wrap_matrix, CV_32F);
 
-    int number_of_iterations = 50;
+    int number_of_iterations = 100;
     double termination_eps = 1e-10;
 
     TermCriteria criteria (TermCriteria::COUNT+TermCriteria::EPS, number_of_iterations, termination_eps);

@@ -3,14 +3,13 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 
-void MainWindow::process()
-{
+void MainWindow::findBestMatch() {
     tracker->setTarget(targetFrame);
 
     //***********************************************search for most similar image***************************************************************
     Mat featureRes;
     vector<Point2f> inline_matched_useless;
-    float mD(PROJ_ERR_THRES), curD(PROJ_ERR_THRES), lD(PROJ_ERR_THRES), rD(PROJ_ERR_THRES);
+    int mD(INT_MIN), curD(INT_MIN), lD(INT_MIN), rD(INT_MIN);
     float mLat = lat;
     float mLon = lon;
     float mHead = head;
@@ -28,7 +27,7 @@ void MainWindow::process()
             float curLon = lon+MATCH_LON_LENGTH*(b - MATCH_STEP_G / 2);
             fetcher->get(curFrame, targetFrame.size(), curLat, curLon, mHead, mPitch);
             curD = tracker->featureMatch(curFrame, featureRes, &inline_matched_useless);
-            if(curD < mD)
+            if(curD > mD)
             {
                 mD = curD;
                 mLat = curLat;
@@ -50,7 +49,7 @@ void MainWindow::process()
         mHead = lHead + (rHead-lHead) / 2;
         fetcher->get(curFrame, targetFrame.size(), mLat, mLon, mHead, mPitch);
         mD = tracker->featureMatch(curFrame, featureRes, &inline_matched_useless);
-        if(lD < rD)
+        if(lD > rD)
         {
             rHead = mHead;
             rD = mD;
@@ -59,9 +58,9 @@ void MainWindow::process()
             lD = mD;
         }
     }
-    if(lD<mD && lD<rD) {
+    if(lD>mD && lD>rD) {
         mHead = lHead;
-    } else if(rD<mD && rD<lD) {
+    } else if(rD>mD && rD>lD) {
         mHead = rHead;
     }
 
@@ -79,7 +78,7 @@ void MainWindow::process()
         mPitch = lPitch + (rPitch-lPitch) / 2;
         fetcher->get(curFrame, targetFrame.size(), mLat, mLon, mHead, mPitch);
         mD = tracker->featureMatch(curFrame, featureRes, &inline_matched_useless);
-        if(lD < rD)
+        if(lD > rD)
         {
             rPitch = mPitch;
             rD = mD;
@@ -88,16 +87,15 @@ void MainWindow::process()
             lD = mD;
         }
     }
-    if(lD<mD && lD<rD) {
+    if(lD>mD && lD>rD) {
         mPitch = lPitch;
-    } else if(rD<mD && rD<lD) {
+    } else if(rD>mD && rD>lD) {
         mPitch = rPitch;
     }
 
-    Mat matchedFrame;
     fetcher->get(matchedFrame, targetFrame.size(), mLat, mLon, mHead, mPitch);
-//    namedWindow("Matched Image", WINDOW_NORMAL);
-//    imshow("Matched Image", matchedFrame);
+    tracker->featureMatch(matchedFrame, featureRes, &inline_matched_useless, -1, -1, -1, true, "Feature Match");
+//    waitKey();
     //***********************************************search for most similar image***************************************************************
 
 
@@ -108,30 +106,30 @@ void MainWindow::process()
                                   + QString(" Pitch: ") + QString::number(mPitch));
 
 
+    //feature match results
+    Mat toCompare = targetFrame.clone();
+    detector->detectAndShow(matchedFrame, toCompare, featureRes, "Feature based result");
+    tracker->showDifferenceEdge(matchedFrame, toCompare, "Feature result difference");
+}
 
-    //pixel-wise compare
-    Mat recMatchedFrame= matchedFrame;
-//    warpPerspective(matchedFrame, recMatchedFrame, featureRes, matchedFrame.size());
-
-    Mat finalHomo = tracker->pixelMatch(recMatchedFrame);
+void MainWindow::pixelRefine() {
+    Mat finalHomo = tracker->pixelMatch(matchedFrame);
     cout<<"final home: "<<endl<<finalHomo<<endl;
 
-
-    Mat finalRecMatchedFrame;
-    warpPerspective(recMatchedFrame, finalRecMatchedFrame, finalHomo, recMatchedFrame.size());
-    tracker->showDifferenceEdge(finalRecMatchedFrame, targetFrame, "Final Difference");
-
-    //pixel benchmark
-//    Mat toCompare = targetFrame.clone();
-//    detector->detectAndShow(matchedFrame, toCompare, featureRes, "Feature based result");
-//    tracker->showDifferenceEdge(matchedFrame, toCompare, "Feature result difference");
-
+    Mat finalmatchedFrame;
+    warpPerspective(matchedFrame, finalmatchedFrame, finalHomo, matchedFrame.size());
+    tracker->showDifferenceEdge(finalmatchedFrame, targetFrame, "Final Difference");
 
     //detect lane and show final result
     Mat projImg = targetFrame.clone();
-    detector->detectAndShow(recMatchedFrame, projImg, finalHomo, "Final result");
+    detector->detectAndShow(matchedFrame, projImg, finalHomo, "Final result");
+}
 
-    return;
+void MainWindow::process()
+{
+    findBestMatch();
+
+    pixelRefine();
 }
 
 MainWindow::MainWindow(QWidget *parent) :
@@ -183,121 +181,117 @@ void MainWindow::on_button_reset_clicked()
     ui->slider_MNF->setValue(MNF);
     ui->slider_QL->setValue(QL);
     ui->slider_MD->setValue(MD);
-    ui->slider_NMT->setValue(NMT);
-    ui->slider_RT->setValue(RT);
+    ui->slider_NGF->setValue(NGF);
+    ui->slider_MTF->setValue(MTF);
+    ui->slider_RTF->setValue(RTF);
     ui->slider_BDS->setValue(BDS);
-    ui->slider_NG->setValue(NG);
     ui->slider_PG->setValue(PG);
-    ui->slider_BSG->setValue(BSG);
-    ui->slider_BVG->setValue(BVG);
-    ui->slider_MTG->setValue(MTG);
-    ui->slider_RTG->setValue(RTG);
-    changeParamAndReprocess();
+    ui->slider_NGP->setValue(NGP);
+    ui->slider_MTP->setValue(MTP);
+    ui->slider_RTP->setValue(RTP);
+    changeParamAndReprocess(true);
 }
 
-void MainWindow::changeParamAndReprocess()
+void MainWindow::changeParamAndReprocess(bool reFind)
 {
     ui->label_BS->setText(QString("Blur Size: ") + QString::number(2*ui->slider_BS->value() + 1));
     ui->label_BV->setText(QString("Blur Var: ") + QString::number(ui->slider_BV->value() / 10.0f));
     ui->label_MNF->setText(QString("Max Num Features: ") + QString::number(ui->slider_MNF->value()));
     ui->label_QL->setText(QString("Quality Level: ") + QString::number(ui->slider_QL->value() / 100.0f));
     ui->label_MD->setText(QString("Min Distance: ") + QString::number(ui->slider_MD->value()));
-    ui->label_NMT->setText(QString("NN Match Thres: ") + QString::number(ui->slider_NMT->value() / 100.0f));
-    ui->label_RT->setText(QString("RANSAC Thres: ") + QString::number(ui->slider_RT->value() / 1.0f));
+    ui->label_NGF->setText(QString("Num Grid Feature: ") + QString::number(ui->slider_NGF->value()));
+    ui->label_MTF->setText(QString("Match Thres Feature: ") + QString::number(ui->slider_MTF->value() / 100.0f));
+    ui->label_RTF->setText(QString("RANSAC Thres Feature: ") + QString::number(ui->slider_RTF->value() / 1.0f));
     ui->label_BDS->setText(QString("Board Size: ") + QString::number(2*ui->slider_BDS->value() + 1));
-    ui->label_NG->setText(QString("Num Grid: ") + QString::number(ui->slider_NG->value()));
     ui->label_PG->setText(QString("Point Grid: ") + QString::number(ui->slider_PG->value()));
-    ui->label_BSG->setText(QString("Blur Size Grid: ") + QString::number(2*ui->slider_BSG->value() + 1));
-    ui->label_BVG->setText(QString("Blur Var Grid: ") + QString::number(ui->slider_BVG->value() / 10.0f));
-    ui->label_MTG->setText(QString("Match Thres Grid: ") + QString::number(ui->slider_MTG->value() / 100.0f));
-    ui->label_RTG->setText(QString("RANSAC Thres Grid: ") + QString::number(ui->slider_RTG->value() / 1.0f));
+    ui->label_NGP->setText(QString("Num Grid Pixel: ") + QString::number(ui->slider_NGP->value()));
+    ui->label_MTP->setText(QString("Match Thres Pixel: ") + QString::number(ui->slider_MTP->value() / 100.0f));
+    ui->label_RTP->setText(QString("RANSAC Thres Pixel: ") + QString::number(ui->slider_RTP->value() / 1.0f));
     int bs = ui->slider_BS->value() * 2 + 1;
     float bv = ui->slider_BV->value() / 10.0f;
     int mnf = ui->slider_MNF->value();
     float ql = ui->slider_QL->value() / 100.0f;
     int md = ui->slider_MD->value();
-    float nmt = ui->slider_NMT->value() / 100.0f;
-    float rt = ui->slider_RT->value() / 1.0f;
+    int ngf = ui->slider_NGF->value();
+    float mtf = ui->slider_MTF->value() / 100.0f;
+    float rtf = ui->slider_RTF->value() / 1.0f;
     float bds = ui->slider_BDS->value() * 2 + 1;
-    int ng = ui->slider_NG->value();
     int pg = ui->slider_PG->value();
-    int bsg = ui->slider_BSG->value() * 2 + 1;
-    float bvg = ui->slider_BVG->value() / 10.0f;
-    float mtg = ui->slider_MTG->value() / 100.f;
-    float rtg = ui->slider_RTG->value() / 1.0f;
-    tracker->changeParam(mnf, ql, md, bs, bv, nmt, rt, bds, ng, pg, bsg, bvg, mtg, rtg);
+    int ngp = ui->slider_NGP->value();
+    float mtp = ui->slider_MTP->value() / 100.f;
+    float rtg = ui->slider_RTP->value() / 1.0f;
+    //(int bs, float bv, int mnf, float ql, int md,  int ngf, float mtf, float rtf, int bds, int pg, int ngp, float mtp, float rtp)
+    tracker->changeParam(bs, bv, mnf, ql, md, ngf, mtf, rtf, bds, pg, ngp, mtp, rtg);
 
-    process();
-}
-
-void MainWindow::on_slider_MNF_sliderReleased()
-{
-    changeParamAndReprocess();
-}
-
-void MainWindow::on_slider_QL_sliderReleased()
-{
-    changeParamAndReprocess();
-}
-
-void MainWindow::on_slider_MD_sliderReleased()
-{
-    changeParamAndReprocess();
-}
-
-void MainWindow::on_slider_NMT_sliderReleased()
-{
-    changeParamAndReprocess();
-}
-
-void MainWindow::on_slider_RT_sliderReleased()
-{
-    changeParamAndReprocess();
+    if(reFind) {
+        process();
+    } else {
+        pixelRefine();
+    }
 }
 
 void MainWindow::on_slider_BS_sliderReleased()
 {
-    changeParamAndReprocess();
+    changeParamAndReprocess(true);
 }
 
 void MainWindow::on_slider_BV_sliderReleased()
 {
-    changeParamAndReprocess();
+    changeParamAndReprocess(true);
+}
+
+void MainWindow::on_slider_MNF_sliderReleased()
+{
+    changeParamAndReprocess(true);
+}
+
+void MainWindow::on_slider_QL_sliderReleased()
+{
+    changeParamAndReprocess(true);
+}
+
+void MainWindow::on_slider_MD_sliderReleased()
+{
+    changeParamAndReprocess(true);
+}
+
+void MainWindow::on_slider_NGF_sliderReleased()
+{
+    changeParamAndReprocess(true);
+}
+
+void MainWindow::on_slider_MTF_sliderReleased()
+{
+    changeParamAndReprocess(true);
+}
+
+
+void MainWindow::on_slider_RTF_sliderReleased()
+{
+    changeParamAndReprocess(true);
 }
 
 void MainWindow::on_slider_BDS_sliderReleased()
 {
-    changeParamAndReprocess();
-}
-
-void MainWindow::on_slider_NG_sliderReleased()
-{
-    changeParamAndReprocess();
+    changeParamAndReprocess(false);
 }
 
 void MainWindow::on_slider_PG_sliderReleased()
 {
-    changeParamAndReprocess();
+    changeParamAndReprocess(false);
 }
 
-
-
-void MainWindow::on_slider_BSG_sliderReleased()
+void MainWindow::on_slider_NGP_sliderReleased()
 {
-    changeParamAndReprocess();
+    changeParamAndReprocess(false);
 }
 
-void MainWindow::on_slider_BVG_sliderReleased()
+void MainWindow::on_slider_MTP_sliderReleased()
 {
-    changeParamAndReprocess();
+    changeParamAndReprocess(false);
 }
 
-void MainWindow::on_slider_MTG_sliderReleased()
+void MainWindow::on_slider_RTP_sliderReleased()
 {
-    changeParamAndReprocess();
-}
-
-void MainWindow::on_slider_RTG_sliderReleased()
-{
-    changeParamAndReprocess();
+    changeParamAndReprocess(false);
 }

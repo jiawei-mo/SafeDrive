@@ -30,30 +30,33 @@ private:
     GSVFetcher *fetcher;
 
     Mat targetFrame;
+    Mat matchedFrame;
     float lat;
     float lon;
     float head;
     float pitch;
-    void changeParamAndReprocess();
+    void changeParamAndReprocess(bool reFind);
     void process();
+    void findBestMatch();
+    void pixelRefine();
 
 private slots:
     void on_button_reset_clicked();
     void on_button_start_clicked();
+
+    void on_slider_BS_sliderReleased();
+    void on_slider_BV_sliderReleased();
     void on_slider_MNF_sliderReleased();
     void on_slider_QL_sliderReleased();
     void on_slider_MD_sliderReleased();
-    void on_slider_RT_sliderReleased();
-    void on_slider_BS_sliderReleased();
-    void on_slider_BV_sliderReleased();
+    void on_slider_NGF_sliderReleased();
+    void on_slider_MTF_sliderReleased();
+    void on_slider_RTF_sliderReleased();
     void on_slider_BDS_sliderReleased();
-    void on_slider_NG_sliderReleased();
     void on_slider_PG_sliderReleased();
-    void on_slider_NMT_sliderReleased();
-    void on_slider_BSG_sliderReleased();
-    void on_slider_BVG_sliderReleased();
-    void on_slider_MTG_sliderReleased();
-    void on_slider_RTG_sliderReleased();
+    void on_slider_NGP_sliderReleased();
+    void on_slider_MTP_sliderReleased();
+    void on_slider_RTP_sliderReleased();
 };
 
 #endif // MAINWINDOW_H

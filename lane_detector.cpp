@@ -1,6 +1,6 @@
 #include "lane_detector.hpp"
 
-void LaneDetector::detect(const Mat& img, vector<Point2f>& whitePoints, vector<Point2f>& yellowPoints, bool showImg)
+void LaneDetector::detect(const Mat& img, vector<Point2f>& markerPoints)
 {
     //ROI
     Mat roi = img(Rect(0,img.rows/2,img.cols,img.rows/2));
@@ -23,27 +23,13 @@ void LaneDetector::detect(const Mat& img, vector<Point2f>& whitePoints, vector<P
         {
             if(whiteEdge.at<uchar>(i, j))
             {
-                whitePoints.push_back(Point(j, img.rows/2 + i));
+                markerPoints.push_back(Point(j, img.rows/2 + i));
             }
             if(yellowEdge.at<uchar>(i, j))
             {
-                yellowPoints.push_back(Point(j, img.rows/2 + i));
+                markerPoints.push_back(Point(j, img.rows/2 + i));
             }
         }
-    }
-
-    if(showImg) {
-        Mat laneImg = img.clone();
-        for(int i=0; i<(int)whitePoints.size(); i++)
-        {
-            laneImg.at<Vec3b>(whitePoints[i]) = Vec3b(255, 255, 255);
-        }
-        for(int i=0; i<(int)yellowPoints.size(); i++)
-        {
-            laneImg.at<Vec3b>(yellowPoints[i]) = Vec3b(0, 255, 255);
-        }
-        namedWindow("Lane Result", WINDOW_NORMAL);
-        imshow("Lane Result", laneImg);
     }
 }
 
@@ -57,29 +43,25 @@ bool imgBoundValid(const Mat& img, Point2f pt) {
 
 void LaneDetector::detectAndShow(const Mat& detImg, Mat& projImg, const Mat& homo, string WindowName)
 {
-    vector<Point2f> whitePoints, yellowPoints;
-    detect(detImg, whitePoints, yellowPoints, false);
-    vector<Point2f> whiteProjectedPoints, yellowProjectedPoints;
-    if(whitePoints.size() > 0) {
-        perspectiveTransform(whitePoints, whiteProjectedPoints, homo);
-    }
-    if(yellowPoints.size() > 0) {
-        perspectiveTransform(yellowPoints, yellowProjectedPoints, homo);
-    }
+    Mat recImg;
+    warpPerspective(detImg, recImg, homo, detImg.size());
+    vector<Point2f> markerPoints;
+    detect(recImg, markerPoints);
 
+    Mat mask = Mat::zeros(projImg.size(), CV_32F);
     //draw lanes
-    for(int i=0; i<(int)whiteProjectedPoints.size(); i++)
+    for(int i=0; i<(int)markerPoints.size(); i++)
     {
-        if((imgBoundValid(projImg, whiteProjectedPoints[i]))) {
-            projImg.at<Vec3b>((int)whiteProjectedPoints[i].y, (int)whiteProjectedPoints[i].x) = Vec3b(255, 255, 255);
+        if((imgBoundValid(projImg, markerPoints[i]))) {
+            mask.at<float>((int)markerPoints[i].y, (int)markerPoints[i].x) = 1.0f;
         }
     }
-    for(int i=0; i<(int)yellowProjectedPoints.size(); i++)
-    {
-        if((imgBoundValid(projImg, yellowProjectedPoints[i]))) {
-            projImg.at<Vec3b>((int)yellowProjectedPoints[i].y, (int)yellowProjectedPoints[i].x) = Vec3b(0, 255, 255);
-        }
-    }
+    blur(mask, mask, Size(10, 10));
+    threshold(mask, mask, 0, 1, cv::THRESH_BINARY);
+    mask.convertTo(mask, CV_8U);
+
+    recImg.copyTo(projImg, mask);
+
     namedWindow(WindowName, WINDOW_NORMAL);
     imshow(WindowName, projImg);
 }

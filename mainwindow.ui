@@ -96,17 +96,17 @@
      <string>Quality Level</string>
     </property>
    </widget>
-   <widget class="QLabel" name="label_NG">
+   <widget class="QLabel" name="label_NGF">
     <property name="geometry">
      <rect>
       <x>20</x>
-      <y>430</y>
+      <y>340</y>
       <width>161</width>
       <height>20</height>
      </rect>
     </property>
     <property name="text">
-     <string>Num Grid</string>
+     <string>Num Grid Feature</string>
     </property>
    </widget>
    <widget class="QSlider" name="slider_MD">
@@ -134,11 +134,11 @@
      <enum>Qt::Horizontal</enum>
     </property>
    </widget>
-   <widget class="QSlider" name="slider_NG">
+   <widget class="QSlider" name="slider_NGF">
     <property name="geometry">
      <rect>
       <x>200</x>
-      <y>430</y>
+      <y>340</y>
       <width>160</width>
       <height>16</height>
      </rect>
@@ -169,17 +169,17 @@
      <string>Min Distance</string>
     </property>
    </widget>
-   <widget class="QLabel" name="label_RT">
+   <widget class="QLabel" name="label_RTF">
     <property name="geometry">
      <rect>
       <x>20</x>
-      <y>370</y>
+      <y>400</y>
       <width>161</width>
       <height>20</height>
      </rect>
     </property>
     <property name="text">
-     <string>RANSAC Thres</string>
+     <string>RANSAC Thres Feature</string>
     </property>
    </widget>
    <widget class="QSlider" name="slider_BS">
@@ -207,11 +207,11 @@
      <enum>Qt::Horizontal</enum>
     </property>
    </widget>
-   <widget class="QSlider" name="slider_RT">
+   <widget class="QSlider" name="slider_RTF">
     <property name="geometry">
      <rect>
       <x>200</x>
-      <y>370</y>
+      <y>400</y>
       <width>160</width>
       <height>16</height>
      </rect>
@@ -400,7 +400,7 @@
     <property name="geometry">
      <rect>
       <x>20</x>
-      <y>400</y>
+      <y>460</y>
       <width>161</width>
       <height>20</height>
      </rect>
@@ -413,7 +413,7 @@
     <property name="geometry">
      <rect>
       <x>200</x>
-      <y>400</y>
+      <y>460</y>
       <width>160</width>
       <height>16</height>
      </rect>
@@ -435,7 +435,7 @@
     <property name="geometry">
      <rect>
       <x>20</x>
-      <y>460</y>
+      <y>490</y>
       <width>161</width>
       <height>20</height>
      </rect>
@@ -448,63 +448,6 @@
     <property name="geometry">
      <rect>
       <x>200</x>
-      <y>460</y>
-      <width>160</width>
-      <height>16</height>
-     </rect>
-    </property>
-    <property name="minimum">
-     <number>0</number>
-    </property>
-    <property name="maximum">
-     <number>100</number>
-    </property>
-    <property name="value">
-     <number>0</number>
-    </property>
-    <property name="orientation">
-     <enum>Qt::Horizontal</enum>
-    </property>
-   </widget>
-   <widget class="QLabel" name="label_NMT">
-    <property name="geometry">
-     <rect>
-      <x>20</x>
-      <y>340</y>
-      <width>161</width>
-      <height>20</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>NN Match Thres</string>
-    </property>
-   </widget>
-   <widget class="QSlider" name="slider_NMT">
-    <property name="geometry">
-     <rect>
-      <x>200</x>
-      <y>340</y>
-      <width>160</width>
-      <height>16</height>
-     </rect>
-    </property>
-    <property name="minimum">
-     <number>0</number>
-    </property>
-    <property name="maximum">
-     <number>100</number>
-    </property>
-    <property name="value">
-     <number>0</number>
-    </property>
-    <property name="orientation">
-     <enum>Qt::Horizontal</enum>
-    </property>
-   </widget>
-   <widget class="QSlider" name="slider_BSG">
-    <property name="geometry">
-     <rect>
-      <x>200</x>
       <y>490</y>
       <width>160</width>
       <height>16</height>
@@ -512,54 +455,137 @@
     </property>
     <property name="minimum">
      <number>0</number>
+    </property>
+    <property name="maximum">
+     <number>100</number>
+    </property>
+    <property name="value">
+     <number>0</number>
+    </property>
+    <property name="orientation">
+     <enum>Qt::Horizontal</enum>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_MTF">
+    <property name="geometry">
+     <rect>
+      <x>20</x>
+      <y>370</y>
+      <width>161</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Match Thres Feature</string>
+    </property>
+   </widget>
+   <widget class="QSlider" name="slider_MTF">
+    <property name="geometry">
+     <rect>
+      <x>200</x>
+      <y>370</y>
+      <width>160</width>
+      <height>16</height>
+     </rect>
+    </property>
+    <property name="minimum">
+     <number>0</number>
+    </property>
+    <property name="maximum">
+     <number>100</number>
+    </property>
+    <property name="value">
+     <number>0</number>
+    </property>
+    <property name="orientation">
+     <enum>Qt::Horizontal</enum>
+    </property>
+   </widget>
+   <widget class="QSlider" name="slider_RTP">
+    <property name="geometry">
+     <rect>
+      <x>200</x>
+      <y>580</y>
+      <width>160</width>
+      <height>16</height>
+     </rect>
+    </property>
+    <property name="minimum">
+     <number>0</number>
+    </property>
+    <property name="maximum">
+     <number>100</number>
+    </property>
+    <property name="value">
+     <number>0</number>
+    </property>
+    <property name="orientation">
+     <enum>Qt::Horizontal</enum>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_RTP">
+    <property name="geometry">
+     <rect>
+      <x>20</x>
+      <y>580</y>
+      <width>161</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>RANSAC Thres Pixel</string>
+    </property>
+   </widget>
+   <widget class="QSlider" name="slider_MTP">
+    <property name="geometry">
+     <rect>
+      <x>200</x>
+      <y>550</y>
+      <width>160</width>
+      <height>16</height>
+     </rect>
+    </property>
+    <property name="minimum">
+     <number>0</number>
+    </property>
+    <property name="maximum">
+     <number>100</number>
+    </property>
+    <property name="value">
+     <number>0</number>
+    </property>
+    <property name="orientation">
+     <enum>Qt::Horizontal</enum>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_MTP">
+    <property name="geometry">
+     <rect>
+      <x>20</x>
+      <y>550</y>
+      <width>161</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Match Thres Pixel</string>
+    </property>
+   </widget>
+   <widget class="QSlider" name="slider_NGP">
+    <property name="geometry">
+     <rect>
+      <x>200</x>
+      <y>520</y>
+      <width>160</width>
+      <height>16</height>
+     </rect>
+    </property>
+    <property name="minimum">
+     <number>1</number>
     </property>
     <property name="maximum">
      <number>10</number>
     </property>
-    <property name="singleStep">
-     <number>1</number>
-    </property>
-    <property name="pageStep">
-     <number>7</number>
-    </property>
-    <property name="value">
-     <number>0</number>
-    </property>
-    <property name="orientation">
-     <enum>Qt::Horizontal</enum>
-    </property>
-   </widget>
-   <widget class="QLabel" name="label_BSG">
-    <property name="geometry">
-     <rect>
-      <x>20</x>
-      <y>490</y>
-      <width>161</width>
-      <height>20</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>Blur Size Grid</string>
-    </property>
-   </widget>
-   <widget class="QSlider" name="slider_BVG">
-    <property name="geometry">
-     <rect>
-      <x>200</x>
-      <y>520</y>
-      <width>160</width>
-      <height>16</height>
-     </rect>
-    </property>
-    <property name="minimum">
-     <number>1</number>
-    </property>
-    <property name="maximum">
-     <number>20</number>
-    </property>
-    <property name="pageStep">
-     <number>7</number>
-    </property>
     <property name="value">
      <number>1</number>
     </property>
@@ -567,7 +593,7 @@
      <enum>Qt::Horizontal</enum>
     </property>
    </widget>
-   <widget class="QLabel" name="label_BVG">
+   <widget class="QLabel" name="label_NGP">
     <property name="geometry">
      <rect>
       <x>20</x>
@@ -577,77 +603,7 @@
      </rect>
     </property>
     <property name="text">
-     <string>Blur Var Grid</string>
-    </property>
-   </widget>
-   <widget class="QSlider" name="slider_RTG">
-    <property name="geometry">
-     <rect>
-      <x>200</x>
-      <y>580</y>
-      <width>160</width>
-      <height>16</height>
-     </rect>
-    </property>
-    <property name="minimum">
-     <number>0</number>
-    </property>
-    <property name="maximum">
-     <number>100</number>
-    </property>
-    <property name="value">
-     <number>0</number>
-    </property>
-    <property name="orientation">
-     <enum>Qt::Horizontal</enum>
-    </property>
-   </widget>
-   <widget class="QLabel" name="label_RTG">
-    <property name="geometry">
-     <rect>
-      <x>20</x>
-      <y>580</y>
-      <width>161</width>
-      <height>20</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>RANSAC Thres Grid</string>
-    </property>
-   </widget>
-   <widget class="QSlider" name="slider_MTG">
-    <property name="geometry">
-     <rect>
-      <x>200</x>
-      <y>550</y>
-      <width>160</width>
-      <height>16</height>
-     </rect>
-    </property>
-    <property name="minimum">
-     <number>0</number>
-    </property>
-    <property name="maximum">
-     <number>100</number>
-    </property>
-    <property name="value">
-     <number>0</number>
-    </property>
-    <property name="orientation">
-     <enum>Qt::Horizontal</enum>
-    </property>
-   </widget>
-   <widget class="QLabel" name="label_MTG">
-    <property name="geometry">
-     <rect>
-      <x>20</x>
-      <y>550</y>
-      <width>161</width>
-      <height>20</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>Match Thres Grid</string>
+     <string>Num Grid Pixel</string>
     </property>
    </widget>
   </widget>

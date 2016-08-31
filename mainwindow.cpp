@@ -9,7 +9,8 @@ void MainWindow::process()
 
     //***********************************************search for most similar image***************************************************************
     Mat featureRes;
-    float mD(HOMO_FAIL_NORM), curD, lD, rD;
+    vector<Point2f> inline_matched_useless;
+    float mD(PROJ_ERR_THRES), curD(PROJ_ERR_THRES), lD(PROJ_ERR_THRES), rD(PROJ_ERR_THRES);
     float mLat = lat;
     float mLon = lon;
     float mHead = head;
@@ -26,7 +27,7 @@ void MainWindow::process()
         {
             float curLon = lon+MATCH_LON_LENGTH*(b - MATCH_STEP_G / 2);
             fetcher->get(curFrame, targetFrame.size(), curLat, curLon, mHead, mPitch);
-            curD = tracker->featureMatch(curFrame, featureRes);
+            curD = tracker->featureMatch(curFrame, featureRes, &inline_matched_useless);
             if(curD < mD)
             {
                 mD = curD;
@@ -37,18 +38,18 @@ void MainWindow::process()
     }
 
     //Head
-    float lHead = mHead-5;
+    float lHead = mHead-10;
     fetcher->get(lFrame, targetFrame.size(), mLat, mLon, lHead, mPitch);
-    lD = tracker->featureMatch(lFrame, featureRes);
+    lD = tracker->featureMatch(lFrame, featureRes, &inline_matched_useless);
 
-    float rHead = mHead+5;
+    float rHead = mHead+10;
     fetcher->get(rFrame, targetFrame.size(), mLat, mLon, rHead, mPitch);
-    rD = tracker->featureMatch(rFrame, featureRes);
+    rD = tracker->featureMatch(rFrame, featureRes, &inline_matched_useless);
     for(int c=0; c<MATCH_STEP_L; c++)
     {
         mHead = lHead + (rHead-lHead) / 2;
         fetcher->get(curFrame, targetFrame.size(), mLat, mLon, mHead, mPitch);
-        mD = tracker->featureMatch(curFrame, featureRes);
+        mD = tracker->featureMatch(curFrame, featureRes, &inline_matched_useless);
         if(lD < rD)
         {
             rHead = mHead;
@@ -66,18 +67,18 @@ void MainWindow::process()
 
 
     //Pitch
-    float lPitch = mPitch-2;
+    float lPitch = mPitch-5;
     fetcher->get(lFrame, targetFrame.size(), mLat, mLon, mHead, lPitch);
-    lD = tracker->featureMatch(lFrame, featureRes);
+    lD = tracker->featureMatch(lFrame, featureRes, &inline_matched_useless);
 
-    float rPitch = mPitch+2;
+    float rPitch = mPitch+5;
     fetcher->get(rFrame, targetFrame.size(), mLat, mLon, mHead, rPitch);
-    rD = tracker->featureMatch(rFrame, featureRes);
+    rD = tracker->featureMatch(rFrame, featureRes, &inline_matched_useless);
     for(int d=0; d<MATCH_STEP_L; d++)
     {
         mPitch = lPitch + (rPitch-lPitch) / 2;
         fetcher->get(curFrame, targetFrame.size(), mLat, mLon, mHead, mPitch);
-        mD = tracker->featureMatch(curFrame, featureRes);
+        mD = tracker->featureMatch(curFrame, featureRes, &inline_matched_useless);
         if(lD < rD)
         {
             rPitch = mPitch;
@@ -87,8 +88,6 @@ void MainWindow::process()
             lD = mD;
         }
     }
-    cout<<lD<<" "<<mD<<" "<<rD<<endl;
-    cout<<rPitch<<endl;
     if(lD<mD && lD<rD) {
         mPitch = lPitch;
     } else if(rD<mD && rD<lD) {
@@ -97,32 +96,22 @@ void MainWindow::process()
 
     Mat matchedFrame;
     fetcher->get(matchedFrame, targetFrame.size(), mLat, mLon, mHead, mPitch);
-//    int finalP = tracker->featureMatch(matchedFrame, featureRes, true, "Match Result");
+//    namedWindow("Matched Image", WINDOW_NORMAL);
+//    imshow("Matched Image", matchedFrame);
     //***********************************************search for most similar image***************************************************************
 
 
-
-    // show result to GUI
-    {
-    //fail
-//    if(finalP < 4) {
-//        ui->text_log->appendPlainText("Fail!");
-//        return;
-//    }
-
-    //success
-    ui->text_log->appendPlainText("Success!");
+    ui->text_log->appendPlainText("Result:");
     ui->text_log->appendPlainText(QString("Latitude: ") + QString::number(mLat)
                                   + QString(" Longitude: ") + QString::number(mLon)
                                   + QString(" Heading: ") + QString::number(mHead)
                                   + QString(" Pitch: ") + QString::number(mPitch));
-    }
 
 
 
     //pixel-wise compare
-    Mat recMatchedFrame;
-    warpPerspective(matchedFrame, recMatchedFrame, featureRes, matchedFrame.size());
+    Mat recMatchedFrame= matchedFrame;
+//    warpPerspective(matchedFrame, recMatchedFrame, featureRes, matchedFrame.size());
 
     Mat finalHomo = tracker->pixelMatch(recMatchedFrame);
     cout<<"final home: "<<endl<<finalHomo<<endl;

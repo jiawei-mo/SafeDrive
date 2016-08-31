@@ -15,15 +15,15 @@ Tracker::Tracker()
     max_num_features = MNF;
     quality_level = QL / 100.0f;
     min_distance = MD;
-    nn_match_thres = NMT / 100.0f;
-    ransac_thres = RT / 1.0f;
+    match_thres_tight = NMT / 100.0f;
+    ransac_thres_tight = RT / 1.0f;
     board_size = BDS*2 + 1;
     num_grid = NG;
     pp_grid = PG;
     blur_size_grid = BSG*2 + 1;
     blur_var_grid = BVG / 10.0f;
-    match_thres_grid = MTG / 100.0f;
-    ransac_thres_grid = RTG / 1.0f;
+    match_thres_loose = MTG / 100.0f;
+    ransac_thres_loose = RTG / 1.0f;
     targetKp.clear();
     detector = ORB::create();
     matcher = DescriptorMatcher::create("BruteForce-Hamming");
@@ -36,15 +36,15 @@ void Tracker::changeParam(int mnf, float ql, int md, int bs, float bv, float nmt
     min_distance = md;
     blur_size = bs;
     blur_var = bv;
-    nn_match_thres = nmt;
-    ransac_thres = rt;
+    match_thres_tight = nmt;
+    ransac_thres_tight = rt;
     board_size = bds;
     num_grid = ng;
     pp_grid = pg;
     blur_size_grid = bsg;
     blur_var_grid = bvg;
-    match_thres_grid = mtg;
-    ransac_thres_grid = rtg;
+    match_thres_loose = mtg;
+    ransac_thres_loose = rtg;
     targetKp.clear();
 }
 
@@ -56,9 +56,6 @@ void Tracker::setTarget(const Mat& frame)
     Mat grayImg;
     vector<Point2f> corners;
     cvtColor(targetFrameBlured, grayImg, CV_BGR2GRAY);
-    mask = Mat::zeros(targetFrameBlured.size(), CV_8UC1);
-    mask(Rect(0,0,mask.cols/3,mask.rows/2)).setTo(Scalar::all(255));
-    mask(Rect(mask.cols*2/3,0,mask.cols/3,mask.rows/2)).setTo(Scalar::all(255));
     goodFeaturesToTrack(grayImg, corners, max_num_features, quality_level, min_distance);
 
     for( size_t i = 0; i < corners.size(); i++ ) {
@@ -67,14 +64,20 @@ void Tracker::setTarget(const Mat& frame)
     detector->compute(targetFrameBlured, targetKp, targetDesc);
 }
 
-double Tracker::featureMatch(const Mat& frame, Mat& homography, bool showImg, string windowName)
+double Tracker::featureMatch(const Mat& frame, Mat& homography, vector<Point2f> *inline_matched, float match_thres, float ransac_thres, bool showImg, string windowName)
 {
+    if(match_thres<0) {
+        match_thres = match_thres_tight;
+    }
+    if(ransac_thres<0) {
+        ransac_thres = ransac_thres_tight;
+    }
     //detect feature points and extract descriptors on curFrame
-    Mat curFrame;
-    GaussianBlur(frame, curFrame, Size(blur_size,blur_size), blur_var, blur_var);
+    Mat curBlured;
+    GaussianBlur(frame, curBlured, Size(blur_size,blur_size), blur_var, blur_var);
     Mat grayImg;
     vector<Point2f> corners;
-    cvtColor(curFrame, grayImg, CV_BGR2GRAY);
+    cvtColor(curBlured, grayImg, CV_BGR2GRAY);
     goodFeaturesToTrack(grayImg, corners, max_num_features, quality_level, min_distance);
 
     vector<KeyPoint> curKp;
@@ -83,143 +86,19 @@ double Tracker::featureMatch(const Mat& frame, Mat& homography, bool showImg, st
     }
 
     Mat curDesc;
-    detector->compute(curFrame, curKp, curDesc);
+    detector->compute(curBlured, curKp, curDesc);
 
     // match result image
     Mat matchedImg;
     if(showImg) {
         matchedImg = Mat::zeros(frame.rows, 2*frame.cols, frame.type());
-        Mat curFrameFeatures = curFrame.clone();
+        Mat curFrameFeatures = curBlured.clone();
         Mat targetFrameFeatures = targetFrame.clone();
         drawKeypoints(curFrameFeatures, curKp, curFrameFeatures);
         drawKeypoints(targetFrameFeatures, targetKp, targetFrameFeatures);
         curFrameFeatures.copyTo(matchedImg(Rect(0, 0, frame.cols, frame.rows)));
         targetFrameFeatures.copyTo(matchedImg(Rect(frame.cols, 0, frame.cols, frame.rows)));
     }
-
-    //two-way matches
-    vector<Point2f> targetMatchedKp, curMatchedKp;
-    vector< vector<DMatch> > ctMatches, tcMatches;
-    matcher->knnMatch(curDesc, targetDesc, ctMatches, 2);
-    matcher->knnMatch(targetDesc, curDesc, tcMatches, 2);
-    unordered_map<int, int> matchMap;
-
-    for(int i=0; i<(int)tcMatches.size(); i++)
-    {
-        if(tcMatches[i][0].distance < nn_match_thres*tcMatches[i][1].distance)
-        {
-            matchMap[tcMatches[i][0].trainIdx] = tcMatches[i][0].queryIdx;
-        }
-    }
-
-    for(int i=0; i<(int)ctMatches.size(); i++)
-    {
-        if(ctMatches[i][0].distance < nn_match_thres*ctMatches[i][1].distance)
-        {
-            if(matchMap[ctMatches[i][0].queryIdx] == ctMatches[i][0].trainIdx)
-            {
-                curMatchedKp.push_back(curKp[ctMatches[i][0].queryIdx].pt);
-                targetMatchedKp.push_back(targetKp[ctMatches[i][0].trainIdx].pt);
-            }
-        }
-    }
-
-    //find homography based on matches using RANSAC
-    Mat inliner_mask;
-    homography = findHomography(curMatchedKp, targetMatchedKp, RANSAC, ransac_thres, inliner_mask);
-
-    //FAIL: norm exceeded
-    if(norm(homography)>=HOMO_FAIL_NORM)
-    {
-        if(showImg) {
-            for(int i=0; i<(int)targetMatchedKp.size(); i++)
-            {
-                targetMatchedKp[i].x += frame.cols;
-                line(matchedImg, curMatchedKp[i], targetMatchedKp[i], CV_RGB(255, 0, 0));
-            }
-            namedWindow("Match fail Result", WINDOW_NORMAL);
-            imshow("Match fail Result", matchedImg);
-        }
-        cout<<"Match fail, norm exceeded!"<<endl;
-        return 10000.0;
-    }
-
-    vector<Point2f> projectedKp;
-    if(curMatchedKp.size() > 0){
-        perspectiveTransform(curMatchedKp, projectedKp, homography);
-    }
-
-    //show inliner pairs between two images side by side
-    int inliner_counter = 0;
-    float inliner_dist = 0.0;
-    for(int i=0; i<(int)targetMatchedKp.size(); i++)
-    {
-        if(inliner_mask.at<uchar>(i))
-        {
-            inliner_counter++;
-            inliner_dist += (projectedKp[i].x - targetMatchedKp[i].x)*(projectedKp[i].x - targetMatchedKp[i].x);
-            inliner_dist += (projectedKp[i].y - targetMatchedKp[i].y)*(projectedKp[i].y - targetMatchedKp[i].y);
-            if(showImg) {
-                line(matchedImg, curMatchedKp[i], Point2f(targetMatchedKp[i].x+frame.cols, targetMatchedKp[i].y), CV_RGB(255, 0, 0));
-                circle(matchedImg, Point2f(projectedKp[i].x+frame.cols, projectedKp[i].y), 2, CV_RGB(0, 255, 0));
-            }
-        }
-    }
-
-    //FAIL: proj error exceeded
-    inliner_dist = inliner_dist / inliner_counter;
-    if(inliner_dist > PROJ_ERR_THRES) {
-        cout<<"Match fail, proj error exceeded!"<<endl;
-        return 10000.0;
-    }
-
-    if(inliner_counter < 20) {
-        cout<<"Match fail, not enough inliner!"<<endl;
-        return 10000.0;
-    }
-
-    if(showImg) {
-        namedWindow(windowName, WINDOW_NORMAL);
-        imshow(windowName, matchedImg);
-    }
-
-    cout<<"norm: "<<norm(homography)<<" inliner_dist: "<<inliner_dist<<endl;
-    return inliner_dist;
-}
-
-void Tracker::gridInline(const Mat& matchedFrame, vector<Point2f> *inline_matched, Mat& homo)
-{
-    //detect feature points and extract descriptors on  targetframe
-    Mat targetFrameBlurred;
-    GaussianBlur(targetFrame, targetFrameBlurred, Size(blur_size,blur_size), blur_var, blur_var);
-    Mat targetFrameGrayImg;
-    vector<Point2f> targetFrameCorners;
-    cvtColor(targetFrameBlurred, targetFrameGrayImg, CV_BGR2GRAY);
-    goodFeaturesToTrack(targetFrameGrayImg, targetFrameCorners, max_num_features, quality_level, min_distance);
-    vector<KeyPoint> targetFrameKp;
-    for( size_t i = 0; i < targetFrameCorners.size(); i++ ) {
-        targetFrameKp.push_back(KeyPoint(targetFrameCorners[i], 1.f));
-    }
-
-    //detect feature points and extract descriptors on  curFrame
-    Mat curBlurred;
-    GaussianBlur(matchedFrame, curBlurred, Size(blur_size,blur_size), blur_var, blur_var);
-    Mat curGrayImg;
-    vector<Point2f> curCorners;
-    cvtColor(curBlurred, curGrayImg, CV_BGR2GRAY);
-    goodFeaturesToTrack(curGrayImg, curCorners, max_num_features, quality_level, min_distance);
-    vector<KeyPoint> curKp;
-    for( size_t i = 0; i < curCorners.size(); i++ ) {
-        curKp.push_back(KeyPoint(curCorners[i], 1.f));
-    }
-
-    Mat matchedImg = Mat::zeros(targetFrame.rows, 2*targetFrame.cols, targetFrame.type());
-    Mat curFrameFeatures = curBlurred.clone();
-    Mat targetFrameFeatures = targetFrameBlurred.clone();
-    drawKeypoints(curFrameFeatures, curKp, curFrameFeatures);
-    drawKeypoints(targetFrameFeatures, targetFrameKp, targetFrameFeatures);
-    curFrameFeatures.copyTo(matchedImg(Rect(0, 0, curBlurred.cols, curBlurred.rows)));
-    targetFrameFeatures.copyTo(matchedImg(Rect(targetFrameBlurred.cols, 0, targetFrameBlurred.cols, targetFrameBlurred.rows)));
 
     //************************************************grid matches**************************************************************
     vector<Point2f> targetMatchedKp, curMatchedKp;
@@ -231,20 +110,22 @@ void Tracker::gridInline(const Mat& matchedFrame, vector<Point2f> *inline_matche
     vector<vector<KeyPoint> > gridCurKp(grid_num, vector<KeyPoint>());
     vector<Mat> gridCurDesc(grid_num, Mat());
 
-    int n_c = targetFrameBlurred.cols;
-    int n_r = targetFrameBlurred.rows;
-    for(int i=0; i<(int)targetFrameKp.size(); i++) {
-        int area = checkArea(targetFrameKp[i].pt, n_c, n_r);
-        gridTargetKp[area].push_back(targetFrameKp[i]);
+    int n_c = targetFrame.cols;
+    int n_r = targetFrame.rows;
+    for(int i=0; i<(int)targetKp.size(); i++) {
+        int area = checkArea(targetKp[i].pt, n_c, n_r);
+        gridTargetKp[area].push_back(targetKp[i]);
     }
     for(int i=0; i<(int)curKp.size(); i++) {
         int area = checkArea(curKp[i].pt, n_c, n_r);
         gridCurKp[area].push_back(curKp[i]);
     }
 
+    Mat targetFrameBlured;
+    GaussianBlur(targetFrame, targetFrameBlured, Size(blur_size,blur_size), blur_var, blur_var);
     for(int i=0; i<grid_num; i++) {
-        detector->compute(targetFrameBlurred, gridTargetKp[i], gridTargetDesc[i]);
-        detector->compute(curBlurred, gridCurKp[i], gridCurDesc[i]);
+        detector->compute(targetFrameBlured, gridTargetKp[i], gridTargetDesc[i]);
+        detector->compute(curBlured, gridCurKp[i], gridCurDesc[i]);
     }
 
     for(int i=0; i<grid_num; i++) {
@@ -255,7 +136,7 @@ void Tracker::gridInline(const Mat& matchedFrame, vector<Point2f> *inline_matche
         matcher->knnMatch(gridCurDesc[i], gridTargetDesc[i], matches, 2);
         vector<DMatch> goodMatches;
         for(int i=0; i<(int)matches.size(); i++) {
-            if(matches[i][0].distance < match_thres_grid*matches[i][1].distance)
+            if(matches[i][0].distance < match_thres*matches[i][1].distance)
             {
                 matches[i][0].distance = matches[i][0].distance / matches[i][1].distance;
                 goodMatches.push_back(matches[i][0]);
@@ -283,35 +164,86 @@ void Tracker::gridInline(const Mat& matchedFrame, vector<Point2f> *inline_matche
             targetMatchedKp.push_back(gridTargetKp[i][matchHeap[j].trainIdx].pt);
         }
     }
+
+    if(curMatchedKp.size() < 20) {
+        cout<<"Match fail, not enough matches: "<<curMatchedKp.size()<<endl;
+        return PROJ_ERR_THRES;
+    }
     //************************************************grid matches**************************************************************
 
-    //RANSAC to remove outliers
-    Mat inliner_mask;
-    homo = findHomography(curMatchedKp, targetMatchedKp, RANSAC, ransac_thres_grid, inliner_mask);
 
+    //find homography based on matches using RANSAC
+    Mat inliner_mask;
+    homography = findHomography(curMatchedKp, targetMatchedKp, RANSAC, ransac_thres, inliner_mask);
+
+    //FAIL: norm exceeded
+    if(norm(homography)>=HOMO_FAIL_NORM)
+    {
+        if(showImg) {
+            for(int i=0; i<(int)targetMatchedKp.size(); i++)
+            {
+                targetMatchedKp[i].x += frame.cols;
+                line(matchedImg, curMatchedKp[i], targetMatchedKp[i], CV_RGB(255, 0, 0));
+            }
+            namedWindow("Match fail Result", WINDOW_NORMAL);
+            imshow("Match fail Result", matchedImg);
+        }
+        cout<<"Match fail, norm exceeded!"<<endl;
+        return PROJ_ERR_THRES;
+    }
+
+    vector<Point2f> projectedKp;
+    if(curMatchedKp.size() > 0){
+        perspectiveTransform(curMatchedKp, projectedKp, homography);
+    }
+
+    //show inliner pairs between two images side by side
+    int inliner_counter = 0;
+    float inliner_dist = 0.0;
+    inline_matched->clear();
     for(int i=0; i<(int)targetMatchedKp.size(); i++)
     {
         if(inliner_mask.at<uchar>(i))
         {
-            line(matchedImg, curMatchedKp[i], Point2f(targetMatchedKp[i].x+targetFrameBlurred.cols, targetMatchedKp[i].y), CV_RGB(255, 0, 0));
+            inliner_counter++;
+            inliner_dist += (projectedKp[i].x - targetMatchedKp[i].x)*(projectedKp[i].x - targetMatchedKp[i].x);
+            inliner_dist += (projectedKp[i].y - targetMatchedKp[i].y)*(projectedKp[i].y - targetMatchedKp[i].y);
+            if(showImg) {
+                line(matchedImg, curMatchedKp[i], Point2f(targetMatchedKp[i].x+frame.cols, targetMatchedKp[i].y), CV_RGB(255, 0, 0));
+                circle(matchedImg, Point2f(projectedKp[i].x+frame.cols, projectedKp[i].y), 2, CV_RGB(0, 255, 0));
+            }
             inline_matched->push_back(curMatchedKp[i]);
         }
     }
 
-    namedWindow("Grid Match", WINDOW_NORMAL);
-    imshow("Grid Match", matchedImg);
+    //FAIL: proj error exceeded
+    inliner_dist = inliner_dist / inliner_counter;
+
+    if(inliner_counter < 20) {
+        cout<<"Match fail, not enough inliner: "<<inliner_counter<<endl;
+        return PROJ_ERR_THRES;
+    }
+
+    if(showImg) {
+        namedWindow(windowName, WINDOW_NORMAL);
+        imshow(windowName, matchedImg);
+    }
+
+    cout<<"norm: "<<norm(homography)<<" inliner_dist: "<<inliner_dist<<endl;
+    return inliner_dist;
 }
 
 Mat Tracker::pixelMatch(const Mat& recMatchedFrame)
 {
-    //crop
     vector<Point2f> inline_matched;
     Mat initialH;
-    gridInline(recMatchedFrame, &inline_matched, initialH);
-
+    featureMatch(recMatchedFrame, initialH, &inline_matched, match_thres_loose, ransac_thres_loose, true, "Grid inliners");
     Mat matchedROI = Mat::zeros(recMatchedFrame.size(), CV_32F);
     if(inline_matched.size() == 0) {
         return Mat::ones(3, 3, CV_32F);
+    }
+    if(inline_matched.size() == 0) {
+        CV_Error(Error::StsNoConv, "No inliner for mask!");
     }
     for(unsigned int i=0; i<inline_matched.size(); i++) {
         matchedROI.at<float>(inline_matched[i].y, inline_matched[i].x) = 1.0;
@@ -327,24 +259,11 @@ Mat Tracker::pixelMatch(const Mat& recMatchedFrame)
     namedWindow("Pixel-wise matchedROI", WINDOW_NORMAL);
     imshow("Pixel-wise matchedROI", combineImg);
 
-    Mat recMatchedFrameBlurred, targetFrameBlurred;
-    GaussianBlur(recMatchedFrame, recMatchedFrameBlurred, Size(blur_size_grid,blur_size_grid), blur_var_grid, blur_var_grid);
-    GaussianBlur(targetFrame, targetFrameBlurred, Size(blur_size_grid,blur_size_grid), blur_var_grid, blur_var_grid);
-
-//    Mat recMatched64F, target64F;
-//    recMatchedFrameBlurred.convertTo(recMatched64F, CV_64FC3);
-//    targetFrameBlurred.convertTo(target64F, CV_64FC3);
-//    Mat homo = pixelWiseMatch(recMatched64F, target64F, matchedROI, initialH);
-//    return homo;
-
-
-
-
     Mat recMatched_gray, target_gray;
     cvtColor(recMatchedFrame, recMatched_gray, CV_BGR2GRAY);
     cvtColor(targetFrame, target_gray, CV_BGR2GRAY);
-    Mat wrap_matrix;
-    initialH.convertTo(wrap_matrix, CV_32F);
+    Mat wrap_matrix = Mat::eye(3,3,CV_32F);
+//    initialH.convertTo(wrap_matrix, CV_32F);
 
     int number_of_iterations = 50;
     double termination_eps = 1e-10;

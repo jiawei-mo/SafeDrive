@@ -208,7 +208,7 @@ Mat Tracker::pixelMatch(const Mat& recMatchedFrame)
 {
     vector<Point2f> inline_matched;
     Mat initialH;
-    if(featureMatch(recMatchedFrame, initialH, &inline_matched, num_grid_pixel, match_thres_pixel, ransac_thres_pixel, true, "Grid inliners") < 0) {
+    if(featureMatch(recMatchedFrame, initialH, &inline_matched, num_grid_pixel, match_thres_pixel, ransac_thres_pixel) < 0) {
         cout<<"no common pixel!"<<endl;
         return Mat::eye(3,3,CV_32F);
     }

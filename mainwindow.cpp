@@ -94,6 +94,8 @@ void MainWindow::findBestMatch() {
     }
 
     fetcher->get(matchedFrame, targetFrame.size(), mLat, mLon, mHead, mPitch);
+    namedWindow("Matched Frame", WINDOW_NORMAL);
+    imshow("Matched Frame", matchedFrame);
     tracker->featureMatch(matchedFrame, featureRes, &inline_matched_useless, -1, -1, -1, true, "Feature Match");
 //    waitKey();
     //***********************************************search for most similar image***************************************************************
@@ -109,7 +111,9 @@ void MainWindow::findBestMatch() {
     //feature match results
     Mat toCompare = targetFrame.clone();
     detector->detectAndShow(matchedFrame, toCompare, featureRes, "Feature based result");
-    tracker->showDifferenceEdge(matchedFrame, toCompare, "Feature result difference");
+    tracker->showDifference(matchedFrame, targetFrame, "Feature result difference");
+
+    cout<<"Feature match homography:"<<endl<<featureRes<<endl;
 }
 
 void MainWindow::pixelRefine() {
@@ -118,7 +122,7 @@ void MainWindow::pixelRefine() {
 
     Mat finalmatchedFrame;
     warpPerspective(matchedFrame, finalmatchedFrame, finalHomo, matchedFrame.size());
-    tracker->showDifferenceEdge(finalmatchedFrame, targetFrame, "Final Difference");
+    tracker->showDifference(finalmatchedFrame, targetFrame, "Final Difference");
 
     //detect lane and show final result
     Mat projImg = targetFrame.clone();
@@ -157,6 +161,10 @@ void MainWindow::on_button_start_clicked()
       ui->text_log->appendPlainText("Error occured, image not read correctly");
       return;
     }
+
+    namedWindow("Target Frame", WINDOW_NORMAL);
+    imshow("Target Frame", targetFrame);
+
     string paramNameFull = ui->text_PM->toPlainText().toStdString();
     string paramName = paramNameFull.substr(7, paramNameFull.length()-8);
     ifstream params(paramName);

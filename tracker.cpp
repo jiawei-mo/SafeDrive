@@ -61,7 +61,7 @@ void Tracker::setTarget(const Mat& frame)
     detector->compute(targetFrameBlured, targetKp, targetDesc);
 }
 
-int Tracker::featureMatch(const Mat& frame, Mat& homography, vector<Point2f> *inline_matched, int num_grid, float match_thres, float ransac_thres, bool showImg, string windowName)
+int Tracker::featureMatch(const Mat& frame, Mat& homography, vector<Point2f> *inline_matched, int num_grid, float match_thres, float ransac_thres, bool showImg, string windowName, const Mat& showROI)
 {
     if(num_grid<0) {
         num_grid = num_grid_feature;
@@ -176,6 +176,14 @@ int Tracker::featureMatch(const Mat& frame, Mat& homography, vector<Point2f> *in
         perspectiveTransform(curMatchedKp, projectedKp, homography);
     }
 
+
+    if(showROI.cols > 1) {
+        Mat newROI = Mat::ones(matchedImg.size(), CV_8U);
+        Mat newIMG = Mat::zeros(matchedImg.size(), matchedImg.type());
+        showROI.copyTo(newROI(Rect(0, 0, frame.cols, frame.rows)));
+        matchedImg.copyTo(newIMG, newROI);
+        matchedImg = newIMG;
+    }
     //show inliner pairs between two images side by side
     int inliner_counter = 0;
     float inliner_dist = 0.0;
@@ -194,6 +202,7 @@ int Tracker::featureMatch(const Mat& frame, Mat& homography, vector<Point2f> *in
             inline_matched->push_back(curMatchedKp[i]);
         }
     }
+
 
     if(showImg) {
         namedWindow(windowName, WINDOW_NORMAL);
@@ -227,6 +236,12 @@ Mat Tracker::pixelMatch(const Mat& recMatchedFrame)
     threshold(matchedROI, matchedROI, 0, 1, cv::THRESH_BINARY);
     matchedROI.convertTo(matchedROI, CV_8U);
 
+
+
+    featureMatch(recMatchedFrame, initialH, &inline_matched, num_grid_pixel, match_thres_pixel, ransac_thres_pixel, true, "ROIMatch",matchedROI);
+
+
+
     Mat combineImg = Mat::zeros(recMatchedFrame.rows, 2*recMatchedFrame.cols, recMatchedFrame.type());
     recMatchedFrame.copyTo(combineImg(Rect(0, 0, recMatchedFrame.cols, recMatchedFrame.rows)), matchedROI);
     targetFrame.copyTo(combineImg(Rect(recMatchedFrame.cols, 0, recMatchedFrame.cols, recMatchedFrame.rows)));
@@ -250,6 +265,27 @@ Mat Tracker::pixelMatch(const Mat& recMatchedFrame)
                      MOTION_HOMOGRAPHY,
                      criteria,
                      matchedROI);
+
+    Mat finalmatchedFrame, projedROI;
+    warpPerspective(recMatchedFrame, finalmatchedFrame, wrap_matrix, recMatchedFrame.size());
+    warpPerspective(matchedROI, projedROI, wrap_matrix, matchedROI.size());
+
+    Mat img1, img2;
+    finalmatchedFrame.convertTo(img1, CV_32FC3);
+    targetFrame.convertTo(img2, CV_32FC3);
+    if(img1.channels() != 1)
+        cvtColor(img1, img1, CV_RGB2GRAY);
+    if(img2.channels() != 1)
+        cvtColor(img2, img2, CV_RGB2GRAY);
+
+    Mat imgDiff, imgDiffROI;
+    img1.copyTo(imgDiff);
+    imgDiff -= img2;
+    imgDiff.copyTo(imgDiffROI, projedROI);
+    namedWindow("diff norm within ROI", WINDOW_NORMAL);
+    imshow("diff norm within ROI", imgDiffROI);
+    cout<<"diff norm within ROI: "<<norm(imgDiffROI)<<endl;
+
     return wrap_matrix;
 }
 
@@ -266,6 +302,7 @@ void Tracker::showDifference(const Mat& image1, const Mat& image2, string title)
     Mat imgDiff;
     img1.copyTo(imgDiff);
     imgDiff -= img2;
+    cout<<"diff norm: "<<norm(imgDiff)<<endl;
     imgDiff /= 2.f;
     imgDiff += 128.f;
     Mat imgSh;

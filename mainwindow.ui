@@ -18,7 +18,7 @@
     <property name="geometry">
      <rect>
       <x>20</x>
-      <y>250</y>
+      <y>280</y>
       <width>161</width>
       <height>20</height>
      </rect>
@@ -31,7 +31,7 @@
     <property name="geometry">
      <rect>
       <x>200</x>
-      <y>250</y>
+      <y>280</y>
       <width>160</width>
       <height>16</height>
      </rect>
@@ -62,7 +62,7 @@
     <property name="geometry">
      <rect>
       <x>200</x>
-      <y>280</y>
+      <y>310</y>
       <width>160</width>
       <height>16</height>
      </rect>
@@ -87,7 +87,7 @@
     <property name="geometry">
      <rect>
       <x>20</x>
-      <y>280</y>
+      <y>310</y>
       <width>161</width>
       <height>20</height>
      </rect>
@@ -100,7 +100,7 @@
     <property name="geometry">
      <rect>
       <x>20</x>
-      <y>340</y>
+      <y>370</y>
       <width>161</width>
       <height>20</height>
      </rect>
@@ -113,7 +113,7 @@
     <property name="geometry">
      <rect>
       <x>200</x>
-      <y>310</y>
+      <y>340</y>
       <width>160</width>
       <height>16</height>
      </rect>
@@ -138,7 +138,7 @@
     <property name="geometry">
      <rect>
       <x>200</x>
-      <y>340</y>
+      <y>370</y>
       <width>160</width>
       <height>16</height>
      </rect>
@@ -160,7 +160,7 @@
     <property name="geometry">
      <rect>
       <x>20</x>
-      <y>310</y>
+      <y>340</y>
       <width>161</width>
       <height>20</height>
      </rect>
@@ -173,7 +173,7 @@
     <property name="geometry">
      <rect>
       <x>20</x>
-      <y>400</y>
+      <y>430</y>
       <width>161</width>
       <height>20</height>
      </rect>
@@ -186,7 +186,7 @@
     <property name="geometry">
      <rect>
       <x>200</x>
-      <y>190</y>
+      <y>220</y>
       <width>160</width>
       <height>16</height>
      </rect>
@@ -211,7 +211,7 @@
     <property name="geometry">
      <rect>
       <x>200</x>
-      <y>400</y>
+      <y>430</y>
       <width>160</width>
       <height>16</height>
      </rect>
@@ -233,7 +233,7 @@
     <property name="geometry">
      <rect>
       <x>20</x>
-      <y>190</y>
+      <y>220</y>
       <width>161</width>
       <height>20</height>
      </rect>
@@ -246,7 +246,7 @@
     <property name="geometry">
      <rect>
       <x>240</x>
-      <y>140</y>
+      <y>170</y>
       <width>81</width>
       <height>41</height>
      </rect>
@@ -266,7 +266,7 @@
       <x>20</x>
       <y>30</y>
       <width>331</width>
-      <height>31</height>
+      <height>21</height>
      </rect>
     </property>
     <property name="plainText">
@@ -296,7 +296,7 @@
     <property name="geometry">
      <rect>
       <x>20</x>
-      <y>140</y>
+      <y>170</y>
       <width>81</width>
       <height>41</height>
      </rect>
@@ -330,9 +330,9 @@
     <property name="geometry">
      <rect>
       <x>20</x>
-      <y>90</y>
+      <y>80</y>
       <width>331</width>
-      <height>31</height>
+      <height>21</height>
      </rect>
     </property>
     <property name="plainText">
@@ -344,7 +344,7 @@
     <property name="geometry">
      <rect>
       <x>20</x>
-      <y>70</y>
+      <y>60</y>
       <width>211</width>
       <height>20</height>
      </rect>
@@ -362,7 +362,7 @@
     <property name="geometry">
      <rect>
       <x>200</x>
-      <y>220</y>
+      <y>250</y>
       <width>160</width>
       <height>16</height>
      </rect>
@@ -387,7 +387,7 @@
     <property name="geometry">
      <rect>
       <x>20</x>
-      <y>220</y>
+      <y>250</y>
       <width>161</width>
       <height>20</height>
      </rect>
@@ -470,7 +470,7 @@
     <property name="geometry">
      <rect>
       <x>20</x>
-      <y>370</y>
+      <y>400</y>
       <width>161</width>
       <height>20</height>
      </rect>
@@ -483,7 +483,7 @@
     <property name="geometry">
      <rect>
       <x>200</x>
-      <y>370</y>
+      <y>400</y>
       <width>160</width>
       <height>16</height>
      </rect>
@@ -604,6 +604,38 @@
     </property>
     <property name="text">
      <string>Num Grid Pixel</string>
+    </property>
+   </widget>
+   <widget class="QPlainTextEdit" name="text_SP">
+    <property name="geometry">
+     <rect>
+      <x>20</x>
+      <y>130</y>
+      <width>331</width>
+      <height>21</height>
+     </rect>
+    </property>
+    <property name="plainText">
+     <string>file:///home/kimiwings/SafeDrive/test/test0/
+</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_3">
+    <property name="geometry">
+     <rect>
+      <x>20</x>
+      <y>110</y>
+      <width>211</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>12</pointsize>
+     </font>
+    </property>
+    <property name="text">
+     <string>Drag search path below</string>
     </property>
    </widget>
   </widget>

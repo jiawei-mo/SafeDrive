@@ -14,17 +14,17 @@ TEMPLATE = app
 
 SOURCES += main.cpp\
         mainwindow.cpp \
-    gsv_fetcher.cpp \
     tracker.cpp \
     lane_detector.cpp \
-    ecc.cpp
+    ecc.cpp \
+    img_fetcher.cpp
 
 HEADERS  += mainwindow.h \
     tracker.hpp \
-    gsv_fetcher.hpp \
     lane_detector.hpp \
     parameters.hpp \
-    ecc.hpp
+    ecc.hpp \
+    img_fetcher.hpp
 
 FORMS    += mainwindow.ui
 

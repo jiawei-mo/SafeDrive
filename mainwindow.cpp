@@ -25,7 +25,7 @@ void MainWindow::findBestMatch() {
         for(int b=0; b<MATCH_STEP_G; b++)
         {
             float curLon = lon+MATCH_LON_LENGTH*(b - MATCH_STEP_G / 2);
-            fetcher->get(curFrame, targetFrame.size(), curLat, curLon, mHead, mPitch);
+            fetcher->get(curFrame, targetFrame.size(), curLat, curLon, mHead, mPitch, searchPath);
             curD = tracker->featureMatch(curFrame, featureRes, &inline_matched_useless);
             if(curD > mD)
             {
@@ -38,16 +38,16 @@ void MainWindow::findBestMatch() {
 
     //Head
     float lHead = mHead-10;
-    fetcher->get(lFrame, targetFrame.size(), mLat, mLon, lHead, mPitch);
+    fetcher->get(lFrame, targetFrame.size(), mLat, mLon, lHead, mPitch, searchPath);
     lD = tracker->featureMatch(lFrame, featureRes, &inline_matched_useless);
 
     float rHead = mHead+10;
-    fetcher->get(rFrame, targetFrame.size(), mLat, mLon, rHead, mPitch);
+    fetcher->get(rFrame, targetFrame.size(), mLat, mLon, rHead, mPitch, searchPath);
     rD = tracker->featureMatch(rFrame, featureRes, &inline_matched_useless);
     for(int c=0; c<MATCH_STEP_L; c++)
     {
         mHead = lHead + (rHead-lHead) / 2;
-        fetcher->get(curFrame, targetFrame.size(), mLat, mLon, mHead, mPitch);
+        fetcher->get(curFrame, targetFrame.size(), mLat, mLon, mHead, mPitch, searchPath);
         mD = tracker->featureMatch(curFrame, featureRes, &inline_matched_useless);
         if(lD > rD)
         {
@@ -67,16 +67,16 @@ void MainWindow::findBestMatch() {
 
     //Pitch
     float lPitch = mPitch-5;
-    fetcher->get(lFrame, targetFrame.size(), mLat, mLon, mHead, lPitch);
+    fetcher->get(lFrame, targetFrame.size(), mLat, mLon, mHead, lPitch, searchPath);
     lD = tracker->featureMatch(lFrame, featureRes, &inline_matched_useless);
 
     float rPitch = mPitch+5;
-    fetcher->get(rFrame, targetFrame.size(), mLat, mLon, mHead, rPitch);
+    fetcher->get(rFrame, targetFrame.size(), mLat, mLon, mHead, rPitch, searchPath);
     rD = tracker->featureMatch(rFrame, featureRes, &inline_matched_useless);
     for(int d=0; d<MATCH_STEP_L; d++)
     {
         mPitch = lPitch + (rPitch-lPitch) / 2;
-        fetcher->get(curFrame, targetFrame.size(), mLat, mLon, mHead, mPitch);
+        fetcher->get(curFrame, targetFrame.size(), mLat, mLon, mHead, mPitch, searchPath);
         mD = tracker->featureMatch(curFrame, featureRes, &inline_matched_useless);
         if(lD > rD)
         {
@@ -93,7 +93,7 @@ void MainWindow::findBestMatch() {
         mPitch = rPitch;
     }
 
-    fetcher->get(matchedFrame, targetFrame.size(), mLat, mLon, mHead, mPitch);
+    fetcher->get(matchedFrame, targetFrame.size(), mLat, mLon, mHead, mPitch, searchPath);
     namedWindow("Matched Frame", WINDOW_NORMAL);
     imshow("Matched Frame", matchedFrame);
     tracker->featureMatch(matchedFrame, featureRes, &inline_matched_useless, -1, -1, -1, true, "Feature Match");
@@ -144,7 +144,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
     tracker = new Tracker();
     detector = new LaneDetector();
-    fetcher = new GSVFetcher();
+    fetcher = new IMGFetcher();
 }
 
 MainWindow::~MainWindow()
@@ -178,6 +178,9 @@ void MainWindow::on_button_start_clicked()
     params >> param;
     pitch = stof(param);
     params.close();
+
+    searchPath = ui->text_SP->toPlainText().toStdString();
+    searchPath = searchPath.substr(7, searchPath.size()-8);
 
     on_button_reset_clicked();
 }

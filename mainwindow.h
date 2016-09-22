@@ -4,7 +4,7 @@
 #include <QMainWindow>
 #include "tracker.hpp"
 #include "lane_detector.hpp"
-#include "gsv_fetcher.hpp"
+#include "img_fetcher.hpp"
 #include <string.h>
 #include <fstream>
 
@@ -27,7 +27,7 @@ private:
 
     Tracker *tracker;
     LaneDetector *detector;
-    GSVFetcher *fetcher;
+    IMGFetcher *fetcher;
 
     Mat targetFrame;
     Mat matchedFrame;
@@ -35,6 +35,7 @@ private:
     float lon;
     float head;
     float pitch;
+    string searchPath;
     void changeParamAndReprocess(bool reFind);
     void process();
     void findBestMatch();

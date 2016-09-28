@@ -180,7 +180,9 @@ void MainWindow::on_button_start_clicked()
     params.close();
 
     searchPath = ui->text_SP->toPlainText().toStdString();
-    searchPath = searchPath.substr(7, searchPath.size()-8);
+    if(searchPath.size()>7) {
+        searchPath = searchPath.substr(7, searchPath.size()-8);
+    }
 
     on_button_reset_clicked();
 }

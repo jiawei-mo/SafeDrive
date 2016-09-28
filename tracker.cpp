@@ -282,9 +282,6 @@ Mat Tracker::pixelMatch(const Mat& recMatchedFrame)
     img1.copyTo(imgDiff);
     imgDiff -= img2;
     imgDiff.copyTo(imgDiffROI, projedROI);
-    namedWindow("diff norm within ROI", WINDOW_NORMAL);
-    imshow("diff norm within ROI", imgDiffROI);
-    cout<<"diff norm within ROI: "<<norm(imgDiffROI)<<endl;
 
     return wrap_matrix;
 }

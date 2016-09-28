@@ -10,6 +10,9 @@ void LaneDetector::detect(const Mat& img, vector<Point2f>& markerPoints)
     inRange(roi, Scalar(180, 180, 190), Scalar(255, 255, 255), whiteHist);
     inRange(roi, Scalar(0, 150, 170), Scalar(150, 255, 255), yellowHist);
 
+    imshow("lane test", whiteHist);
+    waitKey();
+
     //Canny
     Mat whiteEdge, yellowEdge;
     GaussianBlur(whiteHist, whiteHist, Size(3,3), 2, 2);

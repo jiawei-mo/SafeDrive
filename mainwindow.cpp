@@ -168,7 +168,7 @@ void MainWindow::pixelRefine() {
         namedWindow("Final result", WINDOW_NORMAL);
         imshow("Final result", projImg);
     } else {
-        string writeName =  "/home/kimiwings/resImgs/"+targetString+"jjjjjsss.jpg";
+        string writeName =  "/home/kimiwings/resImgs/"+targetString+"jjjjjsss.jpg";             //TODO
         imwrite(writeName, projImg);
     }
 }

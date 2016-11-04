@@ -10,7 +10,7 @@ IMGFetcher::IMGFetcher(string _key)
     IMGFetcher::key = _key;
 }
 
-void IMGFetcher::get(Mat& output, Size size, float lan, float lon, float head, float pitch, string localSearch)
+bool IMGFetcher::get(Mat& output, Size size, float lan, float lon, float head, float pitch, string localSearch)
 {
     if(localSearch.size()<3) {              //search on GSV
         double width = size.width;
@@ -18,21 +18,27 @@ void IMGFetcher::get(Mat& output, Size size, float lan, float lon, float head, f
         ostringstream s;
         s<<"https://maps.googleapis.com/maps/api/streetview?size="<<width<<"x"<<height<<"&location="<<lan<<","<<lon
                 <<"&heading="<<head<<"&pitch="<<pitch<<"&key="<<IMGFetcher::key;
-        cout<<s.str()<<endl;
+//        cout<<s.str()<<endl;
         VideoCapture cap(s.str());
         if(!cap.isOpened())
         {
-            return;
+            return false;
         }
         cap >> output;
-        return;
+        if(output.empty()) {
+            return false;
+        }
+        return true;
     } else {                               //local search
         ostringstream s;
         s<<localSearch<<lan<<"_"<<lon
                 <<"_"<<head<<"_"<<pitch<<".jpg";
-        cout<<s.str()<<endl;
+//        cout<<s.str()<<endl;
         output = imread(s.str());
-        return;
+        if(output.empty()) {
+            return false;
+        }
+        return true;
     }
 
 }

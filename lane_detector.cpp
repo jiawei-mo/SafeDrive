@@ -44,7 +44,7 @@ bool imgBoundValid(const Mat& img, Point2f pt) {
     return a && b && c && d;
 }
 
-void LaneDetector::detectAndShow(const Mat& detImg, Mat& projImg, const Mat& homo, string WindowName)
+void LaneDetector::detectAndShow(const Mat& detImg, Mat& projImg, const Mat& homo)
 {
     Mat recImg;
     warpPerspective(detImg, recImg, homo, detImg.size());
@@ -64,7 +64,4 @@ void LaneDetector::detectAndShow(const Mat& detImg, Mat& projImg, const Mat& hom
     mask.convertTo(mask, CV_8U);
 
     recImg.copyTo(projImg, mask);
-
-    namedWindow(WindowName, WINDOW_NORMAL);
-    imshow(WindowName, projImg);
 }

@@ -12,7 +12,7 @@ class IMGFetcher
 public:
     IMGFetcher();
     IMGFetcher(string _key);
-    void get(Mat &output, Size size, float lan, float lon, float head, float pitch, string localSearch="");
+    bool get(Mat &output, Size size, float lan, float lon, float head, float pitch, string localSearch="");
 private:
     string key;
 };

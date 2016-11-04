@@ -51,7 +51,7 @@ public:
     Tracker();
     void changeParam(int bs, float bv, int mnf, float ql, int md,  int ngf, float mtf, float rtf, int bds, int pg, int ngp, float mtp, float rtp);
     void setTarget(const Mat& frame);
-    int featureMatch(const Mat& frame, Mat& homography, vector<Point2f> *inline_matched, int num_grid=-1, float match_thres=-1, float ransac_thres=-1, bool showImg=false, string windowName="No Window", const Mat &showROI=Mat::ones(1,1,CV_8U));
+    int featureMatch(const Mat& frame, Mat& homography, vector<Point2f> *inline_matched, bool showImg=false, string windowName="No Window", int num_grid=-1, float match_thres=-1, float ransac_thres=-1, const Mat &showROI=Mat::ones(1,1,CV_8U));
     Mat pixelMatch(const Mat& recMatchedFrame);
 
     //helpers

@@ -61,8 +61,11 @@ void Tracker::setTarget(const Mat& frame)
     detector->compute(targetFrameBlured, targetKp, targetDesc);
 }
 
-int Tracker::featureMatch(const Mat& frame, Mat& homography, vector<Point2f> *inline_matched, int num_grid, float match_thres, float ransac_thres, bool showImg, string windowName, const Mat& showROI)
+int Tracker::featureMatch(const Mat& frame, Mat& homography, vector<Point2f> *inline_matched, bool showImg, string windowName, int num_grid, float match_thres, float ransac_thres, const Mat& showROI)
 {
+    if(frame.empty()) {
+        return -1;
+    }
     if(num_grid<0) {
         num_grid = num_grid_feature;
     }
@@ -86,16 +89,13 @@ int Tracker::featureMatch(const Mat& frame, Mat& homography, vector<Point2f> *in
     }
 
     // match result image
-    Mat matchedImg;
-    if(showImg) {
-        matchedImg = Mat::zeros(frame.rows, 2*frame.cols, frame.type());
-        Mat curFrameFeatures = curBlured.clone();
-        Mat targetFrameFeatures = targetFrame.clone();
-        drawKeypoints(curFrameFeatures, curKp, curFrameFeatures);
-        drawKeypoints(targetFrameFeatures, targetKp, targetFrameFeatures);
-        curFrameFeatures.copyTo(matchedImg(Rect(0, 0, frame.cols, frame.rows)));
-        targetFrameFeatures.copyTo(matchedImg(Rect(frame.cols, 0, frame.cols, frame.rows)));
-    }
+    Mat matchedImg = Mat::zeros(frame.rows, 2*frame.cols, frame.type());
+    Mat curFrameFeatures = curBlured.clone();
+    Mat targetFrameFeatures = targetFrame.clone();
+    drawKeypoints(curFrameFeatures, curKp, curFrameFeatures);
+    drawKeypoints(targetFrameFeatures, targetKp, targetFrameFeatures);
+    curFrameFeatures.copyTo(matchedImg(Rect(0, 0, frame.cols, frame.rows)));
+    targetFrameFeatures.copyTo(matchedImg(Rect(frame.cols, 0, frame.cols, frame.rows)));
 
     //************************************************grid matches**************************************************************
     vector<Point2f> targetMatchedKp, curMatchedKp;
@@ -209,7 +209,7 @@ int Tracker::featureMatch(const Mat& frame, Mat& homography, vector<Point2f> *in
         imshow(windowName, matchedImg);
     }
 
-    cout<<"norm: "<<norm(homography)<<" inliner_dist: "<<inliner_dist<<endl;
+//    cout<<"norm: "<<norm(homography)<<" inliner_dist: "<<inliner_dist<<endl;
     return inliner_counter;
 }
 
@@ -217,7 +217,7 @@ Mat Tracker::pixelMatch(const Mat& recMatchedFrame)
 {
     vector<Point2f> inline_matched;
     Mat initialH;
-    if(featureMatch(recMatchedFrame, initialH, &inline_matched, num_grid_pixel, match_thres_pixel, ransac_thres_pixel) < 0) {
+    if(featureMatch(recMatchedFrame, initialH, &inline_matched, false, "",  num_grid_pixel, match_thres_pixel, ransac_thres_pixel) < 0) {
         cout<<"no common pixel!"<<endl;
         return Mat::eye(3,3,CV_32F);
     }
@@ -236,17 +236,13 @@ Mat Tracker::pixelMatch(const Mat& recMatchedFrame)
     threshold(matchedROI, matchedROI, 0, 1, cv::THRESH_BINARY);
     matchedROI.convertTo(matchedROI, CV_8U);
 
-
-
-    featureMatch(recMatchedFrame, initialH, &inline_matched, num_grid_pixel, match_thres_pixel, ransac_thres_pixel, true, "ROIMatch",matchedROI);
-
-
+    featureMatch(recMatchedFrame, initialH, &inline_matched, false, "", num_grid_pixel, match_thres_pixel, ransac_thres_pixel, matchedROI);
 
     Mat combineImg = Mat::zeros(recMatchedFrame.rows, 2*recMatchedFrame.cols, recMatchedFrame.type());
     recMatchedFrame.copyTo(combineImg(Rect(0, 0, recMatchedFrame.cols, recMatchedFrame.rows)), matchedROI);
     targetFrame.copyTo(combineImg(Rect(recMatchedFrame.cols, 0, recMatchedFrame.cols, recMatchedFrame.rows)));
-    namedWindow("Pixel-wise matchedROI", WINDOW_NORMAL);
-    imshow("Pixel-wise matchedROI", combineImg);
+//    namedWindow("Pixel-wise matchedROI", WINDOW_NORMAL);
+//    imshow("Pixel-wise matchedROI", combineImg);
 
     Mat recMatched_gray, target_gray;
     cvtColor(recMatchedFrame, recMatched_gray, CV_BGR2GRAY);
@@ -299,13 +295,15 @@ void Tracker::showDifference(const Mat& image1, const Mat& image2, string title)
     Mat imgDiff;
     img1.copyTo(imgDiff);
     imgDiff -= img2;
-    cout<<"diff norm: "<<norm(imgDiff)<<endl;
+//    cout<<"diff norm: "<<norm(imgDiff)<<endl;
     imgDiff /= 2.f;
     imgDiff += 128.f;
     Mat imgSh;
     imgDiff.convertTo(imgSh, CV_8UC3);
-    namedWindow(title, WINDOW_NORMAL);
-    imshow(title, imgSh);
+    if(title.size()>1) {
+        namedWindow(title, WINDOW_NORMAL);
+        imshow(title, imgSh);
+    }
 }
 
 void Tracker::showDifferenceEdge(const Mat& image1, const Mat& image2, string title)
@@ -322,8 +320,10 @@ void Tracker::showDifferenceEdge(const Mat& image1, const Mat& image2, string ti
     redImg.copyTo(res, img1Edge);
     blueImg.copyTo(res, img2Edge);
 
-    namedWindow(title, WINDOW_NORMAL);
-    imshow(title, res);
+    if(title.size()>1) {
+        namedWindow(title, WINDOW_NORMAL);
+        imshow(title, res);
+    }
 
     return;
 }

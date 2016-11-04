@@ -2,11 +2,13 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
+#include <QFileDialog>
 #include "tracker.hpp"
 #include "lane_detector.hpp"
 #include "img_fetcher.hpp"
 #include <string.h>
 #include <fstream>
+#include <sstream>
 
 #include "parameters.hpp"
 
@@ -23,6 +25,9 @@ public:
     ~MainWindow();
 
 private:
+    bool showProcess;
+    string targetString;
+
     Ui::MainWindow *ui;
 
     Tracker *tracker;
@@ -38,12 +43,13 @@ private:
     string searchPath;
     void changeParamAndReprocess(bool reFind);
     void process();
-    void findBestMatch();
+    bool findBestMatch();
     void pixelRefine();
 
 private slots:
     void on_button_reset_clicked();
-    void on_button_start_clicked();
+    void on_button_img_clicked();
+    void on_button_video_clicked();
 
     void on_slider_BS_sliderReleased();
     void on_slider_BV_sliderReleased();
@@ -58,6 +64,7 @@ private slots:
     void on_slider_NGP_sliderReleased();
     void on_slider_MTP_sliderReleased();
     void on_slider_RTP_sliderReleased();
+    void on_check_local_clicked(bool checked);
 };
 
 #endif // MAINWINDOW_H

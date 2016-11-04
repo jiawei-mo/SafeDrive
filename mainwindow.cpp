@@ -3,7 +3,7 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 
-void MainWindow::findBestMatch() {
+bool MainWindow::findBestMatch() {
     tracker->setTarget(targetFrame);
 
     //***********************************************search for most similar image***************************************************************
@@ -25,7 +25,10 @@ void MainWindow::findBestMatch() {
         for(int b=0; b<MATCH_STEP_G; b++)
         {
             float curLon = lon+MATCH_LON_LENGTH*(b - MATCH_STEP_G / 2);
-            fetcher->get(curFrame, targetFrame.size(), curLat, curLon, mHead, mPitch, searchPath);
+            if(!fetcher->get(curFrame, targetFrame.size(), curLat, curLon, mHead, mPitch, searchPath)) {
+                ui->text_log->appendPlainText("Frame missing!");
+                return false;
+            }
             curD = tracker->featureMatch(curFrame, featureRes, &inline_matched_useless);
             if(curD > mD)
             {
@@ -38,16 +41,25 @@ void MainWindow::findBestMatch() {
 
     //Head
     float lHead = mHead-10;
-    fetcher->get(lFrame, targetFrame.size(), mLat, mLon, lHead, mPitch, searchPath);
+    if(!fetcher->get(lFrame, targetFrame.size(), mLat, mLon, lHead, mPitch, searchPath)) {
+        ui->text_log->appendPlainText("Frame missing!");
+        return false;
+    }
     lD = tracker->featureMatch(lFrame, featureRes, &inline_matched_useless);
 
     float rHead = mHead+10;
-    fetcher->get(rFrame, targetFrame.size(), mLat, mLon, rHead, mPitch, searchPath);
+    if(!fetcher->get(rFrame, targetFrame.size(), mLat, mLon, rHead, mPitch, searchPath)) {
+        ui->text_log->appendPlainText("Frame missing!");
+        return false;
+    }
     rD = tracker->featureMatch(rFrame, featureRes, &inline_matched_useless);
     for(int c=0; c<MATCH_STEP_L; c++)
     {
         mHead = lHead + (rHead-lHead) / 2;
-        fetcher->get(curFrame, targetFrame.size(), mLat, mLon, mHead, mPitch, searchPath);
+        if(!fetcher->get(curFrame, targetFrame.size(), mLat, mLon, mHead, mPitch, searchPath)) {
+            ui->text_log->appendPlainText("Frame missing!");
+            return false;
+        }
         mD = tracker->featureMatch(curFrame, featureRes, &inline_matched_useless);
         if(lD > rD)
         {
@@ -67,16 +79,25 @@ void MainWindow::findBestMatch() {
 
     //Pitch
     float lPitch = mPitch-5;
-    fetcher->get(lFrame, targetFrame.size(), mLat, mLon, mHead, lPitch, searchPath);
+    if(!fetcher->get(lFrame, targetFrame.size(), mLat, mLon, mHead, lPitch, searchPath)) {
+        ui->text_log->appendPlainText("Frame missing!");
+        return false;
+    }
     lD = tracker->featureMatch(lFrame, featureRes, &inline_matched_useless);
 
     float rPitch = mPitch+5;
-    fetcher->get(rFrame, targetFrame.size(), mLat, mLon, mHead, rPitch, searchPath);
+    if(!fetcher->get(rFrame, targetFrame.size(), mLat, mLon, mHead, rPitch, searchPath)) {
+        ui->text_log->appendPlainText("Frame missing!");
+        return false;
+    }
     rD = tracker->featureMatch(rFrame, featureRes, &inline_matched_useless);
     for(int d=0; d<MATCH_STEP_L; d++)
     {
         mPitch = lPitch + (rPitch-lPitch) / 2;
-        fetcher->get(curFrame, targetFrame.size(), mLat, mLon, mHead, mPitch, searchPath);
+        if(!fetcher->get(curFrame, targetFrame.size(), mLat, mLon, mHead, mPitch, searchPath)) {
+            ui->text_log->appendPlainText("Frame missing!");
+            return false;
+        }
         mD = tracker->featureMatch(curFrame, featureRes, &inline_matched_useless);
         if(lD > rD)
         {
@@ -93,10 +114,15 @@ void MainWindow::findBestMatch() {
         mPitch = rPitch;
     }
 
-    fetcher->get(matchedFrame, targetFrame.size(), mLat, mLon, mHead, mPitch, searchPath);
-    namedWindow("Matched Frame", WINDOW_NORMAL);
-    imshow("Matched Frame", matchedFrame);
-    tracker->featureMatch(matchedFrame, featureRes, &inline_matched_useless, -1, -1, -1, true, "Feature Match");
+    if(!fetcher->get(matchedFrame, targetFrame.size(), mLat, mLon, mHead, mPitch, searchPath)) {
+        ui->text_log->appendPlainText("Frame missing!");
+        return false;
+    }
+    if(showProcess) {
+        namedWindow("Matched Frame", WINDOW_NORMAL);
+        imshow("Matched Frame", matchedFrame);
+    }
+    tracker->featureMatch(matchedFrame, featureRes, &inline_matched_useless, showProcess, "Feature Match");
 //    waitKey();
     //***********************************************search for most similar image***************************************************************
 
@@ -110,28 +136,48 @@ void MainWindow::findBestMatch() {
 
     //feature match results
     Mat toCompare = targetFrame.clone();
-    detector->detectAndShow(matchedFrame, toCompare, featureRes, "Feature based result");
-    tracker->showDifference(matchedFrame, targetFrame, "Feature result difference");
+    detector->detectAndShow(matchedFrame, toCompare, featureRes);
+    if(showProcess) {
+        namedWindow("Feature based result", WINDOW_NORMAL);
+        imshow("Feature based result", toCompare);
+        tracker->showDifference(matchedFrame, targetFrame, "Feature result difference");
+    } else {
+        tracker->showDifference(matchedFrame, targetFrame, "");
+    }
 
-    cout<<"Feature match homography:"<<endl<<featureRes<<endl;
+//    cout<<"Feature match homography:"<<endl<<featureRes<<endl;
+    return true;
 }
 
 void MainWindow::pixelRefine() {
     Mat finalHomo = tracker->pixelMatch(matchedFrame);
-    cout<<"final home: "<<endl<<finalHomo<<endl;
+//    cout<<"final home: "<<endl<<finalHomo<<endl;
 
     Mat finalmatchedFrame;
     warpPerspective(matchedFrame, finalmatchedFrame, finalHomo, matchedFrame.size());
-    tracker->showDifference(finalmatchedFrame, targetFrame, "Final Difference");
+    if(showProcess) {
+        tracker->showDifference(finalmatchedFrame, targetFrame, "Final Difference");
+    } else {
+        tracker->showDifference(finalmatchedFrame, targetFrame, "");
+    }
 
     //detect lane and show final result
     Mat projImg = targetFrame.clone();
-    detector->detectAndShow(matchedFrame, projImg, finalHomo, "Final result");
+    detector->detectAndShow(matchedFrame, projImg, finalHomo);
+    if(showProcess) {
+        namedWindow("Final result", WINDOW_NORMAL);
+        imshow("Final result", projImg);
+    } else {
+        string writeName =  "/home/kimiwings/resImgs/"+targetString+"jjjjjsss.jpg";
+        imwrite(writeName, projImg);
+    }
 }
 
 void MainWindow::process()
 {
-    findBestMatch();
+    if(!findBestMatch()) {
+        return;
+    }
 
     pixelRefine();
 }
@@ -152,10 +198,17 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
-void MainWindow::on_button_start_clicked()
+void MainWindow::on_button_img_clicked()
 {
-    string targetNameFull = ui->text_TFN->toPlainText().toStdString();
-    string targetString = targetNameFull.substr(7, targetNameFull.length()-8);
+    showProcess = true;
+    QString Qfile1Name = QFileDialog::getOpenFileName(this, tr("Open Img File"), "/home/kimiwings/SafeDrive/test/test0.jpg", tr("Img File (*.jpg)"));
+    targetString = Qfile1Name.toStdString();
+
+
+    QString QPosFile = QFileDialog::getOpenFileName(this, tr("Open Pos File"), "/home/kimiwings/SafeDrive/test/test0.log", tr("log Files (*.log)"));
+    string posFile = QPosFile.toStdString();
+    ifstream params(posFile);
+
     targetFrame = imread(targetString);
     if( targetFrame.empty() ) {
       ui->text_log->appendPlainText("Error occured, image not read correctly");
@@ -165,9 +218,6 @@ void MainWindow::on_button_start_clicked()
     namedWindow("Target Frame", WINDOW_NORMAL);
     imshow("Target Frame", targetFrame);
 
-    string paramNameFull = ui->text_PM->toPlainText().toStdString();
-    string paramName = paramNameFull.substr(7, paramNameFull.length()-8);
-    ifstream params(paramName);
     string param;
     params >> param;
     lat = stof(param);
@@ -179,12 +229,45 @@ void MainWindow::on_button_start_clicked()
     pitch = stof(param);
     params.close();
 
-    searchPath = ui->text_SP->toPlainText().toStdString();
-    if(searchPath.size()>7) {
-        searchPath = searchPath.substr(7, searchPath.size()-8);
-    }
-
     on_button_reset_clicked();
+}
+
+void MainWindow::on_button_video_clicked()
+{
+    showProcess = false;
+    QString QImgFolderName = QFileDialog::getExistingDirectory(this, tr("Open Img Directory"), "/home/kimiwings/SafeDrive/test/video/imgs", QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
+    string imgFolderName = QImgFolderName.toStdString();
+    vector<String> imgNames;
+    glob(imgFolderName, imgNames);
+
+    QString QPosFile = QFileDialog::getOpenFileName(this, tr("Open Pos File"), "/home/kimiwings/SafeDrive/test/video/pos.log", tr("log Files (*.log)"));
+    string posFile = QPosFile.toStdString();
+    ifstream infile(posFile);
+
+    for(size_t i=0;i<imgNames.size(); i++) {
+        string posName;
+        getline(infile, posName);
+        cout<<"Img name: "<<imgNames[i]<<endl;
+        cout<<"Pos name: "<<posName<<endl;
+        targetFrame = imread(imgNames[i]);
+        if( targetFrame.empty() ) {
+          ui->text_log->appendPlainText("Error occured, image not read correctly");
+          return;
+        }
+
+        istringstream params(posName);
+        string param;
+        params >> param;
+        lat = stof(param);
+        params >> param;
+        lon = stof(param);
+        params >> param;
+        head = stof(param);
+        params >> param;
+        pitch = stof(param);
+
+        on_button_reset_clicked();
+    }
 }
 
 void MainWindow::on_button_reset_clicked()
@@ -307,4 +390,15 @@ void MainWindow::on_slider_MTP_sliderReleased()
 void MainWindow::on_slider_RTP_sliderReleased()
 {
     changeParamAndReprocess(false);
+}
+
+
+void MainWindow::on_check_local_clicked(bool checked)
+{
+    if(checked) {
+        QString QlocalSearchFolderName = QFileDialog::getExistingDirectory(this, tr("Open Img Directory"), "/home/kimiwings/SafeDrive/test/video/imgs", QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
+        searchPath = QlocalSearchFolderName.toStdString();
+    } else {
+        searchPath = "";
+    }
 }

@@ -168,8 +168,19 @@ void MainWindow::pixelRefine() {
         namedWindow("Final result", WINDOW_NORMAL);
         imshow("Final result", projImg);
     } else {
-        string writeName =  "/home/kimiwings/resImgs/"+targetString+"jjjjjsss.jpg";             //TODO
-        imwrite(writeName, projImg);
+        string writeName =  saveFolder+"/"+to_string(lat)+"_"+to_string(lon)+"_"+to_string(head)+"_"+to_string(pitch)+".png";
+        cout<<writeName<<endl;
+        vector<int> compression_params;
+        compression_params.push_back(CV_IMWRITE_PNG_COMPRESSION);
+        compression_params.push_back(9);
+
+        try {
+            imwrite(writeName, projImg, compression_params);
+        }
+        catch (runtime_error& ex) {
+            fprintf(stderr, "Exception converting image to PNG format: %s\n", ex.what());
+            return;
+        }
     }
 }
 
@@ -191,6 +202,8 @@ MainWindow::MainWindow(QWidget *parent) :
     tracker = new Tracker();
     detector = new LaneDetector();
     fetcher = new IMGFetcher();
+
+    saveFolder = "";
 }
 
 MainWindow::~MainWindow()
@@ -202,7 +215,7 @@ void MainWindow::on_button_img_clicked()
 {
     showProcess = true;
     QString Qfile1Name = QFileDialog::getOpenFileName(this, tr("Open Img File"), "/home/kimiwings/SafeDrive/test/test0.jpg", tr("Img File (*.jpg)"));
-    targetString = Qfile1Name.toStdString();
+    string targetString = Qfile1Name.toStdString();
 
 
     QString QPosFile = QFileDialog::getOpenFileName(this, tr("Open Pos File"), "/home/kimiwings/SafeDrive/test/test0.log", tr("log Files (*.log)"));
@@ -243,6 +256,9 @@ void MainWindow::on_button_video_clicked()
     QString QPosFile = QFileDialog::getOpenFileName(this, tr("Open Pos File"), "/home/kimiwings/SafeDrive/test/video/pos.log", tr("log Files (*.log)"));
     string posFile = QPosFile.toStdString();
     ifstream infile(posFile);
+
+    QString QSaveFolderName = QFileDialog::getExistingDirectory(this, tr("Open Save Directory"), "/home/kimiwings/SafeDrive/test/video/res", QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
+    saveFolder = QSaveFolderName.toStdString();
 
     for(size_t i=0;i<imgNames.size(); i++) {
         string posName;

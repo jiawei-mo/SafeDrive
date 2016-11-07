@@ -26,7 +26,7 @@ public:
 
 private:
     bool showProcess;
-    string targetString;
+    string saveFolder;
 
     Ui::MainWindow *ui;
 

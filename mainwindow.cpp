@@ -150,38 +150,44 @@ bool MainWindow::findBestMatch() {
 }
 
 void MainWindow::pixelRefine() {
-    Mat finalHomo = tracker->pixelMatch(matchedFrame);
-//    cout<<"final home: "<<endl<<finalHomo<<endl;
+    Mat rotated_img = matchedFrame.clone();
+    rotator->process(matchedFrame, rotated_img);
+    cout<<rotated_img.size()<<endl;
+    imshow("vanished", rotated_img);
+    waitKey(1);
 
-    Mat finalmatchedFrame;
-    warpPerspective(matchedFrame, finalmatchedFrame, finalHomo, matchedFrame.size());
-    if(showProcess) {
-        tracker->showDifference(finalmatchedFrame, targetFrame, "Final Difference");
-    } else {
-        tracker->showDifference(finalmatchedFrame, targetFrame, "");
-    }
+//    Mat finalHomo = tracker->pixelMatch(matchedFrame);
+////    cout<<"final home: "<<endl<<finalHomo<<endl;
 
-    //detect lane and show final result
-    Mat projImg = targetFrame.clone();
-    detector->detectAndShow(matchedFrame, projImg, finalHomo);
-    if(showProcess) {
-        namedWindow("Final result", WINDOW_NORMAL);
-        imshow("Final result", projImg);
-    } else {
-        string writeName =  saveFolder+"/"+to_string(lat)+"_"+to_string(lon)+"_"+to_string(head)+"_"+to_string(pitch)+".png";
-        cout<<writeName<<endl;
-        vector<int> compression_params;
-        compression_params.push_back(CV_IMWRITE_PNG_COMPRESSION);
-        compression_params.push_back(9);
+//    Mat finalmatchedFrame;
+//    warpPerspective(matchedFrame, finalmatchedFrame, finalHomo, matchedFrame.size());
+//    if(showProcess) {
+//        tracker->showDifference(finalmatchedFrame, targetFrame, "Final Difference");
+//    } else {
+//        tracker->showDifference(finalmatchedFrame, targetFrame, "");
+//    }
 
-        try {
-            imwrite(writeName, projImg, compression_params);
-        }
-        catch (runtime_error& ex) {
-            fprintf(stderr, "Exception converting image to PNG format: %s\n", ex.what());
-            return;
-        }
-    }
+//    //detect lane and show final result
+//    Mat projImg = targetFrame.clone();
+//    detector->detectAndShow(matchedFrame, projImg, finalHomo);
+//    if(showProcess) {
+//        namedWindow("Final result", WINDOW_NORMAL);
+//        imshow("Final result", projImg);
+//    } else {
+//        string writeName =  saveFolder+"/"+to_string(lat)+"_"+to_string(lon)+"_"+to_string(head)+"_"+to_string(pitch)+".png";
+//        cout<<writeName<<endl;
+//        vector<int> compression_params;
+//        compression_params.push_back(CV_IMWRITE_PNG_COMPRESSION);
+//        compression_params.push_back(9);
+
+//        try {
+//            imwrite(writeName, projImg, compression_params);
+//        }
+//        catch (runtime_error& ex) {
+//            fprintf(stderr, "Exception converting image to PNG format: %s\n", ex.what());
+//            return;
+//        }
+//    }
 }
 
 void MainWindow::process()
@@ -199,9 +205,10 @@ MainWindow::MainWindow(QWidget *parent) :
 {
     ui->setupUi(this);
 
-    tracker = new Tracker();
-    detector = new LaneDetector();
-    fetcher = new IMGFetcher();
+    tracker = shared_ptr<Tracker>(new Tracker());
+    detector = shared_ptr<LaneDetector>(new LaneDetector());
+    fetcher = shared_ptr<IMGFetcher>(new IMGFetcher());
+    rotator = shared_ptr<Rotator>(new Rotator());
 
     saveFolder = "";
 }

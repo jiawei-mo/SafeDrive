@@ -4,6 +4,7 @@
 #include <QMainWindow>
 #include <QFileDialog>
 #include "tracker.hpp"
+#include "rotator.h"
 #include "lane_detector.hpp"
 #include "img_fetcher.hpp"
 #include <string.h>
@@ -30,9 +31,10 @@ private:
 
     Ui::MainWindow *ui;
 
-    Tracker *tracker;
-    LaneDetector *detector;
-    IMGFetcher *fetcher;
+    shared_ptr<Tracker> tracker;
+    shared_ptr<LaneDetector> detector;
+    shared_ptr<IMGFetcher> fetcher;
+    shared_ptr<Rotator> rotator;
 
     Mat targetFrame;
     Mat matchedFrame;

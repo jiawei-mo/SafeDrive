@@ -44,24 +44,29 @@ bool imgBoundValid(const Mat& img, Point2f pt) {
     return a && b && c && d;
 }
 
-void LaneDetector::detectAndShow(const Mat& detImg, Mat& projImg, const Mat& homo)
+void LaneDetector::detectAndShow(const Mat& detImg, Mat& projImg, const Mat& trans, const Mat &K)
 {
-    Mat recImg;
-    warpPerspective(detImg, recImg, homo, detImg.size());
     vector<Point2f> markerPoints;
-    detect(recImg, markerPoints);
+    detect(detImg, markerPoints);
 
     Mat mask = Mat::zeros(projImg.size(), CV_32F);
     //draw lanes
-    for(int i=0; i<(int)markerPoints.size(); i++)
+    for(auto& db_p:markerPoints)
     {
-        if((imgBoundValid(projImg, markerPoints[i]))) {
-            mask.at<float>((int)markerPoints[i].y, (int)markerPoints[i].x) = 1.0f;
+        Mat X = K.inv()*(Mat_<double>(3,1) << db_p.x, db_p.y, 1);
+        Mat X_homo = (Mat_<double>(4,1) << X.at<double>(0), X.at<double>(1), X.at<double>(2), 1);
+        Mat X_p = K*trans*X_homo;
+        Point2f projP(X_p.at<double>(0)/X_p.at<double>(2), X_p.at<double>(1)/X_p.at<double>(2));
+        cout<<"orig: "<<db_p<<endl;
+        cout<<"proj: "<<projP<<endl;
+        if((imgBoundValid(projImg, projP))) {
+            mask.at<float>((int)projP.y, (int)projP.x) = 1.0f;
         }
     }
+
     blur(mask, mask, Size(10, 10));
     threshold(mask, mask, 0, 1, cv::THRESH_BINARY);
     mask.convertTo(mask, CV_8U);
 
-    recImg.copyTo(projImg, mask);
+    detImg.copyTo(projImg, mask);
 }

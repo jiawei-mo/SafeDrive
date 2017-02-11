@@ -8,121 +8,117 @@ bool MainWindow::findBestMatch() {
 
     //***********************************************search for most similar image***************************************************************
     Mat featureRes;
-    vector<Point2f> inline_matched_useless;
-    int mD(INT_MIN), curD(INT_MIN), lD(INT_MIN), rD(INT_MIN);
+    int mD(INT_MIN), dbD(INT_MIN), lD(INT_MIN), rD(INT_MIN);
     float mLat = lat;
     float mLon = lon;
     float mHead = head;
     float mPitch = pitch;
-    Mat curFrame, lFrame, rFrame;
+    Mat dbFrame, lFrame, rFrame;
 
     //Lat/Lon grid search
 //    #pragma omp parallel for
-    for(int a=0; a<MATCH_STEP_G; a++)
-    {
-        float curLat = lat+MATCH_LAT_LENGTH*(a - MATCH_STEP_G / 2);
-//        #pragma omp parallel for
-        for(int b=0; b<MATCH_STEP_G; b++)
-        {
-            float curLon = lon+MATCH_LON_LENGTH*(b - MATCH_STEP_G / 2);
-            if(!fetcher->get(curFrame, targetFrame.size(), curLat, curLon, mHead, mPitch, searchPath)) {
-                ui->text_log->appendPlainText("Frame missing!");
-                return false;
-            }
-            curD = tracker->featureMatch(curFrame, featureRes, &inline_matched_useless);
-            if(curD > mD)
-            {
-                mD = curD;
-                mLat = curLat;
-                mLon = curLon;
-            }
-        }
-    }
+//    for(int a=0; a<MATCH_STEP_G; a++)
+//    {
+//        float dbLat = lat+MATCH_LAT_LENGTH*(a - MATCH_STEP_G / 2);
+////        #pragma omp parallel for
+//        for(int b=0; b<MATCH_STEP_G; b++)
+//        {
+//            float dbLon = lon+MATCH_LON_LENGTH*(b - MATCH_STEP_G / 2);
+//            if(!fetcher->get(dbFrame, targetFrame.size(), dbLat, dbLon, mHead, mPitch, searchPath)) {
+//                ui->text_log->appendPlainText("Frame missing!");
+//                return false;
+//            }
+//            dbD = tracker->featureMatch(dbFrame, featureRes);
+//            if(dbD > mD)
+//            {
+//                mD = dbD;
+//                mLat = dbLat;
+//                mLon = dbLon;
+//            }
+//        }
+//    }
 
-    //Head
-    float lHead = mHead-10;
-    if(!fetcher->get(lFrame, targetFrame.size(), mLat, mLon, lHead, mPitch, searchPath)) {
-        ui->text_log->appendPlainText("Frame missing!");
-        return false;
-    }
-    lD = tracker->featureMatch(lFrame, featureRes, &inline_matched_useless);
+//    //Head
+//    float lHead = mHead-10;
+//    if(!fetcher->get(lFrame, targetFrame.size(), mLat, mLon, lHead, mPitch, searchPath)) {
+//        ui->text_log->appendPlainText("Frame missing!");
+//        return false;
+//    }
+//    lD = tracker->featureMatch(lFrame, featureRes);
 
-    float rHead = mHead+10;
-    if(!fetcher->get(rFrame, targetFrame.size(), mLat, mLon, rHead, mPitch, searchPath)) {
-        ui->text_log->appendPlainText("Frame missing!");
-        return false;
-    }
-    rD = tracker->featureMatch(rFrame, featureRes, &inline_matched_useless);
-    for(int c=0; c<MATCH_STEP_L; c++)
-    {
-        mHead = lHead + (rHead-lHead) / 2;
-        if(!fetcher->get(curFrame, targetFrame.size(), mLat, mLon, mHead, mPitch, searchPath)) {
-            ui->text_log->appendPlainText("Frame missing!");
-            return false;
-        }
-        mD = tracker->featureMatch(curFrame, featureRes, &inline_matched_useless);
-        if(lD > rD)
-        {
-            rHead = mHead;
-            rD = mD;
-        } else {
-            lHead = mHead;
-            lD = mD;
-        }
-    }
-    if(lD>mD && lD>rD) {
-        mHead = lHead;
-    } else if(rD>mD && rD>lD) {
-        mHead = rHead;
-    }
+//    float rHead = mHead+10;
+//    if(!fetcher->get(rFrame, targetFrame.size(), mLat, mLon, rHead, mPitch, searchPath)) {
+//        ui->text_log->appendPlainText("Frame missing!");
+//        return false;
+//    }
+//    rD = tracker->featureMatch(rFrame, featureRes);
+//    for(int c=0; c<MATCH_STEP_L; c++)
+//    {
+//        mHead = lHead + (rHead-lHead) / 2;
+//        if(!fetcher->get(dbFrame, targetFrame.size(), mLat, mLon, mHead, mPitch, searchPath)) {
+//            ui->text_log->appendPlainText("Frame missing!");
+//            return false;
+//        }
+//        mD = tracker->featureMatch(dbFrame, featureRes);
+//        if(lD > rD)
+//        {
+//            rHead = mHead;
+//            rD = mD;
+//        } else {
+//            lHead = mHead;
+//            lD = mD;
+//        }
+//    }
+//    if(lD>mD && lD>rD) {
+//        mHead = lHead;
+//    } else if(rD>mD && rD>lD) {
+//        mHead = rHead;
+//    }
 
 
-    //Pitch
-    float lPitch = mPitch-5;
-    if(!fetcher->get(lFrame, targetFrame.size(), mLat, mLon, mHead, lPitch, searchPath)) {
-        ui->text_log->appendPlainText("Frame missing!");
-        return false;
-    }
-    lD = tracker->featureMatch(lFrame, featureRes, &inline_matched_useless);
+//    //Pitch
+//    float lPitch = mPitch-5;
+//    if(!fetcher->get(lFrame, targetFrame.size(), mLat, mLon, mHead, lPitch, searchPath)) {
+//        ui->text_log->appendPlainText("Frame missing!");
+//        return false;
+//    }
+//    lD = tracker->featureMatch(lFrame, featureRes);
 
-    float rPitch = mPitch+5;
-    if(!fetcher->get(rFrame, targetFrame.size(), mLat, mLon, mHead, rPitch, searchPath)) {
-        ui->text_log->appendPlainText("Frame missing!");
-        return false;
-    }
-    rD = tracker->featureMatch(rFrame, featureRes, &inline_matched_useless);
-    for(int d=0; d<MATCH_STEP_L; d++)
-    {
-        mPitch = lPitch + (rPitch-lPitch) / 2;
-        if(!fetcher->get(curFrame, targetFrame.size(), mLat, mLon, mHead, mPitch, searchPath)) {
-            ui->text_log->appendPlainText("Frame missing!");
-            return false;
-        }
-        mD = tracker->featureMatch(curFrame, featureRes, &inline_matched_useless);
-        if(lD > rD)
-        {
-            rPitch = mPitch;
-            rD = mD;
-        } else {
-            lPitch = mPitch;
-            lD = mD;
-        }
-    }
-    if(lD>mD && lD>rD) {
-        mPitch = lPitch;
-    } else if(rD>mD && rD>lD) {
-        mPitch = rPitch;
-    }
+//    float rPitch = mPitch+5;
+//    if(!fetcher->get(rFrame, targetFrame.size(), mLat, mLon, mHead, rPitch, searchPath)) {
+//        ui->text_log->appendPlainText("Frame missing!");
+//        return false;
+//    }
+//    rD = tracker->featureMatch(rFrame, featureRes);
+//    for(int d=0; d<MATCH_STEP_L; d++)
+//    {
+//        mPitch = lPitch + (rPitch-lPitch) / 2;
+//        if(!fetcher->get(dbFrame, targetFrame.size(), mLat, mLon, mHead, mPitch, searchPath)) {
+//            ui->text_log->appendPlainText("Frame missing!");
+//            return false;
+//        }
+//        mD = tracker->featureMatch(dbFrame, featureRes);
+//        if(lD > rD)
+//        {
+//            rPitch = mPitch;
+//            rD = mD;
+//        } else {
+//            lPitch = mPitch;
+//            lD = mD;
+//        }
+//    }
+//    if(lD>mD && lD>rD) {
+//        mPitch = lPitch;
+//    } else if(rD>mD && rD>lD) {
+//        mPitch = rPitch;
+//    }
 
-    if(!fetcher->get(matchedFrame, targetFrame.size(), mLat, mLon, mHead, mPitch, searchPath)) {
-        ui->text_log->appendPlainText("Frame missing!");
-        return false;
-    }
-    if(showProcess) {
-        namedWindow("Matched Frame", WINDOW_NORMAL);
-        imshow("Matched Frame", matchedFrame);
-    }
-    tracker->featureMatch(matchedFrame, featureRes, &inline_matched_useless, showProcess, "Feature Match");
+//    if(!fetcher->get(matchedFrame, targetFrame.size(), mLat, mLon, mHead, mPitch, searchPath)) {
+//        ui->text_log->appendPlainText("Frame missing!");
+//        return false;
+//    }
+    matchedFrame = imread("/home/kimiwings/SafeDrive/test/DSC_0002.JPG");
+    tracker->featureMatch(matchedFrame, featureRes, camera_K, showProcess, "Feature Match");
 //    waitKey();
     //***********************************************search for most similar image***************************************************************
 
@@ -136,7 +132,8 @@ bool MainWindow::findBestMatch() {
 
     //feature match results
     Mat toCompare = targetFrame.clone();
-    detector->detectAndShow(matchedFrame, toCompare, featureRes);
+    detector->detectAndShow(matchedFrame, toCompare, featureRes, camera_K);
+
     if(showProcess) {
         namedWindow("Feature based result", WINDOW_NORMAL);
         imshow("Feature based result", toCompare);
@@ -149,54 +146,11 @@ bool MainWindow::findBestMatch() {
     return true;
 }
 
-void MainWindow::pixelRefine() {
-    Mat rotated_img = matchedFrame.clone();
-    rotator->process(matchedFrame, rotated_img);
-    cout<<rotated_img.size()<<endl;
-    imshow("vanished", rotated_img);
-    waitKey(1);
-
-//    Mat finalHomo = tracker->pixelMatch(matchedFrame);
-////    cout<<"final home: "<<endl<<finalHomo<<endl;
-
-//    Mat finalmatchedFrame;
-//    warpPerspective(matchedFrame, finalmatchedFrame, finalHomo, matchedFrame.size());
-//    if(showProcess) {
-//        tracker->showDifference(finalmatchedFrame, targetFrame, "Final Difference");
-//    } else {
-//        tracker->showDifference(finalmatchedFrame, targetFrame, "");
-//    }
-
-//    //detect lane and show final result
-//    Mat projImg = targetFrame.clone();
-//    detector->detectAndShow(matchedFrame, projImg, finalHomo);
-//    if(showProcess) {
-//        namedWindow("Final result", WINDOW_NORMAL);
-//        imshow("Final result", projImg);
-//    } else {
-//        string writeName =  saveFolder+"/"+to_string(lat)+"_"+to_string(lon)+"_"+to_string(head)+"_"+to_string(pitch)+".png";
-//        cout<<writeName<<endl;
-//        vector<int> compression_params;
-//        compression_params.push_back(CV_IMWRITE_PNG_COMPRESSION);
-//        compression_params.push_back(9);
-
-//        try {
-//            imwrite(writeName, projImg, compression_params);
-//        }
-//        catch (runtime_error& ex) {
-//            fprintf(stderr, "Exception converting image to PNG format: %s\n", ex.what());
-//            return;
-//        }
-//    }
-}
-
 void MainWindow::process()
 {
     if(!findBestMatch()) {
         return;
     }
-
-    pixelRefine();
 }
 
 MainWindow::MainWindow(QWidget *parent) :
@@ -208,9 +162,9 @@ MainWindow::MainWindow(QWidget *parent) :
     tracker = shared_ptr<Tracker>(new Tracker());
     detector = shared_ptr<LaneDetector>(new LaneDetector());
     fetcher = shared_ptr<IMGFetcher>(new IMGFetcher());
-    rotator = shared_ptr<Rotator>(new Rotator());
 
     saveFolder = "";
+    camera_K = (Mat_<double>(3,3) << 18, 0, 300, 0, 18, 200, 0, 0, 1);
 }
 
 MainWindow::~MainWindow()
@@ -231,12 +185,9 @@ void MainWindow::on_button_img_clicked()
 
     targetFrame = imread(targetString);
     if( targetFrame.empty() ) {
-      ui->text_log->appendPlainText("Error occured, image not read correctly");
+      ui->text_log->appendPlainText("Error ocdbed, image not read correctly");
       return;
     }
-
-    namedWindow("Target Frame", WINDOW_NORMAL);
-    imshow("Target Frame", targetFrame);
 
     string param;
     params >> param;
@@ -274,7 +225,7 @@ void MainWindow::on_button_video_clicked()
         cout<<"Pos name: "<<posName<<endl;
         targetFrame = imread(imgNames[i]);
         if( targetFrame.empty() ) {
-          ui->text_log->appendPlainText("Error occured, image not read correctly");
+          ui->text_log->appendPlainText("Error ocdbed, image not read correctly");
           return;
         }
 
@@ -342,11 +293,7 @@ void MainWindow::changeParamAndReprocess(bool reFind)
     //(int bs, float bv, int mnf, float ql, int md,  int ngf, float mtf, float rtf, int bds, int pg, int ngp, float mtp, float rtp)
     tracker->changeParam(bs, bv, mnf, ql, md, ngf, mtf, rtf, bds, pg, ngp, mtp, rtg);
 
-    if(reFind) {
-        process();
-    } else {
-        pixelRefine();
-    }
+    process();
 }
 
 void MainWindow::on_slider_BS_sliderReleased()

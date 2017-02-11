@@ -8,12 +8,12 @@
 
 #define BS 2        //2* + 1
 #define BV 4        // /10
-#define MNF 1000    //int
+#define MNF 4000    //int
 #define QL 1        //%
 #define MD 5        //int
-#define NGF 2        //int
+#define NGF 1        //int
 #define MTF 96      //%
-#define RTF 7        //float
+#define RTF 2        //float
 #define BDS 20      //2* + 1
 #define NG 7        //int
 #define PG 40       //int

@@ -6,8 +6,6 @@
 #include "opencv2/opencv.hpp"
 #include "opencv2/features2d.hpp"
 
-#include "ecc.hpp"
-
 #include "parameters.hpp"
 
 using namespace cv;
@@ -50,8 +48,7 @@ public:
     Tracker();
     void changeParam(int bs, float bv, int mnf, float ql, int md,  int ngf, float mtf, float rtf, int bds, int pg, int ngp, float mtp, float rtp);
     void setTarget(const Mat& frame);
-    int featureMatch(const Mat& frame, Mat& homography, vector<Point2f> *inline_matched, bool showImg=false, string windowName="No Window", int num_grid=-1, float match_thres=-1, float ransac_thres=-1, const Mat &showROI=Mat::ones(1,1,CV_8U));
-    Mat pixelMatch(const Mat& recMatchedFrame);
+    int featureMatch(const Mat& frame, Mat& trans, const Mat &camera_K, bool showImg=false, string windowName="No Window", int num_grid=-1, float match_thres=-1, float ransac_thres=-1, const Mat &showROI=Mat::ones(1,1,CV_8U));
 
     //helpers
     void showDifference(const Mat& image1, const Mat& image2, string title);

@@ -16,23 +16,13 @@ SOURCES += main.cpp\
         mainwindow.cpp \
     tracker.cpp \
     lane_detector.cpp \
-    ecc.cpp \
-    img_fetcher.cpp \
-    rotator.cpp \
-    errorNIETO.cpp \
-    MSAC.cpp \
-    lmmin.cpp
+    img_fetcher.cpp
 
 HEADERS  += mainwindow.h \
     tracker.hpp \
     lane_detector.hpp \
     parameters.hpp \
-    ecc.hpp \
-    img_fetcher.hpp \
-    rotator.h \
-    errorNIETO.h \
-    MSAC.h \
-    lmmin.h
+    img_fetcher.hpp
 
 FORMS    += mainwindow.ui
 

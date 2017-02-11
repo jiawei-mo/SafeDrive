@@ -31,9 +31,9 @@ bool IMGFetcher::get(Mat& output, Size size, float lan, float lon, float head, f
         return true;
     } else {                               //local search
         ostringstream s;
-        s<<localSearch<<lan<<"_"<<lon
+        s<<localSearch<<"/"<<lan<<"_"<<lon
                 <<"_"<<head<<"_"<<pitch<<".jpg";
-//        cout<<s.str()<<endl;
+        cout<<s.str()<<endl;
         output = imread(s.str());
         if(output.empty()) {
             return false;

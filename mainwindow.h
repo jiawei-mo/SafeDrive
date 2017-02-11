@@ -4,12 +4,12 @@
 #include <QMainWindow>
 #include <QFileDialog>
 #include "tracker.hpp"
-#include "rotator.h"
 #include "lane_detector.hpp"
 #include "img_fetcher.hpp"
 #include <string.h>
 #include <fstream>
 #include <sstream>
+#include <memory>
 
 #include "parameters.hpp"
 
@@ -34,8 +34,8 @@ private:
     shared_ptr<Tracker> tracker;
     shared_ptr<LaneDetector> detector;
     shared_ptr<IMGFetcher> fetcher;
-    shared_ptr<Rotator> rotator;
 
+    Mat camera_K;
     Mat targetFrame;
     Mat matchedFrame;
     float lat;
@@ -46,7 +46,6 @@ private:
     void changeParamAndReprocess(bool reFind);
     void process();
     bool findBestMatch();
-    void pixelRefine();
 
 private slots:
     void on_button_reset_clicked();

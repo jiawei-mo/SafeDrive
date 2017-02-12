@@ -8,12 +8,12 @@ bool MainWindow::findBestMatch() {
 
     //***********************************************search for most similar image***************************************************************
     Mat featureRes;
-    int mD(INT_MIN), dbD(INT_MIN), lD(INT_MIN), rD(INT_MIN);
-    float mLat = lat;
-    float mLon = lon;
-    float mHead = head;
-    float mPitch = pitch;
-    Mat dbFrame, lFrame, rFrame;
+//    int mD(INT_MIN), dbD(INT_MIN), lD(INT_MIN), rD(INT_MIN);
+//    float mLat = lat;
+//    float mLon = lon;
+//    float mHead = head;
+//    float mPitch = pitch;
+//    Mat dbFrame, lFrame, rFrame;
 
     //Lat/Lon grid search
 //    #pragma omp parallel for
@@ -124,10 +124,10 @@ bool MainWindow::findBestMatch() {
 
 
     ui->text_log->appendPlainText("Result:");
-    ui->text_log->appendPlainText(QString("Latitude: ") + QString::number(mLat)
-                                  + QString(" Longitude: ") + QString::number(mLon)
-                                  + QString(" Heading: ") + QString::number(mHead)
-                                  + QString(" Pitch: ") + QString::number(mPitch));
+//    ui->text_log->appendPlainText(QString("Latitude: ") + QString::number(mLat)
+//                                  + QString(" Longitude: ") + QString::number(mLon)
+//                                  + QString(" Heading: ") + QString::number(mHead)
+//                                  + QString(" Pitch: ") + QString::number(mPitch));
 
 
     //feature match results

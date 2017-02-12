@@ -28,7 +28,7 @@ FORMS    += mainwindow.ui
 
 INCLUDEPATH += /usr/local/include/opencv
 
-LIBS += -L/usr/local/lib
+LIBS += -L/usr/local/lib/
 LIBS += -lopencv_core
 LIBS += -lopencv_imgproc
 LIBS += -lopencv_highgui

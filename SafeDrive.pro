@@ -27,6 +27,9 @@ HEADERS  += mainwindow.h \
 FORMS    += mainwindow.ui
 
 INCLUDEPATH += /usr/local/include/opencv
+INCLUDEPATH += /usr/include/pcl-1.7
+INCLUDEPATH += /usr/include/eigen3
+INCLUDEPATH += /usr/include/vtk-6.2
 
 LIBS += -L/usr/local/lib/
 LIBS += -lopencv_core
@@ -36,6 +39,11 @@ LIBS += -lopencv_videoio
 LIBS += -lopencv_features2d
 LIBS += -lopencv_calib3d
 LIBS += -lopencv_imgcodecs
+LIBS += -lboost_system
+LIBS += -lpcl_common
+LIBS += -lpcl_visualization
+LIBS += -lpcl_io
+
 
 CONFIG += -std=c++11
 QMAKE_CXXFLAGS += -fopenmp

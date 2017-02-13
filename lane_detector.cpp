@@ -57,8 +57,8 @@ void LaneDetector::detectAndShow(const Mat& detImg, Mat& projImg, const Mat& tra
         Mat X_homo = (Mat_<double>(4,1) << X.at<double>(0), X.at<double>(1), X.at<double>(2), 1);
         Mat X_p = K*trans*X_homo;
         Point2f projP(X_p.at<double>(0)/X_p.at<double>(2), X_p.at<double>(1)/X_p.at<double>(2));
-        cout<<"orig: "<<db_p<<endl;
-        cout<<"proj: "<<projP<<endl;
+//        cout<<"orig: "<<db_p<<endl;
+//        cout<<"proj: "<<projP<<endl;
         if((imgBoundValid(projImg, projP))) {
             mask.at<float>((int)projP.y, (int)projP.x) = 1.0f;
         }

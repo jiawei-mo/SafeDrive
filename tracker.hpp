@@ -5,7 +5,6 @@
 
 #include "opencv2/opencv.hpp"
 #include "opencv2/features2d.hpp"
-#include <opencv2/sfm.hpp>
 
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>

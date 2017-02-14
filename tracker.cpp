@@ -162,6 +162,7 @@ int Tracker::featureMatch(const Mat& frame, Mat& trans, const Mat&camera_K, bool
             matchHeap = goodMatches;
         }
         for(int j=0; j<(int)matchHeap.size(); j++) {
+//            cout<<griddbKp[i][matchHeap[j].queryIdx].pt<<endl;
             dbMatchedKp.push_back(griddbKp[i][matchHeap[j].queryIdx].pt);
             targetMatchedKp.push_back(gridTargetKp[i][matchHeap[j].trainIdx].pt);
         }
@@ -173,27 +174,29 @@ int Tracker::featureMatch(const Mat& frame, Mat& trans, const Mat&camera_K, bool
 
     //find essential_mat based on matches using RANSAC
     Mat inliner_mask;
-    Mat essential_mat = findEssentialMat(dbMatchedKp, targetMatchedKp, camera_K.at<double>(0,0), Point2d(camera_K.at<double>(0,2),camera_K.at<double>(1,2)), RANSAC, 0.999, ransac_thres_feature, inliner_mask);
+    Mat essential_mat = findEssentialMat(dbMatchedKp, targetMatchedKp, 1.0, Point2d(0,0), RANSAC, 0.999, ransac_thres_feature, inliner_mask);
+    correctMatches(essential_mat, dbMatchedKp, targetMatchedKp, dbMatchedKp, targetMatchedKp);
+    Mat R,t;
+    recoverPose(essential_mat, dbMatchedKp, targetMatchedKp, R, t, 1.0, Point2d(0,0), inliner_mask);
 
-//    Mat R,t;
-//    recoverPose(essential_mat, dbMatchedKp, targetMatchedKp, R, t, camera_K.at<double>(0,0), Point2d(camera_K.at<double>(0,2),camera_K.at<double>(1,2)));
-
-    bool is_projective = true;
-    vector<Mat> R, t, points3d_estimated;
-    vector<string> images_paths = {"/home/kimiwings/SafeDrive/test/DSC_0001.JPG","/home/kimiwings/SafeDrive/test/DSC_0002.JPG"};
-    reconstruct(images_paths, R, t, camera_K, points3d_estimated, is_projective);
+//    bool is_projective = true;
+//    vector<Mat> R, t, points3d_estimated;
+//    vector<string> images_paths = {"/home/kimiwings/SafeDrive/test/DSC_0001.JPG","/home/kimiwings/SafeDrive/test/DSC_0002.JPG"};
+//    reconstruct(images_paths, R, t, camera_K, points3d_estimated, is_projective);
 
     cout<<"R= "<<R<<endl;
     cout<<"t= "<<t<<endl;
 
     hconcat(R,t,trans);
 
-    Mat eye_proj_mat = (Mat_<double>(3,4) << 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0);
+    Mat eye_proj_mat = (Mat_<double>(3,4) << 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0);
     Mat point_cloud_mat;
     triangulatePoints(eye_proj_mat, trans, dbMatchedKp, targetMatchedKp, point_cloud_mat);
     pcl::PointCloud<pcl::PointXYZ>::Ptr point_cloud (new pcl::PointCloud<pcl::PointXYZ>);
     for(int i=0; i<point_cloud_mat.cols; i++)
     {
+        cout<<"( "<<point_cloud_mat.at<double>(0,i)<<", "<<point_cloud_mat.at<double>(1,i)<<", "<<point_cloud_mat.at<double>(2,i)<<", "<<point_cloud_mat.at<double>(3,i)<<" )"<<endl;
+        cout<<pcl::PointXYZ(point_cloud_mat.at<double>(0,i)/point_cloud_mat.at<double>(3,i), point_cloud_mat.at<double>(1,i)/point_cloud_mat.at<double>(3,i),point_cloud_mat.at<double>(2,i)/point_cloud_mat.at<double>(3,i))<<endl;
         point_cloud->push_back(pcl::PointXYZ(point_cloud_mat.at<double>(0,i)/point_cloud_mat.at<double>(3,i), point_cloud_mat.at<double>(1,i)/point_cloud_mat.at<double>(3,i),point_cloud_mat.at<double>(2,i)/point_cloud_mat.at<double>(3,i)));
     }
     pcl::io::savePCDFile("/home/kimiwings/data/result.pcd", *point_cloud);

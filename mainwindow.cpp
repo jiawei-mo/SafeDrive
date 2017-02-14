@@ -164,7 +164,9 @@ MainWindow::MainWindow(QWidget *parent) :
     fetcher = shared_ptr<IMGFetcher>(new IMGFetcher());
 
     saveFolder = "";
-    camera_K = (Mat_<double>(3,3) << 18, 0, 300, 0, 18, 200, 0, 0, 1);
+    camera_K = (Mat_<double>(3,3) << 227.85, 0, 300,
+                                     0, 227.85, 200,
+                                     0, 0, 1);
 }
 
 MainWindow::~MainWindow()

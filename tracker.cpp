@@ -79,10 +79,10 @@ int Tracker::featureMatch(const Mat& frame, Mat& trans, const Mat&camera_K, bool
     //detect feature points and extract descriptors on dbFrame
     Mat dbBlured;
     GaussianBlur(frame, dbBlured, Size(blur_size,blur_size), blur_var, blur_var);
-    Mat grayImg;
+    Mat dbGray;
     vector<Point2f> corners;
-    cvtColor(dbBlured, grayImg, CV_BGR2GRAY);
-    goodFeaturesToTrack(grayImg, corners, max_num_features, quality_level, min_distance);
+    cvtColor(dbBlured, dbGray, CV_BGR2GRAY);
+    goodFeaturesToTrack(dbGray, corners, max_num_features, quality_level, min_distance);
 
     vector<KeyPoint> dbKp;
     for( size_t i = 0; i < corners.size(); i++ ) {
@@ -173,100 +173,137 @@ int Tracker::featureMatch(const Mat& frame, Mat& trans, const Mat&camera_K, bool
     //************************************************grid matches**************************************************************
 
 
-    Mat imgLeft = imread( "/home/kimiwings/SafeDrive/test/tsukuba_l.png", IMREAD_GRAYSCALE );
-    Mat imgRight = imread( "/home/kimiwings/SafeDrive/test/tsukuba_r.png", IMREAD_GRAYSCALE );
-    //-- And create the image in which we will save our disparities
-    Mat imgDisparity16S = Mat( imgLeft.rows, imgLeft.cols, CV_16S );
-    Mat imgDisparity8U = Mat( imgLeft.rows, imgLeft.cols, CV_8UC1 );
+//    Mat imgLeft = imread( "/home/kimiwings/SafeDrive/test/tsukuba_l.png", IMREAD_GRAYSCALE );
+//    Mat imgRight = imread( "/home/kimiwings/SafeDrive/test/tsukuba_r.png", IMREAD_GRAYSCALE );
+//    //-- And create the image in which we will save our disparities
+//    Mat imgDisparity16S = Mat( imgLeft.rows, imgLeft.cols, CV_16S );
+//    Mat imgDisparity8U = Mat( imgLeft.rows, imgLeft.cols, CV_8UC1 );
 
-    if( imgLeft.empty() || imgRight.empty() )
-    { std::cout<< " --(!) Error reading images " << std::endl; return -1; }
+//    if( imgLeft.empty() || imgRight.empty() )
+//    { std::cout<< " --(!) Error reading images " << std::endl; return -1; }
 
-    //-- 2. Call the constructor for StereoBM
-    int ndisparities = 16*5;
-    int SADWindowSize = 21;
-    Ptr<StereoBM> sbm = StereoBM::create( ndisparities, SADWindowSize );
+//    //-- 2. Call the constructor for StereoBM
+//    int ndisparities = 16*5;
+//    int SADWindowSize = 21;
+//    Ptr<StereoBM> sbm = StereoBM::create( ndisparities, SADWindowSize );
 
-    //-- 3. Calculate the disparity image
-    sbm->compute( imgLeft, imgRight, imgDisparity16S );
+//    //-- 3. Calculate the disparity image
+//    sbm->compute( imgLeft, imgRight, imgDisparity16S );
 
-    //-- Check its extreme values
-    double minVal; double maxVal;
+//    //-- Check its extreme values
+//    double minVal; double maxVal;
 
-    minMaxLoc( imgDisparity16S, &minVal, &maxVal );
+//    minMaxLoc( imgDisparity16S, &minVal, &maxVal );
 
-    printf("Min disp: %f Max value: %f \n", minVal, maxVal);
+//    printf("Min disp: %f Max value: %f \n", minVal, maxVal);
 
-    //-- 4. Display it as a CV_8UC1 image
-    imgDisparity16S.convertTo( imgDisparity8U, CV_8UC1, 255/(maxVal - minVal));
+//    //-- 4. Display it as a CV_8UC1 image
+//    imgDisparity16S.convertTo( imgDisparity8U, CV_8UC1, 255/(maxVal - minVal));
 
-    imshow( "sadas", imgDisparity8U );
-    waitKey();
+//    imshow( "sadas", imgDisparity8U );
+//    waitKey();
 
     //find essential_mat based on matches using RANSAC
-//    Mat inliner_mask;
-//    Mat essential_mat = findEssentialMat(dbMatchedKp, targetMatchedKp, camera_K, RANSAC, 0.999, ransac_thres_feature, inliner_mask);
-//    correctMatches(essential_mat, dbMatchedKp, targetMatchedKp, dbMatchedKp, targetMatchedKp);
-//    Mat R,t;
-//    recoverPose(essential_mat, dbMatchedKp, targetMatchedKp, camera_K, R, t, inliner_mask);
+    Mat inliner_mask;
+    Mat essential_mat = findEssentialMat(dbMatchedKp, targetMatchedKp, camera_K, RANSAC, 0.999, ransac_thres_feature, inliner_mask);
+    Mat R,t;
+    recoverPose(essential_mat, dbMatchedKp, targetMatchedKp, camera_K, R, t, inliner_mask);
 
 //    bool is_projective = true;
 //    vector<Mat> R, t, points3d_estimated;
 //    vector<string> images_paths = {"/home/kimiwings/SafeDrive/test/DSC_0001.JPG","/home/kimiwings/SafeDrive/test/DSC_0002.JPG"};
 //    reconstruct(images_paths, R, t, camera_K, points3d_estimated, is_projective);
 
-//    cout<<"R= "<<R<<endl;
-//    cout<<"t= "<<t<<endl;
+    cout<<"R= "<<R<<endl;
+    cout<<"t= "<<t<<endl;
 
-//    hconcat(R,t,trans);
+    hconcat(R,t,trans);
 
-//    Mat eye_proj_mat = (Mat_<double>(3,4) << 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0);
+    Mat coeff = (Mat_<double>(1,5) << 0, 0, 0, 0, 0);
+    Size frame_size = targetFrame.size();
+    Mat R1, R2, P1, P2, Q;
+    stereoRectify(camera_K, coeff, camera_K, coeff,frame_size, R, t, R1, R2, P1, P2, Q);
+//    cout<<R1<<endl<<R2<<endl<<P1<<endl<<P2<<endl<<Q<<endl;
+
+    Mat targetGray;
+    cvtColor(targetFrameBlured, targetGray, CV_BGR2GRAY);
+
+    Mat left_undist_rect_map_x, left_undist_rect_map_y, right_undist_rect_map_x, right_undist_rect_map_y,left_undist_rect,right_undist_rect;
+    initUndistortRectifyMap(camera_K, coeff, R1, P1, frame_size,CV_32F, left_undist_rect_map_x, left_undist_rect_map_y);
+    initUndistortRectifyMap(camera_K, coeff, R2, P2, frame_size, CV_32F, right_undist_rect_map_x, right_undist_rect_map_y);
+    remap(dbGray, left_undist_rect, left_undist_rect_map_x, left_undist_rect_map_y, CV_INTER_CUBIC, BORDER_CONSTANT, 0);
+    remap(targetGray, right_undist_rect, right_undist_rect_map_x, right_undist_rect_map_y, CV_INTER_CUBIC, BORDER_CONSTANT, 0);
+
+    int ndisparities = 16*5;
+    int SADWindowSize = 21;
+    Ptr<StereoBM> sbm = StereoBM::create( ndisparities, SADWindowSize );
+    Mat imgDisparity32F;
+
+    sbm->compute( left_undist_rect, right_undist_rect, imgDisparity32F );
+
+    cv::Mat XYZ(imgDisparity32F.size(),CV_32FC3);
+    reprojectImageTo3D(imgDisparity32F, XYZ, Q, false, CV_32F);
+//    cout<<XYZ<<endl;
+
 //    Mat point_cloud_mat;
-//    triangulatePoints(camera_K*eye_proj_mat, camera_K*trans, dbMatchedKp, targetMatchedKp, point_cloud_mat);
+//    triangulatePoints(P1, P2, dbMatchedKp, targetMatchedKp, point_cloud_mat);
 //    pcl::PointCloud<pcl::PointXYZ>::Ptr point_cloud (new pcl::PointCloud<pcl::PointXYZ>);
 //    for(int i=0; i<point_cloud_mat.cols; i++)
 //    {
-//        cout<<"( "<<point_cloud_mat.at<double>(0,i)<<", "<<point_cloud_mat.at<double>(1,i)<<", "<<point_cloud_mat.at<double>(2,i)<<", "<<point_cloud_mat.at<double>(3,i)<<" )"<<endl;
+////        cout<<"( "<<point_cloud_mat.at<double>(0,i)<<", "<<point_cloud_mat.at<double>(1,i)<<", "<<point_cloud_mat.at<double>(2,i)<<", "<<point_cloud_mat.at<double>(3,i)<<" )"<<endl;
 //        cout<<pcl::PointXYZ(point_cloud_mat.at<double>(0,i)/point_cloud_mat.at<double>(3,i), point_cloud_mat.at<double>(1,i)/point_cloud_mat.at<double>(3,i),point_cloud_mat.at<double>(2,i)/point_cloud_mat.at<double>(3,i))<<endl;
 //        point_cloud->push_back(pcl::PointXYZ(point_cloud_mat.at<double>(0,i)/point_cloud_mat.at<double>(3,i), point_cloud_mat.at<double>(1,i)/point_cloud_mat.at<double>(3,i),point_cloud_mat.at<double>(2,i)/point_cloud_mat.at<double>(3,i)));
 //    }
-//    pcl::io::savePCDFile("/home/kimiwings/data/result.pcd", *point_cloud);
-//    pcl::visualization::CloudViewer viewer("Simple Cloud Viewer");
-//    viewer.showCloud(point_cloud);
-//    while( !viewer.wasStopped() );
 
-//    vector<Point2f> projectedKp;
-////    perspectiveTransform(dbMatchedKp, projectedKp, homo);
-//    for(auto& db_p:dbMatchedKp)
-//    {
-//        Mat X = camera_K.inv()*(Mat_<double>(3,1) << db_p.x, db_p.y, 1);
-//        Mat X_homo = (Mat_<double>(4,1) << X.at<double>(0), X.at<double>(1), X.at<double>(2), 1);
-//        Mat X_p = camera_K*trans*X_homo;
-//        projectedKp.push_back(Point2f(X_p.at<double>(0)/X_p.at<double>(2), X_p.at<double>(1)/X_p.at<double>(2)));
-//    }
+    pcl::PointCloud<pcl::PointXYZ>::Ptr point_cloud (new pcl::PointCloud<pcl::PointXYZ>);
+    for(int i=0; i<targetFrame.cols; i++)
+    {
+        for(int j=0; j<targetFrame.rows; j++)
+        {
+            Vec3f intensity = XYZ.at<Vec3f>(j, i);
+            cout<<intensity<<endl;
+            point_cloud->push_back(pcl::PointXYZ(intensity.val[1], intensity.val[2], intensity.val[3]));
+        }
+    }
 
-//    //show inliner pairs between two images side by side
+
+    pcl::io::savePCDFile("/home/kimiwings/data/result.pcd", *point_cloud);
+    pcl::visualization::CloudViewer viewer("Simple Cloud Viewer");
+    viewer.showCloud(point_cloud);
+    while( !viewer.wasStopped() );
+
+    vector<Point2f> projectedKp;
+//    perspectiveTransform(dbMatchedKp, projectedKp, homo);
+    for(auto& db_p:dbMatchedKp)
+    {
+        Mat X = camera_K.inv()*(Mat_<double>(3,1) << db_p.x, db_p.y, 1);
+        Mat X_homo = (Mat_<double>(4,1) << X.at<double>(0), X.at<double>(1), X.at<double>(2), 1);
+        Mat X_p = camera_K*trans*X_homo;
+        projectedKp.push_back(Point2f(X_p.at<double>(0)/X_p.at<double>(2), X_p.at<double>(1)/X_p.at<double>(2)));
+    }
+
+    //show inliner pairs between two images side by side
     int inliner_counter = 0;
-//    float inliner_dist = 0.0;
-//    for(int i=0; i<(int)targetMatchedKp.size(); i++)
-//    {
-//        if(inliner_mask.at<uchar>(i))
-//        {
-//            inliner_counter++;
-//            inliner_dist += (projectedKp[i].x - targetMatchedKp[i].x)*(projectedKp[i].x - targetMatchedKp[i].x);
-//            inliner_dist += (projectedKp[i].y - targetMatchedKp[i].y)*(projectedKp[i].y - targetMatchedKp[i].y);
-//            if(showImg) {
-//                line(matchedImg, dbMatchedKp[i], Point2f(targetMatchedKp[i].x+frame.cols, targetMatchedKp[i].y), CV_RGB(255, 0, 0));
-//                circle(matchedImg, Point2f(projectedKp[i].x+frame.cols, projectedKp[i].y), 2, CV_RGB(0, 255, 0));
-//            }
-//        }
-//    }
+    float inliner_dist = 0.0;
+    for(int i=0; i<(int)targetMatchedKp.size(); i++)
+    {
+        if(inliner_mask.at<uchar>(i))
+        {
+            inliner_counter++;
+            inliner_dist += (projectedKp[i].x - targetMatchedKp[i].x)*(projectedKp[i].x - targetMatchedKp[i].x);
+            inliner_dist += (projectedKp[i].y - targetMatchedKp[i].y)*(projectedKp[i].y - targetMatchedKp[i].y);
+            if(showImg) {
+                line(matchedImg, dbMatchedKp[i], Point2f(targetMatchedKp[i].x+frame.cols, targetMatchedKp[i].y), CV_RGB(255, 0, 0));
+                circle(matchedImg, Point2f(projectedKp[i].x+frame.cols, projectedKp[i].y), 2, CV_RGB(0, 255, 0));
+            }
+        }
+    }
 
 
-//    if(showImg) {
-//        namedWindow(windowName, WINDOW_NORMAL);
-//        imshow(windowName, matchedImg);
-//    }
+    if(showImg) {
+        namedWindow(windowName, WINDOW_NORMAL);
+        imshow(windowName, matchedImg);
+    }
 
 //    cout<<"norm: "<<norm(homography)<<" inliner_dist: "<<inliner_dist<<endl;
     return inliner_counter;

@@ -188,15 +188,17 @@ int Tracker::featureMatch(const Mat& frame, Mat& trans, const Mat&camera_K, bool
     Size frame_size = targetFrame.size();
     Mat R1, R2, P1, P2, Q;
     stereoRectify(camera_K, coeff, camera_K, coeff,frame_size, R, 0.5*t, R1, R2, P1, P2, Q);
+//    cout<<R1<<endl<<R2<<endl<<P1<<endl<<P2<<endl<<Q<<endl;
 
     Mat targetGray;
     cvtColor(targetFrameBlured, targetGray, CV_BGR2GRAY);
 
-    Mat left_undist_rect_map_x, left_undist_rect_map_y, right_undist_rect_map_x, right_undist_rect_map_y,left_undist_rect,right_undist_rect;
+    Mat left_undist_rect_map_x, left_undist_rect_map_y, right_undist_rect_map_x, right_undist_rect_map_y,left_undist_rect,right_undist_rect,db_color_undist_rect;
     initUndistortRectifyMap(camera_K, coeff, R1, P1, frame_size,CV_16SC2, left_undist_rect_map_x, left_undist_rect_map_y);
     initUndistortRectifyMap(camera_K, coeff, R2, P2, frame_size, CV_16SC2, right_undist_rect_map_x, right_undist_rect_map_y);
     remap(dbGray, left_undist_rect, left_undist_rect_map_x, left_undist_rect_map_y, CV_INTER_CUBIC, BORDER_CONSTANT, 0);
     remap(targetGray, right_undist_rect, right_undist_rect_map_x, right_undist_rect_map_y, CV_INTER_CUBIC, BORDER_CONSTANT, 0);
+    remap(frame, db_color_undist_rect, left_undist_rect_map_x, left_undist_rect_map_y, CV_INTER_CUBIC, BORDER_CONSTANT, 0);
 
     int ndisparities = 16*5;
     int SADWindowSize = 11;
@@ -207,18 +209,30 @@ int Tracker::featureMatch(const Mat& frame, Mat& trans, const Mat&camera_K, bool
 
     imgDisparity16S.convertTo( imgDisparity32F, CV_32F, 1./16);
 
+    imshow("db_rect", db_color_undist_rect);
+    imshow("test", imgDisparity32F);
+    waitKey();
+
     cv::Mat XYZ(imgDisparity32F.size(),CV_32FC3);
     reprojectImageTo3D(imgDisparity32F, XYZ, Q, true, CV_32F);
-    pcl::PointCloud<pcl::PointXYZ>::Ptr point_cloud (new pcl::PointCloud<pcl::PointXYZ>);
-    for(int i=0; i<targetFrame.cols; i++)
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr point_cloud (new pcl::PointCloud<pcl::PointXYZRGB>);
+    for(int i=0; i<XYZ.cols; i++)
     {
-        for(int j=0; j<targetFrame.rows; j++)
+        for(int j=0; j<XYZ.rows; j++)
         {
-            Vec3f &intensity = XYZ.at<Vec3f>(j, i);
-            if(intensity[2] > 1.0 && intensity[2] < 10.0)
+            Vec3f &pos_vec = XYZ.at<Vec3f>(j, i);
+            if(pos_vec[2] > 1.0 && pos_vec[2] < 20.0)
             {
 //                cout<<intensity<<endl;
-                point_cloud->push_back(pcl::PointXYZ(intensity[0], intensity[1], intensity[2]));
+                pcl::PointXYZRGB p;
+                p.x = pos_vec[0];
+                p.y = pos_vec[1];
+                p.z = pos_vec[2];
+                Vec3i &color_vec = db_color_undist_rect.at<Vec3i>(j, i);
+                p.r = color_vec[0];
+                p.g = color_vec[1];
+                p.b = color_vec[2];
+                point_cloud->push_back(p);
             }
         }
     }

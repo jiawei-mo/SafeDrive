@@ -173,46 +173,11 @@ int Tracker::featureMatch(const Mat& frame, Mat& trans, const Mat&camera_K, bool
     //************************************************grid matches**************************************************************
 
 
-//    Mat imgLeft = imread( "/home/kimiwings/SafeDrive/test/tsukuba_l.png", IMREAD_GRAYSCALE );
-//    Mat imgRight = imread( "/home/kimiwings/SafeDrive/test/tsukuba_r.png", IMREAD_GRAYSCALE );
-//    //-- And create the image in which we will save our disparities
-//    Mat imgDisparity16S = Mat( imgLeft.rows, imgLeft.cols, CV_16S );
-//    Mat imgDisparity8U = Mat( imgLeft.rows, imgLeft.cols, CV_8UC1 );
-
-//    if( imgLeft.empty() || imgRight.empty() )
-//    { std::cout<< " --(!) Error reading images " << std::endl; return -1; }
-
-//    //-- 2. Call the constructor for StereoBM
-//    int ndisparities = 16*5;
-//    int SADWindowSize = 21;
-//    Ptr<StereoBM> sbm = StereoBM::create( ndisparities, SADWindowSize );
-
-//    //-- 3. Calculate the disparity image
-//    sbm->compute( imgLeft, imgRight, imgDisparity16S );
-
-//    //-- Check its extreme values
-//    double minVal; double maxVal;
-
-//    minMaxLoc( imgDisparity16S, &minVal, &maxVal );
-
-//    printf("Min disp: %f Max value: %f \n", minVal, maxVal);
-
-//    //-- 4. Display it as a CV_8UC1 image
-//    imgDisparity16S.convertTo( imgDisparity8U, CV_8UC1, 255/(maxVal - minVal));
-
-//    imshow( "sadas", imgDisparity8U );
-//    waitKey();
-
     //find essential_mat based on matches using RANSAC
     Mat inliner_mask;
     Mat essential_mat = findEssentialMat(dbMatchedKp, targetMatchedKp, camera_K, RANSAC, 0.999, ransac_thres_feature, inliner_mask);
     Mat R,t;
     recoverPose(essential_mat, dbMatchedKp, targetMatchedKp, camera_K, R, t, inliner_mask);
-
-//    bool is_projective = true;
-//    vector<Mat> R, t, points3d_estimated;
-//    vector<string> images_paths = {"/home/kimiwings/SafeDrive/test/DSC_0001.JPG","/home/kimiwings/SafeDrive/test/DSC_0002.JPG"};
-//    reconstruct(images_paths, R, t, camera_K, points3d_estimated, is_projective);
 
     cout<<"R= "<<R<<endl;
     cout<<"t= "<<t<<endl;
@@ -222,47 +187,39 @@ int Tracker::featureMatch(const Mat& frame, Mat& trans, const Mat&camera_K, bool
     Mat coeff = (Mat_<double>(1,5) << 0, 0, 0, 0, 0);
     Size frame_size = targetFrame.size();
     Mat R1, R2, P1, P2, Q;
-    stereoRectify(camera_K, coeff, camera_K, coeff,frame_size, R, t, R1, R2, P1, P2, Q);
-//    cout<<R1<<endl<<R2<<endl<<P1<<endl<<P2<<endl<<Q<<endl;
+    stereoRectify(camera_K, coeff, camera_K, coeff,frame_size, R, 0.5*t, R1, R2, P1, P2, Q);
 
     Mat targetGray;
     cvtColor(targetFrameBlured, targetGray, CV_BGR2GRAY);
 
     Mat left_undist_rect_map_x, left_undist_rect_map_y, right_undist_rect_map_x, right_undist_rect_map_y,left_undist_rect,right_undist_rect;
-    initUndistortRectifyMap(camera_K, coeff, R1, P1, frame_size,CV_32F, left_undist_rect_map_x, left_undist_rect_map_y);
-    initUndistortRectifyMap(camera_K, coeff, R2, P2, frame_size, CV_32F, right_undist_rect_map_x, right_undist_rect_map_y);
+    initUndistortRectifyMap(camera_K, coeff, R1, P1, frame_size,CV_16SC2, left_undist_rect_map_x, left_undist_rect_map_y);
+    initUndistortRectifyMap(camera_K, coeff, R2, P2, frame_size, CV_16SC2, right_undist_rect_map_x, right_undist_rect_map_y);
     remap(dbGray, left_undist_rect, left_undist_rect_map_x, left_undist_rect_map_y, CV_INTER_CUBIC, BORDER_CONSTANT, 0);
     remap(targetGray, right_undist_rect, right_undist_rect_map_x, right_undist_rect_map_y, CV_INTER_CUBIC, BORDER_CONSTANT, 0);
 
     int ndisparities = 16*5;
-    int SADWindowSize = 21;
+    int SADWindowSize = 11;
     Ptr<StereoBM> sbm = StereoBM::create( ndisparities, SADWindowSize );
-    Mat imgDisparity32F;
+    Mat imgDisparity16S, imgDisparity32F;
 
-    sbm->compute( left_undist_rect, right_undist_rect, imgDisparity32F );
+    sbm->compute( left_undist_rect, right_undist_rect, imgDisparity16S );
+
+    imgDisparity16S.convertTo( imgDisparity32F, CV_32F, 1./16);
 
     cv::Mat XYZ(imgDisparity32F.size(),CV_32FC3);
-    reprojectImageTo3D(imgDisparity32F, XYZ, Q, false, CV_32F);
-//    cout<<XYZ<<endl;
-
-//    Mat point_cloud_mat;
-//    triangulatePoints(P1, P2, dbMatchedKp, targetMatchedKp, point_cloud_mat);
-//    pcl::PointCloud<pcl::PointXYZ>::Ptr point_cloud (new pcl::PointCloud<pcl::PointXYZ>);
-//    for(int i=0; i<point_cloud_mat.cols; i++)
-//    {
-////        cout<<"( "<<point_cloud_mat.at<double>(0,i)<<", "<<point_cloud_mat.at<double>(1,i)<<", "<<point_cloud_mat.at<double>(2,i)<<", "<<point_cloud_mat.at<double>(3,i)<<" )"<<endl;
-//        cout<<pcl::PointXYZ(point_cloud_mat.at<double>(0,i)/point_cloud_mat.at<double>(3,i), point_cloud_mat.at<double>(1,i)/point_cloud_mat.at<double>(3,i),point_cloud_mat.at<double>(2,i)/point_cloud_mat.at<double>(3,i))<<endl;
-//        point_cloud->push_back(pcl::PointXYZ(point_cloud_mat.at<double>(0,i)/point_cloud_mat.at<double>(3,i), point_cloud_mat.at<double>(1,i)/point_cloud_mat.at<double>(3,i),point_cloud_mat.at<double>(2,i)/point_cloud_mat.at<double>(3,i)));
-//    }
-
+    reprojectImageTo3D(imgDisparity32F, XYZ, Q, true, CV_32F);
     pcl::PointCloud<pcl::PointXYZ>::Ptr point_cloud (new pcl::PointCloud<pcl::PointXYZ>);
     for(int i=0; i<targetFrame.cols; i++)
     {
         for(int j=0; j<targetFrame.rows; j++)
         {
-            Vec3f intensity = XYZ.at<Vec3f>(j, i);
-            cout<<intensity<<endl;
-            point_cloud->push_back(pcl::PointXYZ(intensity.val[1], intensity.val[2], intensity.val[3]));
+            Vec3f &intensity = XYZ.at<Vec3f>(j, i);
+            if(intensity[2] > 1.0 && intensity[2] < 10.0)
+            {
+//                cout<<intensity<<endl;
+                point_cloud->push_back(pcl::PointXYZ(intensity[0], intensity[1], intensity[2]));
+            }
         }
     }
 

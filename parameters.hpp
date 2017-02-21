@@ -9,7 +9,7 @@
 #define BS 2        //2* + 1
 #define BV 4        // /10
 #define MNF 4000    //int
-#define QL 1        //%
+#define QL 4        //%
 #define MD 5        //int
 #define NGF 1        //int
 #define MTF 96      //%

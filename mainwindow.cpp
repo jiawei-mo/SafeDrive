@@ -117,7 +117,7 @@ bool MainWindow::findBestMatch() {
 //        ui->text_log->appendPlainText("Frame missing!");
 //        return false;
 //    }
-    matchedFrame = imread("/home/kimiwings/SafeDrive/test/DSC_0003.JPG");
+    matchedFrame = imread("/home/kimiwings/SafeDrive/test/DSC_0002.JPG");
     tracker->featureMatch(matchedFrame, featureRes, camera_K, showProcess, "Feature Match");
 //    waitKey();
     //***********************************************search for most similar image***************************************************************

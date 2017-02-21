@@ -190,7 +190,7 @@ int Tracker::featureMatch(const Mat& frame, Mat& trans, const Mat&camera_K, bool
     Mat coeff = (Mat_<double>(1,5) << -0.2004, 0.1620, 0, 0, 0);
     Size frame_size = targetFrame.size();
     Mat R1, R2, P1, P2, Q;
-    stereoRectify(camera_K, coeff, camera_K, coeff,frame_size, R, 0.5*t, R1, R2, P1, P2, Q, CALIB_ZERO_DISPARITY, 0, frame_size, 0, 0);
+    stereoRectify(camera_K, coeff, camera_K, coeff,frame_size, R, t, R1, R2, P1, P2, Q, CALIB_ZERO_DISPARITY, 0, frame_size, 0, 0);
 //    cout<<R1<<endl<<R2<<endl<<P1<<endl<<P2<<endl<<Q<<endl;
 //    cout<<Q<<endl;
 
@@ -200,25 +200,30 @@ int Tracker::featureMatch(const Mat& frame, Mat& trans, const Mat&camera_K, bool
     Mat left_undist_rect_map_x, left_undist_rect_map_y, right_undist_rect_map_x, right_undist_rect_map_y,left_undist_rect,right_undist_rect,db_color_undist_rect;
     initUndistortRectifyMap(camera_K, coeff, R1, P1, frame_size,CV_16SC2, left_undist_rect_map_x, left_undist_rect_map_y);
     initUndistortRectifyMap(camera_K, coeff, R2, P2, frame_size, CV_16SC2, right_undist_rect_map_x, right_undist_rect_map_y);
-    remap(dbGray, left_undist_rect, left_undist_rect_map_x, left_undist_rect_map_y, INTER_LINEAR);
-    remap(targetGray, right_undist_rect, right_undist_rect_map_x, right_undist_rect_map_y, INTER_LINEAR);
+    remap(frame, left_undist_rect, left_undist_rect_map_x, left_undist_rect_map_y, INTER_LINEAR);
+    remap(targetFrame, right_undist_rect, right_undist_rect_map_x, right_undist_rect_map_y, INTER_LINEAR);
     remap(frame, db_color_undist_rect, left_undist_rect_map_x, left_undist_rect_map_y, INTER_LINEAR);
 
-    int SADWindowSize = 5;
-    int numberOfDisparities = 192;
-    int preFilterCap = 4;
-    int minDisparity = -64;
-    int uniquenessRatio = 1;
-    int speckleWindowSize = 150;
-    int speckleRange = 2;
-    int disp12MaxDiff = 10;
-    int SP1 = 600;
-    int SP2 = 2400;
+    int SADWindowSize = 3;
+    int numberOfDisparities = 144;
+    int preFilterCap = 63;
+    int minDisparity = 0;
+    int uniquenessRatio = 10;
+    int speckleWindowSize = 100;
+    int speckleRange = 32;
+    int disp12MaxDiff = 1;
+    int SP1 = 216;
+    int SP2 = 864;
     Ptr<StereoSGBM> sbm = StereoSGBM::create( minDisparity, numberOfDisparities, SADWindowSize, SP1, SP2, disp12MaxDiff, preFilterCap, uniquenessRatio, speckleWindowSize, speckleRange);
     Mat imgDisparity, imgDisparity8U;
 
+//    Mat testDisp, test8;
+//    Mat left_test = imread("/home/kimiwings/SafeDrive/test/Sport0_OG0_R.JPG");
+//    Mat right_test = imread("/home/kimiwings/SafeDrive/test/Sport1_OG0_R.JPG");
+//    sbm->compute( left_test, right_test, testDisp );
     sbm->compute( left_undist_rect, right_undist_rect, imgDisparity );
 
+//    normalize(testDisp, test8, 0, 255, CV_MINMAX, CV_8U);
 normalize(imgDisparity, imgDisparity8U, 0, 255, CV_MINMAX, CV_8U);
 
 //cout<<imgDisparity32F<<endl;
@@ -230,9 +235,11 @@ normalize(imgDisparity, imgDisparity8U, 0, 255, CV_MINMAX, CV_8U);
     imshow("epi", epi);
     namedWindow("test", WINDOW_NORMAL);
     imshow("test", imgDisparity8U);
+//    namedWindow("testss", WINDOW_NORMAL);
+//    imshow("testss", test8);
 
     cv::Mat XYZ(imgDisparity.size(),CV_32FC3);
-    reprojectImageTo3D(imgDisparity, XYZ, Q, false, CV_32F);
+    reprojectImageTo3D(imgDisparity8U, XYZ, Q, false, CV_32F);
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr point_cloud (new pcl::PointCloud<pcl::PointXYZRGB>);
     for(int i=0; i<XYZ.cols; i++)
     {
@@ -247,13 +254,10 @@ normalize(imgDisparity, imgDisparity8U, 0, 255, CV_MINMAX, CV_8U);
                 p.x = pos_vec[0];
                 p.y = pos_vec[1];
                 p.z = pos_vec[2];
-                p.r = 255;
-                p.g = 255;
-                p.b = 255;
-                //                Vec3i &color_vec = db_color_undist_rect.at<Vec3i>(j, i);
-//                p.r = color_vec[0];
-//                p.g = color_vec[1];
-//                p.b = color_vec[2];
+                Vec3i &color_vec = db_color_undist_rect.at<Vec3i>(j, i);
+                p.r = color_vec[2];
+                p.g = color_vec[1];
+                p.b = color_vec[0];
                 point_cloud->push_back(p);
             }
         }

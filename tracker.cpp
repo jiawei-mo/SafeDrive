@@ -18,16 +18,21 @@ Tracker::Tracker()
     num_grid_feature = NGF;
     match_thres_feature = MTF / 100.0f;
     ransac_thres_feature = RTF / 1.0f;
-    board_size = BDS*2 + 1;
-    pp_grid = PG;
-    num_grid_pixel = NGP;
-    match_thres_pixel = MTP / 100.0f;
-    ransac_thres_pixel = RTP / 1.0f;
+    SADWindowSize = SWS;
+    numberOfDisparities = ND * 16;
+    preFilterCap = PFC;
+    minDisparity = MOD;
+    uniquenessRatio = UR;
+    speckleWindowSize = SW;
+    speckleRange = SR;
+    disp12MaxDiff = DMD;
+    SP1 = S1;
+    SP2 = S2;
     detector = ORB::create();
     matcher = DescriptorMatcher::create("BruteForce-Hamming");
 }
 
-void Tracker::changeParam(int bs, float bv, int mnf, float ql, int md,  int ngf, float mtf, float rtf, int bds, int pg, int ngp, float mtp, float rtp)
+void Tracker::changeParam(int bs, float bv, int mnf, float ql, int md,  int ngf, float mtf, float rtf, int sws, int nd, int pfc, int mod, int ur, int sw, int sr, int dmd, int s1, int s2)
 {
     blur_size = bs;
     blur_var = bv;
@@ -37,11 +42,16 @@ void Tracker::changeParam(int bs, float bv, int mnf, float ql, int md,  int ngf,
     num_grid_feature = ngf;
     match_thres_feature = mtf;
     ransac_thres_feature = rtf;
-    board_size = bds;
-    pp_grid = pg;
-    num_grid_pixel = ngp;
-    match_thres_pixel = mtp;
-    ransac_thres_pixel = rtp;
+    SADWindowSize = sws;
+    numberOfDisparities = nd;
+    preFilterCap = pfc;
+    minDisparity = mod;
+    uniquenessRatio = ur;
+    speckleWindowSize = sw;
+    speckleRange = sr;
+    disp12MaxDiff = dmd;
+    SP1 = s1;
+    SP2 = s2;
 }
 
 void Tracker::setTarget(const Mat& frame)
@@ -146,11 +156,11 @@ int Tracker::featureMatch(const Mat& frame, Mat& trans, const Mat&camera_K, bool
             }
         }
         vector<DMatch> matchHeap;
-        if((int)goodMatches.size() > pp_grid) {
-            matchHeap = vector<DMatch>(goodMatches.begin(), goodMatches.begin()+pp_grid);
+        if((int)goodMatches.size() > 40) {
+            matchHeap = vector<DMatch>(goodMatches.begin(), goodMatches.begin()+40);
             make_heap(matchHeap.begin(), matchHeap.end(), matchComp());
 
-            for(int j=pp_grid; j<(int)goodMatches.size(); j++) {
+            for(int j=40; j<(int)goodMatches.size(); j++) {
                 if(matchHeap.front().distance > goodMatches[j].distance) {
                     pop_heap(matchHeap.begin(), matchHeap.end(), matchComp());
                     matchHeap.pop_back();
@@ -204,16 +214,7 @@ int Tracker::featureMatch(const Mat& frame, Mat& trans, const Mat&camera_K, bool
     remap(targetFrame, right_undist_rect, right_undist_rect_map_x, right_undist_rect_map_y, INTER_LINEAR);
     remap(frame, db_color_undist_rect, left_undist_rect_map_x, left_undist_rect_map_y, INTER_LINEAR);
 
-    int SADWindowSize = 3;
-    int numberOfDisparities = 144;
-    int preFilterCap = 63;
-    int minDisparity = 0;
-    int uniquenessRatio = 10;
-    int speckleWindowSize = 100;
-    int speckleRange = 32;
-    int disp12MaxDiff = 1;
-    int SP1 = 216;
-    int SP2 = 864;
+    cout<<numberOfDisparities<<"!!!"<<endl;
     Ptr<StereoSGBM> sbm = StereoSGBM::create( minDisparity, numberOfDisparities, SADWindowSize, SP1, SP2, disp12MaxDiff, preFilterCap, uniquenessRatio, speckleWindowSize, speckleRange);
     Mat imgDisparity, imgDisparity8U;
 
@@ -263,8 +264,6 @@ normalize(imgDisparity, imgDisparity8U, 0, 255, CV_MINMAX, CV_8U);
         }
     }
 
-
-//    pcl::io::savePCDFile("/home/kimiwings/data/result.pcd", *point_cloud);
     pcl::visualization::CloudViewer viewer("Simple Cloud Viewer");
     viewer.showCloud(point_cloud);
     while( !viewer.wasStopped() );

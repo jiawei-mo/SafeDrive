@@ -14,12 +14,16 @@
 #define NGF 1        //int
 #define MTF 96      //%
 #define RTF 2        //float
-#define BDS 20      //2* + 1
-#define NG 7        //int
-#define PG 40       //int
-#define NGP 7        //int
-#define MTP 96      //%
-#define RTP 80      //float
+#define SWS 5      //int
+#define ND 20        //int*16
+#define PFC 75       //int
+#define MOD 27        //int
+#define UR 8      //int
+#define SW 300      //int
+#define SR 12      //int
+#define DMD 1      //int
+#define S1 448      //int
+#define S2 800      //int
 
 
 #endif // PARAMETERS_HPP

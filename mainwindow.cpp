@@ -256,11 +256,16 @@ void MainWindow::on_button_reset_clicked()
     ui->slider_NGF->setValue(NGF);
     ui->slider_MTF->setValue(MTF);
     ui->slider_RTF->setValue(RTF);
-    ui->slider_BDS->setValue(BDS);
-    ui->slider_PG->setValue(PG);
-    ui->slider_NGP->setValue(NGP);
-    ui->slider_MTP->setValue(MTP);
-    ui->slider_RTP->setValue(RTP);
+    ui->slider_SWS->setValue(SWS);
+    ui->slider_ND->setValue(ND);
+    ui->slider_PFC->setValue(PFC);
+    ui->slider_MOD->setValue(MOD);
+    ui->slider_UR->setValue(UR);
+    ui->slider_SW->setValue(SW);
+    ui->slider_SR->setValue(SR);
+    ui->slider_DMD->setValue(DMD);
+    ui->slider_S1->setValue(S1);
+    ui->slider_S2->setValue(S2);
     changeParamAndReprocess(true);
 }
 
@@ -274,11 +279,16 @@ void MainWindow::changeParamAndReprocess(bool reFind)
     ui->label_NGF->setText(QString("Num Grid Feature: ") + QString::number(ui->slider_NGF->value()));
     ui->label_MTF->setText(QString("Match Thres Feature: ") + QString::number(ui->slider_MTF->value() / 100.0f));
     ui->label_RTF->setText(QString("RANSAC Thres Feature: ") + QString::number(ui->slider_RTF->value() / 1.0f));
-    ui->label_BDS->setText(QString("Board Size: ") + QString::number(2*ui->slider_BDS->value() + 1));
-    ui->label_PG->setText(QString("Point Grid: ") + QString::number(ui->slider_PG->value()));
-    ui->label_NGP->setText(QString("Num Grid Pixel: ") + QString::number(ui->slider_NGP->value()));
-    ui->label_MTP->setText(QString("Match Thres Pixel: ") + QString::number(ui->slider_MTP->value() / 100.0f));
-    ui->label_RTP->setText(QString("RANSAC Thres Pixel: ") + QString::number(ui->slider_RTP->value() / 1.0f));
+    ui->label_SWS->setText(QString("SADWindowSize: ") + QString::number(ui->slider_SWS->value()));
+    ui->label_ND->setText(QString("numberOfDisparities: ") + QString::number(ui->slider_ND->value() * 16));
+    ui->label_PFC->setText(QString("preFilterCap: ") + QString::number(ui->slider_PFC->value()));
+    ui->label_MOD->setText(QString("minDisparity: ") + QString::number(ui->slider_MOD->value()));
+    ui->label_UR->setText(QString("uniquenessRatio: ") + QString::number(ui->slider_UR->value()));
+    ui->label_SW->setText(QString("speckleWindowSize: ") + QString::number(ui->slider_SW->value()));
+    ui->label_SR->setText(QString("speckleRange: ") + QString::number(ui->slider_SR->value()));
+    ui->label_DMD->setText(QString("disp12MaxDiff: ") + QString::number(ui->slider_DMD->value()));
+    ui->label_S1->setText(QString("P1: ") + QString::number(ui->slider_S1->value()));
+    ui->label_S2->setText(QString("P2: ") + QString::number(ui->slider_S2->value()));
     int bs = ui->slider_BS->value() * 2 + 1;
     float bv = ui->slider_BV->value() / 10.0f;
     int mnf = ui->slider_MNF->value();
@@ -287,13 +297,17 @@ void MainWindow::changeParamAndReprocess(bool reFind)
     int ngf = ui->slider_NGF->value();
     float mtf = ui->slider_MTF->value() / 100.0f;
     float rtf = ui->slider_RTF->value() / 1.0f;
-    float bds = ui->slider_BDS->value() * 2 + 1;
-    int pg = ui->slider_PG->value();
-    int ngp = ui->slider_NGP->value();
-    float mtp = ui->slider_MTP->value() / 100.f;
-    float rtg = ui->slider_RTP->value() / 1.0f;
-    //(int bs, float bv, int mnf, float ql, int md,  int ngf, float mtf, float rtf, int bds, int pg, int ngp, float mtp, float rtp)
-    tracker->changeParam(bs, bv, mnf, ql, md, ngf, mtf, rtf, bds, pg, ngp, mtp, rtg);
+    int sws = ui->slider_SWS->value();
+    int nd = ui->slider_ND->value() * 16;
+    int pfc = ui->slider_PFC->value();
+    int mod = ui->slider_MOD->value();
+    int ur = ui->slider_UR->value();
+    int sw = ui->slider_SW->value();
+    int sr = ui->slider_SR->value();
+    int dmd = ui->slider_DMD->value();
+    int s1 = ui->slider_S1->value();
+    int s2 = ui->slider_S2->value();
+    tracker->changeParam(bs, bv, mnf, ql, md, ngf, mtf, rtf, sws, nd, pfc, mod, ur, sw, sr, dmd, s1, s2);
 
     process();
 }
@@ -339,31 +353,55 @@ void MainWindow::on_slider_RTF_sliderReleased()
     changeParamAndReprocess(true);
 }
 
-void MainWindow::on_slider_BDS_sliderReleased()
+void MainWindow::on_slider_SWS_sliderReleased()
 {
     changeParamAndReprocess(false);
 }
 
-void MainWindow::on_slider_PG_sliderReleased()
+void MainWindow::on_slider_ND_sliderReleased()
 {
     changeParamAndReprocess(false);
 }
 
-void MainWindow::on_slider_NGP_sliderReleased()
+void MainWindow::on_slider_PFC_sliderReleased()
 {
     changeParamAndReprocess(false);
 }
 
-void MainWindow::on_slider_MTP_sliderReleased()
+void MainWindow::on_slider_MOD_sliderReleased()
 {
     changeParamAndReprocess(false);
 }
 
-void MainWindow::on_slider_RTP_sliderReleased()
+void MainWindow::on_slider_UR_sliderReleased()
 {
     changeParamAndReprocess(false);
 }
 
+void MainWindow::on_slider_SW_sliderReleased()
+{
+    changeParamAndReprocess(false);
+}
+
+void MainWindow::on_slider_SR_sliderReleased()
+{
+    changeParamAndReprocess(false);
+}
+
+void MainWindow::on_slider_DMD_sliderReleased()
+{
+    changeParamAndReprocess(false);
+}
+
+void MainWindow::on_slider_S1_sliderReleased()
+{
+    changeParamAndReprocess(false);
+}
+
+void MainWindow::on_slider_S2_sliderReleased()
+{
+    changeParamAndReprocess(false);
+}
 
 void MainWindow::on_check_local_clicked(bool checked)
 {

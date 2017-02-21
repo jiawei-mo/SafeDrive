@@ -45,15 +45,20 @@ protected:
     int num_grid_feature;
     float match_thres_feature;
     float ransac_thres_feature;
-    int board_size;
-    int pp_grid;
-    int num_grid_pixel;
-    float match_thres_pixel;
-    float ransac_thres_pixel;
+    int SADWindowSize;
+    int numberOfDisparities;
+    int preFilterCap;
+    int minDisparity;
+    int uniquenessRatio;
+    int speckleWindowSize;
+    int speckleRange;
+    int disp12MaxDiff;
+    int SP1;
+    int SP2;
 
 public:
     Tracker();
-    void changeParam(int bs, float bv, int mnf, float ql, int md,  int ngf, float mtf, float rtf, int bds, int pg, int ngp, float mtp, float rtp);
+    void changeParam(int bs, float bv, int mnf, float ql, int md,  int ngf, float mtf, float rtf, int sws, int nd, int pfc, int mod, int ur, int sw, int sr, int dmd, int s1, int s2);
     void setTarget(const Mat& frame);
     int featureMatch(const Mat& frame, Mat& trans, const Mat &camera_K, bool showImg=false, string windowName="No Window", int num_grid=-1, float match_thres=-1, float ransac_thres=-1);
 

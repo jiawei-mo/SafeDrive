@@ -117,7 +117,7 @@ bool MainWindow::findBestMatch() {
 //        ui->text_log->appendPlainText("Frame missing!");
 //        return false;
 //    }
-    matchedFrame = imread("/home/kimiwings/SafeDrive/test/DSC_0002.JPG");
+    matchedFrame = imread("/home/kimiwings/SafeDrive/test/DSC_0003.JPG");
     tracker->featureMatch(matchedFrame, featureRes, camera_K, showProcess, "Feature Match");
 //    waitKey();
     //***********************************************search for most similar image***************************************************************
@@ -164,8 +164,8 @@ MainWindow::MainWindow(QWidget *parent) :
     fetcher = shared_ptr<IMGFetcher>(new IMGFetcher());
 
     saveFolder = "";
-    camera_K = (Mat_<double>(3,3) << 227.85, 0, 300,
-                                     0, 227.85, 200,
+    camera_K = (Mat_<double>(3,3) << 1623.4, 0, 1081.9,
+                                     0, 1623.7, 709.9,
                                      0, 0, 1);
 }
 

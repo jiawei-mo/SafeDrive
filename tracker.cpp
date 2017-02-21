@@ -254,7 +254,7 @@ normalize(imgDisparity, imgDisparity8U, 0, 255, CV_MINMAX, CV_8U);
                 p.x = pos_vec[0];
                 p.y = pos_vec[1];
                 p.z = pos_vec[2];
-                Vec3i &color_vec = db_color_undist_rect.at<Vec3i>(j, i);
+                Vec3b &color_vec = db_color_undist_rect.at<Vec3b>(j, i);
                 p.r = color_vec[2];
                 p.g = color_vec[1];
                 p.b = color_vec[0];

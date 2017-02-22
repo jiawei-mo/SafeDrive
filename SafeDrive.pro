@@ -48,3 +48,6 @@ LIBS += -lpcl_io
 CONFIG += -std=c++11
 QMAKE_CXXFLAGS += -fopenmp
 LIBS += -fopenmp
+
+DISTFILES += \
+    CMakeList.txt

@@ -264,7 +264,7 @@ normalize(imgDisparity, imgDisparity8U, 0, 255, CV_MINMAX, CV_8U);
         }
     }
 
-    pcl::visualization::CloudViewer viewer("Simple Cloud Viewer");
+    pcl::visualization::CloudViewer viewer("Cloud Viewer");
     viewer.showCloud(point_cloud);
     while( !viewer.wasStopped() );
 

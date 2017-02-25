@@ -3,11 +3,11 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 
-bool MainWindow::findBestMatch() {
-    tracker->setTarget(targetFrame);
+bool MainWindow::findBestMatch()
+{
+    matcher->setTarget(targetFrame);
 
     //***********************************************search for most similar image***************************************************************
-    Mat featureRes;
 //    int mD(INT_MIN), dbD(INT_MIN), lD(INT_MIN), rD(INT_MIN);
 //    float mLat = lat;
 //    float mLon = lon;
@@ -28,7 +28,7 @@ bool MainWindow::findBestMatch() {
 //                ui->text_log->appendPlainText("Frame missing!");
 //                return false;
 //            }
-//            dbD = tracker->featureMatch(dbFrame, featureRes);
+//            dbD = matcher->match(dbFrame, featureRes);
 //            if(dbD > mD)
 //            {
 //                mD = dbD;
@@ -44,14 +44,14 @@ bool MainWindow::findBestMatch() {
 //        ui->text_log->appendPlainText("Frame missing!");
 //        return false;
 //    }
-//    lD = tracker->featureMatch(lFrame, featureRes);
+//    lD = matcher->match(lFrame, featureRes);
 
 //    float rHead = mHead+10;
 //    if(!fetcher->get(rFrame, targetFrame.size(), mLat, mLon, rHead, mPitch, searchPath)) {
 //        ui->text_log->appendPlainText("Frame missing!");
 //        return false;
 //    }
-//    rD = tracker->featureMatch(rFrame, featureRes);
+//    rD = matcher->match(rFrame, featureRes);
 //    for(int c=0; c<MATCH_STEP_L; c++)
 //    {
 //        mHead = lHead + (rHead-lHead) / 2;
@@ -59,7 +59,7 @@ bool MainWindow::findBestMatch() {
 //            ui->text_log->appendPlainText("Frame missing!");
 //            return false;
 //        }
-//        mD = tracker->featureMatch(dbFrame, featureRes);
+//        mD = matcher->match(dbFrame, featureRes);
 //        if(lD > rD)
 //        {
 //            rHead = mHead;
@@ -82,14 +82,14 @@ bool MainWindow::findBestMatch() {
 //        ui->text_log->appendPlainText("Frame missing!");
 //        return false;
 //    }
-//    lD = tracker->featureMatch(lFrame, featureRes);
+//    lD = matcher->match(lFrame, featureRes);
 
 //    float rPitch = mPitch+5;
 //    if(!fetcher->get(rFrame, targetFrame.size(), mLat, mLon, mHead, rPitch, searchPath)) {
 //        ui->text_log->appendPlainText("Frame missing!");
 //        return false;
 //    }
-//    rD = tracker->featureMatch(rFrame, featureRes);
+//    rD = matcher->match(rFrame, featureRes);
 //    for(int d=0; d<MATCH_STEP_L; d++)
 //    {
 //        mPitch = lPitch + (rPitch-lPitch) / 2;
@@ -97,7 +97,7 @@ bool MainWindow::findBestMatch() {
 //            ui->text_log->appendPlainText("Frame missing!");
 //            return false;
 //        }
-//        mD = tracker->featureMatch(dbFrame, featureRes);
+//        mD = matcher->match(dbFrame, featureRes);
 //        if(lD > rD)
 //        {
 //            rPitch = mPitch;
@@ -117,8 +117,9 @@ bool MainWindow::findBestMatch() {
 //        ui->text_log->appendPlainText("Frame missing!");
 //        return false;
 //    }
-    matchedFrame = imread("/home/kimiwings/SafeDrive/test/DSC_0013.JPG");
-    tracker->featureMatch(matchedFrame, featureRes, camera_K, showProcess, "Feature Match");
+        Mat coeff = (Mat_<double>(1,5) << -0.2004, 0.1620, 0, 0, 0);
+    matchedFrame = imread("/home/kimiwings/SafeDrive/test/DSC_0001.JPG");
+    matcher->match(matchedFrame, targetMatchedKp, matchedKp, showProcess, "Feature Match");
 //    waitKey();
     //***********************************************search for most similar image***************************************************************
 
@@ -132,14 +133,14 @@ bool MainWindow::findBestMatch() {
 
     //feature match results
     Mat toCompare = targetFrame.clone();
-    detector->detectAndShow(matchedFrame, toCompare, featureRes, camera_K);
+    lane_detector->detectAndShow(matchedFrame, toCompare);
 
     if(showProcess) {
         namedWindow("Feature based result", WINDOW_NORMAL);
         imshow("Feature based result", toCompare);
-        tracker->showDifference(matchedFrame, targetFrame, "Feature result difference");
+        matcher->showDifference(matchedFrame, targetFrame, "Feature result difference");
     } else {
-        tracker->showDifference(matchedFrame, targetFrame, "");
+        matcher->showDifference(matchedFrame, targetFrame, "");
     }
 
 //    cout<<"Feature match homography:"<<endl<<featureRes<<endl;
@@ -159,8 +160,9 @@ MainWindow::MainWindow(QWidget *parent) :
 {
     ui->setupUi(this);
 
-    tracker = shared_ptr<Tracker>(new Tracker());
-    detector = shared_ptr<LaneDetector>(new LaneDetector());
+    reconstructor = shared_ptr<Reconstructor>(new Reconstructor());
+    matcher = shared_ptr<Matcher>(new Matcher());
+    lane_detector = shared_ptr<LaneDetector>(new LaneDetector());
     fetcher = shared_ptr<IMGFetcher>(new IMGFetcher());
 
     saveFolder = "";
@@ -177,7 +179,7 @@ MainWindow::~MainWindow()
 void MainWindow::on_button_img_clicked()
 {
     showProcess = true;
-    QString Qfile1Name = QFileDialog::getOpenFileName(this, tr("Open Img File"), "/home/kimiwings/SafeDrive/test/test0.jpg", tr("Img File (*.jpg)"));
+    QString Qfile1Name = QFileDialog::getOpenFileName(this, tr("Open Img File"), "/home/kimiwings/SafeDrive/test/DSC_0002.JPG", tr("Img File (*.jpg)"));
     string targetString = Qfile1Name.toStdString();
 
 
@@ -266,10 +268,10 @@ void MainWindow::on_button_reset_clicked()
     ui->slider_DMD->setValue(DMD);
     ui->slider_S1->setValue(S1);
     ui->slider_S2->setValue(S2);
-    changeParamAndReprocess(true);
+    changeParamAndReprocess();
 }
 
-void MainWindow::changeParamAndReprocess(bool reFind)
+void MainWindow::changeParamAndReprocess()
 {
     ui->label_BS->setText(QString("Blur Size: ") + QString::number(2*ui->slider_BS->value() + 1));
     ui->label_BV->setText(QString("Blur Var: ") + QString::number(ui->slider_BV->value() / 10.0f));
@@ -307,100 +309,101 @@ void MainWindow::changeParamAndReprocess(bool reFind)
     int dmd = ui->slider_DMD->value();
     int s1 = ui->slider_S1->value();
     int s2 = ui->slider_S2->value();
-    tracker->changeParam(bs, bv, mnf, ql, md, ngf, mtf, rtf, sws, nd, pfc, mod, ur, sw, sr, dmd, s1, s2);
+    matcher->changeParam(bs, bv, mnf, ql, md, ngf, mtf);
+    reconstructor->changeParam(rtf, sws, nd, pfc, mod, ur, sw, sr, dmd, s1, s2);
 
     process();
 }
 
 void MainWindow::on_slider_BS_sliderReleased()
 {
-    changeParamAndReprocess(true);
+    changeParamAndReprocess();
 }
 
 void MainWindow::on_slider_BV_sliderReleased()
 {
-    changeParamAndReprocess(true);
+    changeParamAndReprocess();
 }
 
 void MainWindow::on_slider_MNF_sliderReleased()
 {
-    changeParamAndReprocess(true);
+    changeParamAndReprocess();
 }
 
 void MainWindow::on_slider_QL_sliderReleased()
 {
-    changeParamAndReprocess(true);
+    changeParamAndReprocess();
 }
 
 void MainWindow::on_slider_MD_sliderReleased()
 {
-    changeParamAndReprocess(true);
+    changeParamAndReprocess();
 }
 
 void MainWindow::on_slider_NGF_sliderReleased()
 {
-    changeParamAndReprocess(true);
+    changeParamAndReprocess();
 }
 
 void MainWindow::on_slider_MTF_sliderReleased()
 {
-    changeParamAndReprocess(true);
+    changeParamAndReprocess();
 }
 
 
 void MainWindow::on_slider_RTF_sliderReleased()
 {
-    changeParamAndReprocess(true);
+    changeParamAndReprocess();
 }
 
 void MainWindow::on_slider_SWS_sliderReleased()
 {
-    changeParamAndReprocess(false);
+    changeParamAndReprocess();
 }
 
 void MainWindow::on_slider_ND_sliderReleased()
 {
-    changeParamAndReprocess(false);
+    changeParamAndReprocess();
 }
 
 void MainWindow::on_slider_PFC_sliderReleased()
 {
-    changeParamAndReprocess(false);
+    changeParamAndReprocess();
 }
 
 void MainWindow::on_slider_MOD_sliderReleased()
 {
-    changeParamAndReprocess(false);
+    changeParamAndReprocess();
 }
 
 void MainWindow::on_slider_UR_sliderReleased()
 {
-    changeParamAndReprocess(false);
+    changeParamAndReprocess();
 }
 
 void MainWindow::on_slider_SW_sliderReleased()
 {
-    changeParamAndReprocess(false);
+    changeParamAndReprocess();
 }
 
 void MainWindow::on_slider_SR_sliderReleased()
 {
-    changeParamAndReprocess(false);
+    changeParamAndReprocess();
 }
 
 void MainWindow::on_slider_DMD_sliderReleased()
 {
-    changeParamAndReprocess(false);
+    changeParamAndReprocess();
 }
 
 void MainWindow::on_slider_S1_sliderReleased()
 {
-    changeParamAndReprocess(false);
+    changeParamAndReprocess();
 }
 
 void MainWindow::on_slider_S2_sliderReleased()
 {
-    changeParamAndReprocess(false);
+    changeParamAndReprocess();
 }
 
 void MainWindow::on_check_local_clicked(bool checked)

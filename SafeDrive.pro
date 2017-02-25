@@ -14,15 +14,17 @@ TEMPLATE = app
 
 SOURCES += main.cpp\
         mainwindow.cpp \
-    tracker.cpp \
     lane_detector.cpp \
-    img_fetcher.cpp
+    img_fetcher.cpp \
+    reconstructor.cpp \
+    matcher.cpp
 
 HEADERS  += mainwindow.h \
-    tracker.hpp \
     lane_detector.hpp \
     parameters.hpp \
-    img_fetcher.hpp
+    img_fetcher.hpp \
+    reconstructor.hpp \
+    matcher.hpp
 
 FORMS    += mainwindow.ui
 

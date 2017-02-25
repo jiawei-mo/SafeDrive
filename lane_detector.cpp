@@ -44,7 +44,7 @@ bool imgBoundValid(const Mat& img, Point2f pt) {
     return a && b && c && d;
 }
 
-void LaneDetector::detectAndShow(const Mat& detImg, Mat& projImg, const Mat& trans, const Mat &K)
+void LaneDetector::detectAndShow(const Mat& detImg, Mat& projImg)
 {
     vector<Point2f> markerPoints;
     detect(detImg, markerPoints);
@@ -53,15 +53,7 @@ void LaneDetector::detectAndShow(const Mat& detImg, Mat& projImg, const Mat& tra
     //draw lanes
     for(auto& db_p:markerPoints)
     {
-        Mat X = K.inv()*(Mat_<double>(3,1) << db_p.x, db_p.y, 1);
-        Mat X_homo = (Mat_<double>(4,1) << X.at<double>(0), X.at<double>(1), X.at<double>(2), 1);
-        Mat X_p = K*trans*X_homo;
-        Point2f projP(X_p.at<double>(0)/X_p.at<double>(2), X_p.at<double>(1)/X_p.at<double>(2));
-//        cout<<"orig: "<<db_p<<endl;
-//        cout<<"proj: "<<projP<<endl;
-        if((imgBoundValid(projImg, projP))) {
-            mask.at<float>((int)projP.y, (int)projP.x) = 1.0f;
-        }
+        mask.at<float>((int)db_p.y, (int)db_p.x) = 1.0f;
     }
 
     blur(mask, mask, Size(10, 10));

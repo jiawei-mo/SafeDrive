@@ -3,7 +3,8 @@
 
 #include <QMainWindow>
 #include <QFileDialog>
-#include "tracker.hpp"
+#include "reconstructor.hpp"
+#include "matcher.hpp"
 #include "lane_detector.hpp"
 #include "img_fetcher.hpp"
 #include <string.h>
@@ -31,19 +32,22 @@ private:
 
     Ui::MainWindow *ui;
 
-    shared_ptr<Tracker> tracker;
-    shared_ptr<LaneDetector> detector;
+    shared_ptr<Reconstructor> reconstructor;
+    shared_ptr<Matcher> matcher;
+    shared_ptr<LaneDetector> lane_detector;
     shared_ptr<IMGFetcher> fetcher;
 
     Mat camera_K;
     Mat targetFrame;
     Mat matchedFrame;
+    vector<Point2f> targetMatchedKp;
+    vector<Point2f> matchedKp;
     float lat;
     float lon;
     float head;
     float pitch;
     string searchPath;
-    void changeParamAndReprocess(bool reFind);
+    void changeParamAndReprocess();
     void process();
     bool findBestMatch();
 

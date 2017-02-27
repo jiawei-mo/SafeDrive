@@ -560,19 +560,6 @@
      <string>Video</string>
     </property>
    </widget>
-   <widget class="QCheckBox" name="check_local">
-    <property name="geometry">
-     <rect>
-      <x>40</x>
-      <y>70</y>
-      <width>101</width>
-      <height>20</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>Local Search</string>
-    </property>
-   </widget>
    <widget class="QSlider" name="slider_SW">
     <property name="geometry">
      <rect>

@@ -1,5 +1,5 @@
-#ifndef RECONSTRUCTOR_H
-#define RECONSTRUCTOR_H
+#ifndef THREEDHANDLER_H
+#define THREEDHANDLER_H
 
 #include "opencv2/opencv.hpp"
 #include "opencv2/features2d.hpp"
@@ -15,9 +15,13 @@
 
 using namespace cv;
 using namespace std;
-class Reconstructor
+class ThreeDHandler
 {
 private:
+
+    Mat camera_K;
+    Mat camera_coeff;
+
     float ransac_thres_feature;
     int SADWindowSize;
     int numberOfDisparities;
@@ -33,10 +37,11 @@ private:
     boost::thread showPoints;
 
 public:
-    Reconstructor();
-    ~Reconstructor();
+    ThreeDHandler();
+    ~ThreeDHandler();
     void changeParam(float rtf, int sws, int nd, int pfc, int mod, int ur, int sw, int sr, int dmd, int s1, int s2);
-    void reconstruct(const Mat& left_img, const vector<Point2f> &left_kp, const Mat& right_img, const vector<Point2f> &right_kp, const Mat& cam_K, const Mat& cam_coeff);
+    void findDisparity(Mat &disp_img, Mat &Q, Mat &left_img, vector<Point2f> &left_kp, Mat &right_img, vector<Point2f> &right_kp);
+    void project(Mat& img, const vector<Point2f>& p_img, const Mat& disp_img, const vector<Point2f>& p_obj, const Mat& Q, const vector<Point2f>& p_marker);
 };
 
-#endif // RECONSTRUCTOR_H
+#endif // THREEDHANDLER_H

@@ -16,15 +16,17 @@ SOURCES += src/main.cpp\
         src/mainwindow.cpp \
         src/lane_detector.cpp \
         src/img_fetcher.cpp \
-        src/reconstructor.cpp \
-        src/matcher.cpp
+        src/matcher.cpp \
+    src/manager.cpp \
+    src/three_d_handler.cpp
 
 HEADERS  += headers/mainwindow.h \
             headers/lane_detector.hpp \
             headers/parameters.hpp \
             headers/img_fetcher.hpp \
-            headers/reconstructor.hpp \
-            headers/matcher.hpp
+            headers/matcher.hpp \
+            headers/manager.hpp \
+    headers/three_d_handler.hpp
 
 FORMS    += mainwindow.ui
 

@@ -19,6 +19,8 @@ void LaneDetector::detect(const Mat& img, vector<Point2f>& markerPoints)
 //    GaussianBlur(yellowHist, yellowHist, Size(3,3), 2, 2);
     Canny( roi, whiteEdge, 50, 400, 3);
     Canny( roi, yellowEdge, 50, 400, 3);
+    blur(whiteEdge, whiteEdge, Size(10, 10));
+    blur(yellowEdge, yellowEdge, Size(10, 10));
 
     for(int i=0; i<roi.rows; i++)
     {
@@ -34,31 +36,4 @@ void LaneDetector::detect(const Mat& img, vector<Point2f>& markerPoints)
             }
         }
     }
-}
-
-bool imgBoundValid(const Mat& img, Point2f pt) {
-    bool a = pt.x >= 0;
-    bool b = pt.x < img.cols;
-    bool c = pt.y >=0;
-    bool d = pt.y < img.rows;
-    return a && b && c && d;
-}
-
-void LaneDetector::detectAndShow(const Mat& detImg, Mat& projImg)
-{
-    vector<Point2f> markerPoints;
-    detect(detImg, markerPoints);
-
-    Mat mask = Mat::zeros(projImg.size(), CV_32F);
-    //draw lanes
-    for(auto& db_p:markerPoints)
-    {
-        mask.at<float>((int)db_p.y, (int)db_p.x) = 1.0f;
-    }
-
-    blur(mask, mask, Size(10, 10));
-    threshold(mask, mask, 0, 1, cv::THRESH_BINARY);
-    mask.convertTo(mask, CV_8U);
-
-    detImg.copyTo(projImg, mask);
 }

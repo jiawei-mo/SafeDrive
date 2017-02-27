@@ -25,5 +25,6 @@
 #define S1 448      //int
 #define S2 800      //int
 
+#define QT_DEBUG
 
 #endif // PARAMETERS_HPP

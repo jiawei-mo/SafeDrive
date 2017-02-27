@@ -27,23 +27,17 @@ protected:
     Ptr<DescriptorMatcher> matcher;
 
     Mat mask;
-    Mat targetFrame;
-    Mat targetDesc;
-    vector<KeyPoint> targetKp;
 
     int max_num_features;
     float quality_level;
     int min_distance;
-    int blur_size;
-    float blur_var;
     int num_grid_feature;
     float match_thres_feature;
 
 public:
     Matcher();
-    void changeParam(int bs, float bv, int mnf, float ql, int md,  int ngf, float mtf);
-    void setTarget(const Mat& frame);
-    void match(const Mat& frame, vector<Point2f>& targetMatchedKp, vector<Point2f>& dbMatchedKp, bool showImg=false, string windowName="No Window", int num_grid=-1, float match_thres=-1);
+    void changeParam(int mnf, float ql, int md,  int ngf, float mtf);
+    void match(const Mat& left_frame, vector<Point2f> &left_matched_kp, const Mat &right_img, vector<Point2f>& right_matched_kp);
 
     //helpers
     void showDifference(const Mat& image1, const Mat& image2, string title);

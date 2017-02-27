@@ -11,7 +11,7 @@
 #include <pcl/visualization/cloud_viewer.h>
 #include <pcl/io/pcd_io.h>
 
-#include "parameters.hpp"
+#include "headers/parameters.hpp"
 
 using namespace cv;
 using namespace std;

@@ -3,10 +3,10 @@
 
 #include <QMainWindow>
 #include <QFileDialog>
-#include "reconstructor.hpp"
-#include "matcher.hpp"
-#include "lane_detector.hpp"
-#include "img_fetcher.hpp"
+#include "headers/reconstructor.hpp"
+#include "headers/matcher.hpp"
+#include "headers/lane_detector.hpp"
+#include "headers/img_fetcher.hpp"
 #include <string.h>
 #include <fstream>
 #include <sstream>

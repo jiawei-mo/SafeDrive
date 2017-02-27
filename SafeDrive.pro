@@ -12,19 +12,19 @@ TARGET = SafeDrive
 TEMPLATE = app
 
 
-SOURCES += main.cpp\
-        mainwindow.cpp \
-    lane_detector.cpp \
-    img_fetcher.cpp \
-    reconstructor.cpp \
-    matcher.cpp
+SOURCES += src/main.cpp\
+        src/mainwindow.cpp \
+        src/lane_detector.cpp \
+        src/img_fetcher.cpp \
+        src/reconstructor.cpp \
+        src/matcher.cpp
 
-HEADERS  += mainwindow.h \
-    lane_detector.hpp \
-    parameters.hpp \
-    img_fetcher.hpp \
-    reconstructor.hpp \
-    matcher.hpp
+HEADERS  += headers/mainwindow.h \
+            headers/lane_detector.hpp \
+            headers/parameters.hpp \
+            headers/img_fetcher.hpp \
+            headers/reconstructor.hpp \
+            headers/matcher.hpp
 
 FORMS    += mainwindow.ui
 
@@ -50,6 +50,3 @@ LIBS += -lpcl_io
 CONFIG += -std=c++11
 QMAKE_CXXFLAGS += -fopenmp
 LIBS += -fopenmp
-
-DISTFILES += \
-    CMakeList.txt

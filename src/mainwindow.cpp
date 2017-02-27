@@ -1,6 +1,6 @@
 #include "omp.h"
 
-#include "mainwindow.h"
+#include "headers/mainwindow.h"
 #include "ui_mainwindow.h"
 
 bool MainWindow::findBestMatch()

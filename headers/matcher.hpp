@@ -7,7 +7,7 @@
 #include "opencv2/features2d.hpp"
 #include "opencv2/calib3d/calib3d.hpp"
 
-#include "parameters.hpp"
+#include "headers/parameters.hpp"
 
 using namespace cv;
 using namespace std;

@@ -9,10 +9,10 @@ bool MainWindow::findBestMatch()
 
     //***********************************************search for most similar image***************************************************************
 //    int mD(INT_MIN), dbD(INT_MIN), lD(INT_MIN), rD(INT_MIN);
-//    float mLat = lat;
-//    float mLon = lon;
-//    float mHead = head;
-//    float mPitch = pitch;
+    float mLat = lat;
+    float mLon = lon;
+    float mHead = head;
+    float mPitch = pitch;
 //    Mat dbFrame, lFrame, rFrame;
 
     //Lat/Lon grid search
@@ -113,13 +113,11 @@ bool MainWindow::findBestMatch()
 //        mPitch = rPitch;
 //    }
 
-//    if(!fetcher->get(matchedFrame, targetFrame.size(), mLat, mLon, mHead, mPitch, searchPath)) {
-//        ui->text_log->appendPlainText("Frame missing!");
-//        return false;
-//    }
-        Mat coeff = (Mat_<double>(1,5) << -0.2004, 0.1620, 0, 0, 0);
-    matchedFrame = imread("/home/kimiwings/SafeDrive/test/DSC_0001.JPG");
-    matcher->match(matchedFrame, targetMatchedKp, matchedKp, showProcess, "Feature Match");
+    if(!fetcher->get(matchedFrame, targetFrame.size(), mLat, mLon, mHead, mPitch, searchPath)) {
+        ui->text_log->appendPlainText("Frame missing!");
+        return false;
+    }
+    matcher->match(matchedFrame, targetKp, matchedKp, showProcess, "Feature Match");
 //    waitKey();
     //***********************************************search for most similar image***************************************************************
 
@@ -132,6 +130,7 @@ bool MainWindow::findBestMatch()
 
 
     //feature match results
+    reconstructor->reconstruct(targetFrame, targetKp, matchedFrame, matchedKp, camera_K, coeff);
     Mat toCompare = targetFrame.clone();
     lane_detector->detectAndShow(matchedFrame, toCompare);
 
@@ -166,9 +165,12 @@ MainWindow::MainWindow(QWidget *parent) :
     fetcher = shared_ptr<IMGFetcher>(new IMGFetcher());
 
     saveFolder = "";
-    camera_K = (Mat_<double>(3,3) << 1623.4, 0, 1081.9,
+
+    camera_K = (cv::Mat_<double>(3,3) << 1623.4, 0, 1081.9,
                                      0, 1623.7, 709.9,
                                      0, 0, 1);
+
+    coeff = (cv::Mat_<double>(1,5) << -0.2004, 0.1620, 0, 0, 0);
 }
 
 MainWindow::~MainWindow()

@@ -33,7 +33,7 @@ private:
 public:
     Reconstructor();
     void changeParam(float rtf, int sws, int nd, int pfc, int mod, int ur, int sw, int sr, int dmd, int s1, int s2);
-    void reconstruct(const Mat& left_img, const Mat &left_kp, const Mat& right_img, const Mat &right_kp, const Mat& cam_K, const Mat& cam_coeff);
+    void reconstruct(const Mat& left_img, const vector<Point2f> &left_kp, const Mat& right_img, const vector<Point2f> &right_kp, const Mat& cam_K, const Mat& cam_coeff);
 };
 
 #endif // RECONSTRUCTOR_H

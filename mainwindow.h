@@ -38,9 +38,10 @@ private:
     shared_ptr<IMGFetcher> fetcher;
 
     Mat camera_K;
+    Mat coeff;
     Mat targetFrame;
     Mat matchedFrame;
-    vector<Point2f> targetMatchedKp;
+    vector<Point2f> targetKp;
     vector<Point2f> matchedKp;
     float lat;
     float lon;

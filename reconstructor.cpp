@@ -30,7 +30,7 @@ void Reconstructor::changeParam(float rtf, int sws, int nd, int pfc, int mod, in
     SP2 = s2;
 }
 
-void Reconstructor::reconstruct(const Mat& left_img, const Mat& left_kp, const Mat& right_img, const Mat& right_kp, const Mat& cam_K, const Mat& cam_coeff)
+void Reconstructor::reconstruct(const Mat& left_img, const vector<Point2f>& left_kp, const Mat& right_img, const vector<Point2f>& right_kp, const Mat& cam_K, const Mat& cam_coeff)
 {
     //find essential_mat based on matches using RANSAC
     Mat inliner_mask;

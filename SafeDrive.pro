@@ -45,6 +45,7 @@ LIBS += -lboost_system
 LIBS += -lpcl_common
 LIBS += -lpcl_visualization
 LIBS += -lpcl_io
+LIBS += -lboost_thread
 
 
 CONFIG += -std=c++11

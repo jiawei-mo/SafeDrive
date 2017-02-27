@@ -15,6 +15,11 @@ Reconstructor::Reconstructor()
     SP2 = S2;
 }
 
+Reconstructor::~Reconstructor()
+{
+        showPoints.join();
+}
+
 void Reconstructor::changeParam(float rtf, int sws, int nd, int pfc, int mod, int ur, int sw, int sr, int dmd, int s1, int s2)
 {
     ransac_thres_feature = rtf;
@@ -28,6 +33,16 @@ void Reconstructor::changeParam(float rtf, int sws, int nd, int pfc, int mod, in
     disp12MaxDiff = dmd;
     SP1 = s1;
     SP2 = s2;
+}
+
+void showPC(pcl::PointCloud<pcl::PointXYZRGB>::Ptr point_cloud)
+{
+    static pcl::visualization::CloudViewer viewer("Cloud Viewer");
+    viewer.showCloud(point_cloud);
+    while( !viewer.wasStopped() )
+    {
+        sleep(1);
+    }
 }
 
 void Reconstructor::reconstruct(const Mat& left_img, const vector<Point2f>& left_kp, const Mat& right_img, const vector<Point2f>& right_kp, const Mat& cam_K, const Mat& cam_coeff)
@@ -95,7 +110,5 @@ void Reconstructor::reconstruct(const Mat& left_img, const vector<Point2f>& left
         }
     }
 
-    pcl::visualization::CloudViewer viewer("Cloud Viewer");
-    viewer.showCloud(point_cloud);
-    while( !viewer.wasStopped() );
+    showPoints = boost::thread(showPC, point_cloud);
 }

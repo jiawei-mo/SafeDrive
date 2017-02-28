@@ -175,7 +175,7 @@ void Manager::process()
 
     matcher->match(matchedFrameLeft, matchedLeftKp, targetFrame, targetKp);
 
-    three_d_handler->project(targetFrame, targetKp, disp_img, matchedLeftKp, Q, marker_pixels);
+    three_d_handler->project(targetFrame, targetKp, disp_img, matchedFrameLeft, matchedLeftKp, Q, marker_pixels);
 
 #ifdef QT_DEBUG
     namedWindow("Result", WINDOW_NORMAL);

@@ -41,7 +41,7 @@ public:
     ~ThreeDHandler();
     void changeParam(float rtf, int sws, int nd, int pfc, int mod, int ur, int sw, int sr, int dmd, int s1, int s2);
     void findDisparity(Mat &disp_img, Mat &Q, Mat &left_img, vector<Point2f> &left_kp, Mat &right_img, vector<Point2f> &right_kp);
-    void project(Mat& img, const vector<Point2f>& p_img, const Mat& disp_img, const vector<Point2f>& p_obj, const Mat& Q, const vector<Point2f>& p_marker);
+    void project(Mat& cur_img, const vector<Point2f>& p_cur, const Mat& disp_img, const Mat& obj_img, const vector<Point2f>& p_obj, const Mat& Q, const vector<Point2f>& p_marker);
 };
 
 #endif // THREEDHANDLER_H

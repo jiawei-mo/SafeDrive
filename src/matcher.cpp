@@ -30,6 +30,8 @@ void Matcher::changeParam(int mnf, float ql, int md,  int ngf, float mtf)
 
 void Matcher::match(const Mat& left_img, vector<Point2f>& left_matched_kp, const Mat& right_img, vector<Point2f>& right_matched_kp)
 {
+    left_matched_kp.clear();
+    right_matched_kp.clear();
     if(left_img.empty() || right_img.empty()) {
         return;
     }
@@ -139,6 +141,7 @@ void Matcher::match(const Mat& left_img, vector<Point2f>& left_matched_kp, const
     string windowName = "DEBUG: feature matching";
     namedWindow(windowName, WINDOW_NORMAL);
     imshow(windowName, matchedImg);
+    waitKey(1);
 #endif
 
     return;

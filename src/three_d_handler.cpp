@@ -110,20 +110,6 @@ void ThreeDHandler::findDisparity(Mat &disp_img, Mat &Q, Mat& left_img, vector<P
     normalize(imgDisparity, disp_img, 0, 255, CV_MINMAX, CV_8U);
 
 #ifdef QT_DEBUG
-    Mat epi;
-    hconcat(left_undist_rect, right_undist_rect, epi);
-    for(int j = 0; j < epi.rows; j += 36 )
-        line(epi, Point(0, j), Point(epi.cols, j), Scalar(0, 255, 0), 1, 8);
-    namedWindow("Epipolar line", WINDOW_NORMAL);
-    imshow("Epipolar line", epi);
-    namedWindow("Disparity", WINDOW_NORMAL);
-    imshow("Disparity", disp_img);
-#endif
-}
-
-void ThreeDHandler::project(Mat& img, const vector<Point2f>& p_img, const Mat& disp_img, const vector<Point2f>& p_obj, const Mat &Q, const vector<Point2f>& p_marker)
-{
-#ifdef QT_DEBUG
     cv::Mat XYZ(disp_img.size(),CV_32FC3);
     reprojectImageTo3D(disp_img, XYZ, Q, false, CV_32F);
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr point_cloud (new pcl::PointCloud<pcl::PointXYZRGB>);
@@ -138,13 +124,30 @@ void ThreeDHandler::project(Mat& img, const vector<Point2f>& p_img, const Mat& d
                 p.x = pos_vec[0];
                 p.y = pos_vec[1];
                 p.z = pos_vec[2];
+                Vec3b &color_vec = left_undist_rect.at<Vec3b>(j, i);
+                p.r = color_vec[2];
+                p.g = color_vec[1];
+                p.b = color_vec[0];
                 point_cloud->push_back(p);
             }
         }
     }
 
     showPoints = boost::thread(showPC, point_cloud);
+
+    Mat epi;
+    hconcat(left_undist_rect, right_undist_rect, epi);
+    for(int j = 0; j < epi.rows; j += 36 )
+        line(epi, Point(0, j), Point(epi.cols, j), Scalar(0, 255, 0), 1, 8);
+    namedWindow("Epipolar line", WINDOW_NORMAL);
+    imshow("Epipolar line", epi);
+    namedWindow("Disparity", WINDOW_NORMAL);
+    imshow("Disparity", disp_img);
 #endif
+}
+
+void ThreeDHandler::project(Mat& cur_img, const vector<Point2f>& p_cur, const Mat& disp_img, const Mat& obj_img, const vector<Point2f>& p_obj, const Mat &Q, const vector<Point2f>& p_marker)
+{
 
     //register camera frame
     Mat Qf;
@@ -166,7 +169,7 @@ void ThreeDHandler::project(Mat& img, const vector<Point2f>& p_img, const Mat& d
         vec_tmp = Qf*vec_tmp;
         vec_tmp /= vec_tmp(3);
         pts_obj.push_back(Point3f(vec_tmp(0), vec_tmp(1), vec_tmp(2)));
-        pts_img.push_back(p_img[i]);
+        pts_img.push_back(p_cur[i]);
     }
 
     cv::Mat rvec, t, inliers;
@@ -195,9 +198,10 @@ void ThreeDHandler::project(Mat& img, const vector<Point2f>& p_img, const Mat& d
         p_homo /= p_homo(3);
         Mat proj_p_homo = camera_K*P*p_homo;
         Point2i proj_p(proj_p_homo.at<double>(0,0)/proj_p_homo.at<double>(2,0), proj_p_homo.at<double>(1,0)/proj_p_homo.at<double>(2,0));
-        if(imgBoundValid(img, proj_p))
+        if(imgBoundValid(cur_img, proj_p))
         {
-            img.at<Vec3b>(proj_p.y, proj_p.x) = Vec3b(255,255,255);
+            cur_img.at<Vec3b>(proj_p.y, proj_p.x) += obj_img.at<Vec3b>(y, x);
+            cur_img.at<Vec3b>(proj_p.y, proj_p.x) /= 2;
         }
     }
 

@@ -22,17 +22,13 @@ void LaneDetector::detect(const Mat& img, vector<Point2f>& markerPoints)
     blur(whiteEdge, whiteEdge, Size(10, 10));
     blur(yellowEdge, yellowEdge, Size(10, 10));
 
-    for(int i=0; i<roi.rows; i++)
+    for(int i=0; i<img.rows; i++)
     {
-        for(int j=0; j<roi.cols; j++)
+        for(int j=0; j<img.cols; j++)
         {
-            if(whiteEdge.at<uchar>(i, j))
+//            if(whiteEdge.at<uchar>(i, j) || yellowEdge.at<uchar>(i, j))
             {
-                markerPoints.push_back(Point(j, img.rows/2 + i));
-            }
-            if(yellowEdge.at<uchar>(i, j))
-            {
-                markerPoints.push_back(Point(j, img.rows/2 + i));
+                markerPoints.push_back(Point(j, i));
             }
         }
     }

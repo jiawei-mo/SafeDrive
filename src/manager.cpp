@@ -148,9 +148,9 @@ bool Manager::findBestMatch()
     //***********************************************search for most similar image***************************************************************
 
 
-    matchedFrameLeft = imread("/home/kimiwings/SafeDrive/test/DSC_0001.JPG");
+    matchedFrameLeft = imread("/home/kimiwings/SafeDrive/test/1.jpg");
     GaussianBlur(matchedFrameLeft, matchedFrameLeft, Size(blur_size,blur_size), blur_var, blur_var);
-    matchedFrameRight = imread("/home/kimiwings/SafeDrive/test/DSC_0002.JPG");
+    matchedFrameRight = imread("/home/kimiwings/SafeDrive/test/2.jpg");
     GaussianBlur(matchedFrameLeft, matchedFrameLeft, Size(blur_size,blur_size), blur_var, blur_var);
 
     return true;
@@ -168,18 +168,19 @@ void Manager::process()
 
     matcher->match(matchedFrameLeft, matchedLeftKp, matchedFrameRight, matchedRightKp);
 
+    lane_detector->detect(matchedFrameLeft, marker_pixels);
+
     Mat disp_img, Q;
     three_d_handler->findDisparity(disp_img, Q, matchedFrameLeft, matchedLeftKp, matchedFrameRight, matchedRightKp);
 
-    lane_detector->detect(matchedFrameLeft, marker_pixels);
-
     matcher->match(matchedFrameLeft, matchedLeftKp, targetFrame, targetKp);
 
-    three_d_handler->project(targetFrame, targetKp, disp_img, matchedFrameLeft, matchedLeftKp, Q, marker_pixels);
+    Mat result = targetFrame.clone();
+    three_d_handler->project(result, targetKp, disp_img, matchedFrameLeft, matchedLeftKp, Q, marker_pixels);
 
 #ifdef QT_DEBUG
     namedWindow("Result", WINDOW_NORMAL);
-    imshow("Result", targetFrame);
+    imshow("Result", result);
 #endif
 
 }

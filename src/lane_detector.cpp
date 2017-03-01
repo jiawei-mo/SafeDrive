@@ -22,11 +22,11 @@ void LaneDetector::detect(const Mat& img, vector<Point2f>& markerPoints)
     blur(whiteEdge, whiteEdge, Size(10, 10));
     blur(yellowEdge, yellowEdge, Size(10, 10));
 
-    for(int i=0; i<img.rows; i++)
+    for(int i=300; i<600; i++)
     {
-        for(int j=0; j<img.cols; j++)
+        for(int j=600; j<700; j++)
         {
-//            if(whiteEdge.at<uchar>(i, j) || yellowEdge.at<uchar>(i, j))
+            if(whiteEdge.at<uchar>(i, j) || yellowEdge.at<uchar>(i, j))
             {
                 markerPoints.push_back(Point(j, i));
             }

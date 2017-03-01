@@ -22,11 +22,17 @@ ThreeDHandler::ThreeDHandler()
     SP1 = S1;
     SP2 = S2;
 
-    camera_K = (cv::Mat_<double>(3,3) << 1623.4, 0, 1081.9,
-                                     0, 1623.7, 709.9,
+    camera_K = (cv::Mat_<double>(3,3) << 1130.2, 0, 677.1,
+                                     0, 1129.9, 507.5,
                                      0, 0, 1);
 
-    camera_coeff = (cv::Mat_<double>(1,5) << -0.2004, 0.1620, 0, 0, 0);
+    camera_coeff = (cv::Mat_<double>(1,5) << 0.0995, -0.2875, 0, 0, 0);
+
+//    camera_K = (cv::Mat_<double>(3,3) << 1623.4, 0, 1081.9,
+//                                     0, 1623.7, 709.9,
+//                                     0, 0, 1);
+
+//    camera_coeff = (cv::Mat_<double>(1,5) << -0.2004, 0.1620, 0, 0, 0);
 }
 
 ThreeDHandler::~ThreeDHandler()
@@ -107,6 +113,37 @@ void ThreeDHandler::findDisparity(Mat &disp_img, Mat &Q, Mat& left_img, vector<P
 
     sbm->compute( left_undist_rect, right_undist_rect, imgDisparity );
 
+    cout<<imgDisparity<<endl;
+
+    //force marker pixels to have disparity
+//    static Ptr<ORB> detector = ORB::create();
+//    static Ptr<DescriptorMatcher> matcher = DescriptorMatcher::create("BruteForce-Hamming");
+//    for(auto& mp: marker_p)
+//    {
+//        cout<<mp<<endl;
+//        Mat mp_desc = Mat();
+//        Mat ep_desc = Mat();
+//        vector<KeyPoint> mp_kp;
+//        mp_kp.push_back(KeyPoint(mp.x, mp.y, 1.0f));
+//        detector->compute(left_undist_rect, mp_kp, mp_desc);
+
+//        vector<KeyPoint> epi_line;
+//        for(int x=0; x<frame_size.width; x++)
+//        {
+//            epi_line.push_back(KeyPoint(x, mp.y, 1.0f));
+//        }
+//        vector<KeyPoint> epi_line_copy = epi_line;
+//        detector->compute(right_undist_rect, epi_line_copy, ep_desc);
+
+//        vector<vector<DMatch> > match;
+//        matcher->knnMatch(mp_desc, ep_desc, match, 2);
+
+//        //ERROR probe
+//        if(match.empty()) continue;
+//        cout<<epi_line[match[0][0].trainIdx].pt.x - mp.x<<endl;
+//        imgDisparity.at<float>(mp.y, mp.x) = epi_line[match[0][0].trainIdx].pt.x - mp.x;
+//    }
+
     normalize(imgDisparity, disp_img, 0, 255, CV_MINMAX, CV_8U);
 
 #ifdef QT_DEBUG
@@ -118,7 +155,7 @@ void ThreeDHandler::findDisparity(Mat &disp_img, Mat &Q, Mat& left_img, vector<P
         for(int j=0; j<XYZ.rows; j++)
         {
             Vec3f &pos_vec = XYZ.at<Vec3f>(j, i);
-            if((pos_vec[2] > 1.0 && pos_vec[2] < 20.0) || (pos_vec[2] > -20.0 && pos_vec[2] < -1.0))
+            if((pos_vec[2] > 0.0 && pos_vec[2] < 80.0) || (pos_vec[2] > -80.0 && pos_vec[2] < -0.0))
             {
                 pcl::PointXYZRGB p;
                 p.x = pos_vec[0];
@@ -137,7 +174,7 @@ void ThreeDHandler::findDisparity(Mat &disp_img, Mat &Q, Mat& left_img, vector<P
 
     Mat epi;
     hconcat(left_undist_rect, right_undist_rect, epi);
-    for(int j = 0; j < epi.rows; j += 36 )
+    for(int j = 0; j < epi.rows; j += (epi.rows / 10) )
         line(epi, Point(0, j), Point(epi.cols, j), Scalar(0, 255, 0), 1, 8);
     namedWindow("Epipolar line", WINDOW_NORMAL);
     imshow("Epipolar line", epi);
@@ -200,8 +237,8 @@ void ThreeDHandler::project(Mat& cur_img, const vector<Point2f>& p_cur, const Ma
         Point2i proj_p(proj_p_homo.at<double>(0,0)/proj_p_homo.at<double>(2,0), proj_p_homo.at<double>(1,0)/proj_p_homo.at<double>(2,0));
         if(imgBoundValid(cur_img, proj_p))
         {
-            cur_img.at<Vec3b>(proj_p.y, proj_p.x) += obj_img.at<Vec3b>(y, x);
             cur_img.at<Vec3b>(proj_p.y, proj_p.x) /= 2;
+            cur_img.at<Vec3b>(proj_p.y, proj_p.x) += (obj_img.at<Vec3b>(y, x) / 2);
         }
     }
 

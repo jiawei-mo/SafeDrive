@@ -210,7 +210,8 @@ void ThreeDHandler::project(Mat& cur_img, const vector<Point2f>& p_cur, const Ma
     cv::Mat rvec, t, inliers;
     cv::solvePnPRansac( pts_obj, pts_img, camera_K, cv::Mat(), rvec, t, false, 100, 8.0, 0.99, inliers, cv::SOLVEPNP_ITERATIVE );
 
-    cout<<rvec<<t<<endl;
+    cout<<"Proj rotation: "<<rvec<<endl;
+    cout<<"Proj translation: "<<t<<endl;
 
     Mat R, P;
     Rodrigues(rvec, R);

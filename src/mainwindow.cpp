@@ -20,13 +20,13 @@ MainWindow::~MainWindow()
 
 void MainWindow::on_button_img_clicked()
 {
-    QString Qfile1Name = QFileDialog::getOpenFileName(this, tr("Open Img File"), "/home/kimiwings/SafeDrive/test/DSC_0002.JPG", tr("Img File (*.jpg)"));
+    QString Qfile1Name = QFileDialog::getOpenFileName(this, tr("Open Img File"), "/home/kimiwings/SafeDrive/test/3b.jpg", tr("Img File (*.jpg)"));
     string targetString = Qfile1Name.toStdString();
 
     QString QlocalSearchFolderName = QFileDialog::getExistingDirectory(this, tr("Open Img Directory"), "/home/kimiwings/SafeDrive/test/video/imgs", QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
     string searchPath = QlocalSearchFolderName.toStdString();
 
-    QString QPosFile = QFileDialog::getOpenFileName(this, tr("Open Pos File"), "/home/kimiwings/SafeDrive/test/test0.log", tr("log Files (*.log)"));
+    QString QPosFile = QFileDialog::getOpenFileName(this, tr("Open Pos File"), "/home/kimiwings/SafeDrive/test/old/test1.log", tr("log Files (*.log)"));
     string posFile = QPosFile.toStdString();
     ifstream params(posFile);
 

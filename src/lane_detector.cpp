@@ -26,7 +26,7 @@ void LaneDetector::detect(const Mat& img, vector<Point2f>& markerPoints)
     {
         for(int j=600; j<700; j++)
         {
-            if(whiteEdge.at<uchar>(i, j) || yellowEdge.at<uchar>(i, j))
+//            if(whiteEdge.at<uchar>(i, j) || yellowEdge.at<uchar>(i, j))
             {
                 markerPoints.push_back(Point(j, i));
             }

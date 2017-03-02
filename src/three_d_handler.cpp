@@ -113,8 +113,6 @@ void ThreeDHandler::findDisparity(Mat &disp_img, Mat &Q, Mat& left_img, vector<P
 
     sbm->compute( left_undist_rect, right_undist_rect, imgDisparity );
 
-    cout<<imgDisparity<<endl;
-
     //force marker pixels to have disparity
 //    static Ptr<ORB> detector = ORB::create();
 //    static Ptr<DescriptorMatcher> matcher = DescriptorMatcher::create("BruteForce-Hamming");

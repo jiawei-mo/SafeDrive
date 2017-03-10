@@ -10,6 +10,7 @@ bool imgBoundValid(const Mat& img, Point2i pt) {
 
 ThreeDHandler::ThreeDHandler()
 {
+    lane_detector = shared_ptr<LaneDetector>(new LaneDetector());
     ransac_thres_feature = RTF / 1.0f;
     SADWindowSize = SWS;
     numberOfDisparities = ND * 16;
@@ -103,8 +104,8 @@ void ThreeDHandler::findDisparity(Mat &disp_img, Mat &Q, Mat& left_img, vector<P
 //    cout<<R1<<endl<<R2<<endl<<P1<<endl<<P2<<endl<<Q<<endl;
 
     Mat left_undist_rect_map_x, left_undist_rect_map_y, right_undist_rect_map_x, right_undist_rect_map_y,left_undist_rect,right_undist_rect;
-    initUndistortRectifyMap(camera_K, camera_coeff, R1, P1, frame_size,CV_16SC2, left_undist_rect_map_x, left_undist_rect_map_y);
-    initUndistortRectifyMap(camera_K, camera_coeff, R2, P2, frame_size, CV_16SC2, right_undist_rect_map_x, right_undist_rect_map_y);
+    initUndistortRectifyMap(camera_K, camera_coeff, R1, P1, frame_size,CV_32F, left_undist_rect_map_x, left_undist_rect_map_y);
+    initUndistortRectifyMap(camera_K, camera_coeff, R2, P2, frame_size, CV_32F, right_undist_rect_map_x, right_undist_rect_map_y);
     remap(left_img, left_undist_rect, left_undist_rect_map_x, left_undist_rect_map_y, INTER_LINEAR);
     remap(right_img, right_undist_rect, right_undist_rect_map_x, right_undist_rect_map_y, INTER_LINEAR);
 
@@ -113,34 +114,56 @@ void ThreeDHandler::findDisparity(Mat &disp_img, Mat &Q, Mat& left_img, vector<P
 
     sbm->compute( left_undist_rect, right_undist_rect, imgDisparity );
 
-    //force marker pixels to have disparity
-//    static Ptr<ORB> detector = ORB::create();
-//    static Ptr<DescriptorMatcher> matcher = DescriptorMatcher::create("BruteForce-Hamming");
-//    for(auto& mp: marker_p)
-//    {
-//        cout<<mp<<endl;
-//        Mat mp_desc = Mat();
-//        Mat ep_desc = Mat();
-//        vector<KeyPoint> mp_kp;
-//        mp_kp.push_back(KeyPoint(mp.x, mp.y, 1.0f));
-//        detector->compute(left_undist_rect, mp_kp, mp_desc);
 
-//        vector<KeyPoint> epi_line;
-//        for(int x=0; x<frame_size.width; x++)
-//        {
-//            epi_line.push_back(KeyPoint(x, mp.y, 1.0f));
-//        }
-//        vector<KeyPoint> epi_line_copy = epi_line;
-//        detector->compute(right_undist_rect, epi_line_copy, ep_desc);
+    Mat whiteHist, yellowHist;
+    Mat empty_top = Mat::zeros(frame_size.height/2, frame_size.width, CV_8U);
+    Mat left_roi = left_undist_rect(Rect(0,frame_size.height/2,frame_size.width,frame_size.height/2));
+    inRange(left_roi, Scalar(200, 200, 200), Scalar(255, 255, 255), whiteHist);
+    inRange(left_roi, Scalar(0, 150, 150), Scalar(180, 255, 255), yellowHist);
+    Mat left_yelloAndWhite = yellowHist + whiteHist;
+    Mat right_roi = right_undist_rect(Rect(0,frame_size.height/2,frame_size.width,frame_size.height/2));
+    inRange(right_roi, Scalar(200, 200, 200), Scalar(255, 255, 255), whiteHist);
+    inRange(right_roi, Scalar(0, 150, 150), Scalar(180, 255, 255), yellowHist);
+    Mat right_yelloAndWhite = yellowHist + whiteHist;
 
-//        vector<vector<DMatch> > match;
-//        matcher->knnMatch(mp_desc, ep_desc, match, 2);
+    Mat left_lane_img, right_lane_img;
+    vconcat(empty_top, left_yelloAndWhite, left_lane_img);
+    left_undist_rect.copyTo(left_lane_img, left_lane_img);
+    vconcat(empty_top, right_yelloAndWhite, right_lane_img);
+    right_undist_rect.copyTo(right_lane_img, right_lane_img);
+    namedWindow("left", WINDOW_NORMAL);
+    imshow("left", left_lane_img);
+    namedWindow("right", WINDOW_NORMAL);
+    imshow("right", right_lane_img);
 
-//        //ERROR probe
-//        if(match.empty()) continue;
-//        cout<<epi_line[match[0][0].trainIdx].pt.x - mp.x<<endl;
-//        imgDisparity.at<float>(mp.y, mp.x) = epi_line[match[0][0].trainIdx].pt.x - mp.x;
-//    }
+    //    force marker pixels to have disparity
+//    Mat lane_disp;
+//    sbm->compute( left_lane_img, right_lane_img, lane_disp );
+
+    Mat lane_disp = Mat::zeros(frame_size, CV_16S);
+    int batch_size = 355;
+    lane_detector->detect(left_undist_rect, marker_pixels);
+    for(auto& mp: marker_pixels){
+        if(mp.x-batch_size<0 || mp.x+batch_size>=frame_size.width){
+            continue;
+        }
+
+        Mat mp_batch = left_lane_img(Rect(mp.x-batch_size, mp.y, batch_size*2, 1));
+        double min_dist = -1;
+        int min_pos = mp.x-1;
+        for(int cor_x=mp.x; cor_x>batch_size; cor_x--){
+            Mat cor_batch = right_lane_img(Rect(cor_x-batch_size, mp.y, batch_size*2, 1));
+            Mat diff = cor_batch - mp_batch;
+            double dist = norm(diff);
+            if(min_dist < 0 || min_dist > dist){
+                min_dist = dist;
+                min_pos = cor_x;
+            }
+        }
+        if( imgDisparity.at<short>(mp.y, mp.x)>0) continue;
+        lane_disp.at<short>(mp.y, mp.x) = (mp.x-min_pos)*16;
+    }
+    imgDisparity += lane_disp;
 
     normalize(imgDisparity, disp_img, 0, 255, CV_MINMAX, CV_8U);
 
@@ -153,7 +176,7 @@ void ThreeDHandler::findDisparity(Mat &disp_img, Mat &Q, Mat& left_img, vector<P
         for(int j=0; j<XYZ.rows; j++)
         {
             Vec3f &pos_vec = XYZ.at<Vec3f>(j, i);
-            if((pos_vec[2] > 0.0 && pos_vec[2] < 80.0) || (pos_vec[2] > -80.0 && pos_vec[2] < -0.0))
+            if((pos_vec[2] > 0.0 && pos_vec[2] < 200.0) || (pos_vec[2] > -200.0 && pos_vec[2] < -0.0))
             {
                 pcl::PointXYZRGB p;
                 p.x = pos_vec[0];
@@ -172,7 +195,7 @@ void ThreeDHandler::findDisparity(Mat &disp_img, Mat &Q, Mat& left_img, vector<P
 
     Mat epi;
     hconcat(left_undist_rect, right_undist_rect, epi);
-    for(int j = 0; j < epi.rows; j += (epi.rows / 10) )
+    for(int j = 0; j < epi.rows; j += (epi.rows / 15) )
         line(epi, Point(0, j), Point(epi.cols, j), Scalar(0, 255, 0), 1, 8);
     namedWindow("Epipolar line", WINDOW_NORMAL);
     imshow("Epipolar line", epi);

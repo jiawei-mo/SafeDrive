@@ -28,7 +28,7 @@ void Matcher::changeParam(int mnf, float ql, int md,  int ngf, float mtf)
     match_thres_feature = mtf;
 }
 
-void Matcher::match(const Mat& left_img, vector<Point2f>& left_matched_kp, const Mat& right_img, vector<Point2f>& right_matched_kp)
+void Matcher::match(const Mat& left_img, vector<Point2f>& left_matched_kp, const Mat& right_img, vector<Point2f>& right_matched_kp, bool showImg)
 {
     left_matched_kp.clear();
     right_matched_kp.clear();
@@ -53,16 +53,17 @@ void Matcher::match(const Mat& left_img, vector<Point2f>& left_matched_kp, const
     }
 
     // match result image
-    #ifdef QT_DEBUG
-        Mat matchedImg;
-        matchedImg = Mat::zeros(left_img.rows, 2*left_img.cols, left_img.type());
+    Mat corres_img;
+    if(showImg)
+    {
+        corres_img = Mat::zeros(left_img.rows, 2*left_img.cols, left_img.type());
         Mat left_features = left_img.clone();
         Mat right_features = right_img.clone();
         drawKeypoints(left_features, left_kp, left_features);
         drawKeypoints(right_features, right_kp, right_features);
-        left_features.copyTo(matchedImg(Rect(0, 0, left_img.cols, left_img.rows)));
-        right_features.copyTo(matchedImg(Rect(left_img.cols, 0, left_img.cols, left_img.rows)));
-    #endif
+        left_features.copyTo(corres_img(Rect(0, 0, left_img.cols, left_img.rows)));
+        right_features.copyTo(corres_img(Rect(left_img.cols, 0, left_img.cols, left_img.rows)));
+    }
 
     //************************************************grid matches**************************************************************
     int grid_num = num_grid_feature*num_grid_feature;
@@ -131,18 +132,19 @@ void Matcher::match(const Mat& left_img, vector<Point2f>& left_matched_kp, const
     //************************************************grid matches**************************************************************
 
 
-#ifdef QT_DEBUG
-    //show matches between two images side by side
-    for(int i=0; i<(int)right_matched_kp.size(); i++)
+    if(showImg)
     {
-            line(matchedImg, left_matched_kp[i], Point2f(right_matched_kp[i].x+left_img.cols, right_matched_kp[i].y), CV_RGB(255, 0, 0));
-    }
+        //show matches between two images side by side
+        for(int i=0; i<(int)right_matched_kp.size(); i++)
+        {
+            line(corres_img, left_matched_kp[i], Point2f(right_matched_kp[i].x+left_img.cols, right_matched_kp[i].y), CV_RGB(255, 0, 0));
+        }
 
-    string windowName = "DEBUG: feature matching";
-    namedWindow(windowName, WINDOW_NORMAL);
-    imshow(windowName, matchedImg);
-    waitKey(1);
-#endif
+        string windowName = "DEBUG: feature matching";
+        namedWindow(windowName, WINDOW_NORMAL);
+        imshow(windowName, corres_img);
+        waitKey(1);
+    }
 
     return;
 }

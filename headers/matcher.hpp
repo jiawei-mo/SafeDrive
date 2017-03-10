@@ -37,7 +37,7 @@ protected:
 public:
     Matcher();
     void changeParam(int mnf, float ql, int md,  int ngf, float mtf);
-    void match(const Mat& left_frame, vector<Point2f> &left_matched_kp, const Mat &right_img, vector<Point2f>& right_matched_kp);
+    void match(const Mat& left_frame, vector<Point2f> &left_matched_kp, const Mat &right_img, vector<Point2f>& right_matched_kp, bool showImg=false);
 
     //helpers
     void showDifference(const Mat& image1, const Mat& image2, string title);

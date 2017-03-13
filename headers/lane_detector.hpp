@@ -10,7 +10,7 @@ using namespace std;
 class LaneDetector
 {
 public:
-    void detect(const Mat& img, vector<Point2f> &markerPoints);
+    void detect(const Mat& img, Mat &mask);
 };
 
 #endif // LANE_DETECTOR_HPP

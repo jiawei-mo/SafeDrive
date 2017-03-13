@@ -166,16 +166,13 @@ void Manager::process()
 
     matcher->match(matchedFrameLeft, matchedLeftKp, matchedFrameRight, matchedRightKp, false);
 
-    vector<Point2f> marker_pixels;
-    lane_detector->detect(matchedFrameLeft, marker_pixels);
-
     Mat disp_img, Q;
     three_d_handler->findDisparity(disp_img, Q, matchedFrameLeft, matchedLeftKp, matchedFrameRight, matchedRightKp);
 
     matcher->match(matchedFrameLeft, matchedLeftKp, targetFrame, targetKp, true);
 
     Mat result = targetFrame.clone();
-    three_d_handler->project(result, targetKp, disp_img, matchedFrameLeft, matchedLeftKp, Q, marker_pixels);
+    three_d_handler->project(result, targetKp, disp_img, matchedFrameLeft, matchedLeftKp, Q);
 
 #ifdef QT_DEBUG
     namedWindow("Result", WINDOW_NORMAL);

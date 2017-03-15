@@ -10,6 +10,7 @@ bool imgBoundValid(const Mat& img, Point2i pt) {
 
 ThreeDHandler::ThreeDHandler()
 {
+    matcher = shared_ptr<Matcher>(new Matcher());
     lane_detector = shared_ptr<LaneDetector>(new LaneDetector());
     ransac_thres_feature = RTF / 1.0f;
     SADWindowSize = SWS;
@@ -66,8 +67,11 @@ void showPC(pcl::PointCloud<pcl::PointXYZRGB>::Ptr point_cloud)
     }
 }
 
-void ThreeDHandler::findDisparity(Mat &disp_img, Mat &Q, Mat& left_img, vector<Point2f>& left_kp, Mat& right_img, vector<Point2f>& right_kp)
+void ThreeDHandler::findDisparity(Mat &disp_img, Mat &Q, Mat& left_img, Mat& right_img)
 {
+    vector<Point2f> left_kp, right_kp;
+    matcher->match(left_img, left_kp, right_img, right_kp, false);
+
     //find essential_mat based on matches using RANSAC
     Mat inliner_mask, essential_mat, R, t;
     essential_mat  = findEssentialMat(left_kp, right_kp, camera_K, RANSAC, 0.99, ransac_thres_feature, inliner_mask);
@@ -187,8 +191,11 @@ void ThreeDHandler::findDisparity(Mat &disp_img, Mat &Q, Mat& left_img, vector<P
 #endif
 }
 
-void ThreeDHandler::project(Mat& cur_img, const vector<Point2f>& p_cur, const Mat& disp_img, const Mat& obj_img, const vector<Point2f>& p_obj, const Mat &Q)
+void ThreeDHandler::project(Mat& cur_img, const Mat& obj_img, const Mat& disp_img, const Mat &Q)
 {
+    vector<Point2f> p_cur, p_obj;
+    matcher->match(obj_img, p_obj, cur_img, p_cur, true);
+
     //register camera frame
     Mat Qf;
     Q.convertTo(Qf, CV_32F);

@@ -162,17 +162,11 @@ void Manager::process()
         return;
     }
 
-    vector<Point2f> matchedLeftKp, matchedRightKp, targetKp;
-
-    matcher->match(matchedFrameLeft, matchedLeftKp, matchedFrameRight, matchedRightKp, false);
-
     Mat disp_img, Q;
-    three_d_handler->findDisparity(disp_img, Q, matchedFrameLeft, matchedLeftKp, matchedFrameRight, matchedRightKp);
-
-    matcher->match(matchedFrameLeft, matchedLeftKp, targetFrame, targetKp, true);
+    three_d_handler->findDisparity(disp_img, Q, matchedFrameLeft, matchedFrameRight);
 
     Mat result = targetFrame.clone();
-    three_d_handler->project(result, targetKp, disp_img, matchedFrameLeft, matchedLeftKp, Q);
+    three_d_handler->project(result, matchedFrameLeft, disp_img, Q);
 
 #ifdef QT_DEBUG
     namedWindow("Result", WINDOW_NORMAL);

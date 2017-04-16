@@ -157,6 +157,7 @@ void ThreeDHandler::find3DPoints(const Mat& _left_img, const Mat& _right_img)
     right_rect.copyTo(right_lane_img, right_mask);
 
     int batch_size = 355;
+//    Mat lane_disp = Mat::zeros(frame_size, CV_6);
     Mat_<double> lane_p(4,1);
     for(int x=batch_size; x<left_rect.cols-batch_size; x++){
         for(int y=0; y<left_rect.rows; y++){
@@ -175,12 +176,12 @@ void ThreeDHandler::find3DPoints(const Mat& _left_img, const Mat& _right_img)
                     min_pos = right_x;
                 }
             }
-            if(min_dist>1000) continue;
+            if(min_dist>500) continue;
             int d = x-min_pos;
             lane_p(0) = x; lane_p(1) = y; lane_p(2) = d; lane_p(3) = 1;
             lane_p = Q*lane_p;
             lane_p /= lane_p(3);
-            if(lane_p(2)>100) continue;
+            if(lane_p(2)>10) continue;
             Point3f p_3d(lane_p(0), lane_p(1), lane_p(2));
             lane_pts.push_back(p_3d);
 

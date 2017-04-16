@@ -17,6 +17,20 @@
 
 using namespace cv;
 using namespace std;
+
+struct Point2fHasher
+{
+  std::size_t operator()(const Point2f& p) const
+  {
+    using std::size_t;
+    using std::hash;
+    using std::string;
+
+    return (hash<float>()(p.x)
+             ^ ((hash<float>()(p.y) << 1)) >> 1);
+  }
+};
+
 class ThreeDHandler
 {
 private:
@@ -24,6 +38,12 @@ private:
     shared_ptr<LaneDetector> lane_detector;
     Mat camera_K;
     Mat camera_coeff;
+
+    unordered_map<Point2f, Point3f, Point2fHasher> three_d_pts_map;
+    vector<Point2f> left_kp;
+    vector<Point2f> right_kp;
+    Mat left_img;
+    Mat right_img;
 
     float ransac_thres_feature;
     int SADWindowSize;
@@ -43,8 +63,8 @@ public:
     ThreeDHandler();
     ~ThreeDHandler();
     void changeParam(float rtf, int sws, int nd, int pfc, int mod, int ur, int sw, int sr, int dmd, int s1, int s2);
-    void findDisparity(Mat &disp_img, Mat &Q, Mat &left_img, Mat &right_img);
-    void project(Mat& cur_img, const Mat& obj_img, const Mat& disp_img, const Mat &Q);
+    void find3DPoints(const Mat& _left_img, const Mat& _right_img);
+    void project(const Mat& obj_img);
 };
 
 #endif // THREEDHANDLER_H

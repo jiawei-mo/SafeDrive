@@ -162,11 +162,10 @@ void Manager::process()
         return;
     }
 
-    Mat disp_img, Q;
-    three_d_handler->findDisparity(disp_img, Q, matchedFrameLeft, matchedFrameRight);
+    three_d_handler->find3DPoints(matchedFrameLeft, matchedFrameRight);
 
     Mat result = targetFrame.clone();
-    three_d_handler->project(result, matchedFrameLeft, disp_img, Q);
+    three_d_handler->project(matchedFrameLeft);
 
 #ifdef QT_DEBUG
     namedWindow("Result", WINDOW_NORMAL);

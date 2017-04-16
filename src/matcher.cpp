@@ -30,19 +30,32 @@ void Matcher::changeParam(int mnf, float ql, int md,  int ngf, float mtf)
 
 void Matcher::match(const Mat& left_img, vector<Point2f>& left_matched_kp, const Mat& right_img, vector<Point2f>& right_matched_kp, bool showImg)
 {
-    left_matched_kp.clear();
-    right_matched_kp.clear();
     if(left_img.empty() || right_img.empty()) {
         return;
     }
 
     //detect feature points and extract descriptors
-    Mat left_gray, right_gray;
-    vector<Point2f> left_corners, right_corners;
-    cvtColor(left_img, left_gray, CV_BGR2GRAY);
-    cvtColor(right_img, right_gray, CV_BGR2GRAY);
-    goodFeaturesToTrack(left_gray, left_corners, max_num_features, quality_level, min_distance);
-    goodFeaturesToTrack(right_gray, right_corners, max_num_features, quality_level, min_distance);
+    vector<Point2f> left_corners;
+    if(left_matched_kp.empty())
+    {
+        Mat left_gray;
+        cvtColor(left_img, left_gray, CV_BGR2GRAY);
+        goodFeaturesToTrack(left_gray, left_corners, max_num_features, quality_level, min_distance);
+    } else {
+        left_corners = left_matched_kp;
+        left_matched_kp.clear();
+    }
+
+    vector<Point2f> right_corners;
+    if(right_matched_kp.empty())
+    {
+        Mat right_gray;
+        cvtColor(right_img, right_gray, CV_BGR2GRAY);
+        goodFeaturesToTrack(right_gray, right_corners, max_num_features, quality_level, min_distance);
+    } else {
+        right_corners = right_matched_kp;
+        right_matched_kp.clear();
+    }
 
     vector<KeyPoint> left_kp, right_kp;
     for( size_t i = 0; i < left_corners.size(); i++ ) {

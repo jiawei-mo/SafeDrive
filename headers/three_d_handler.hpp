@@ -39,9 +39,10 @@ private:
     Mat camera_K;
     Mat camera_coeff;
 
-    unordered_map<Point2f, Point3f, Point2fHasher> three_d_pts_map;
     vector<Point2f> left_kp;
     vector<Point2f> right_kp;
+    unordered_map<Point2f, Point3f, Point2fHasher> three_d_pts_map;
+    vector<Point3f> lane_pts;
     Mat left_img;
     Mat right_img;
 
@@ -64,7 +65,7 @@ public:
     ~ThreeDHandler();
     void changeParam(float rtf, int sws, int nd, int pfc, int mod, int ur, int sw, int sr, int dmd, int s1, int s2);
     void find3DPoints(const Mat& _left_img, const Mat& _right_img);
-    void project(const Mat& obj_img);
+    void project(Mat& target_img);
 };
 
 #endif // THREEDHANDLER_H

@@ -165,7 +165,7 @@ void Manager::process()
     three_d_handler->find3DPoints(matchedFrameLeft, matchedFrameRight);
 
     Mat result = targetFrame.clone();
-    three_d_handler->project(matchedFrameLeft);
+    three_d_handler->project(result);
 
 #ifdef QT_DEBUG
     namedWindow("Result", WINDOW_NORMAL);

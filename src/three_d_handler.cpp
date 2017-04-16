@@ -135,6 +135,7 @@ void ThreeDHandler::findDisparity(Mat &disp_img, Mat &Q, Mat& left_img, Mat& rig
             double min_dist = -1;
             int min_pos = x-1;
             for(int right_x=x; right_x>batch_size; right_x--){
+                if(right_mask.at<uchar>(y,right_x) == 0) continue;
                 Mat right_batch = right_lane_img(Rect(right_x-batch_size, y, batch_size*2, 1));
                 Mat diff = right_batch - left_batch;
                 double dist = norm(diff);
@@ -144,9 +145,12 @@ void ThreeDHandler::findDisparity(Mat &disp_img, Mat &Q, Mat& left_img, Mat& rig
                 }
             }
             if( imgDisparity.at<short>(y, x)>0) continue;
-            lane_disp.at<short>(y, x) = (x-min_pos)*16;
+            int d = (x-min_pos)*16;
+            lane_disp.at<short>(y, x) = d;
         }
     }
+
+    medianBlur(lane_disp, lane_disp, 5);
     imgDisparity += lane_disp;
 
     normalize(imgDisparity, disp_img, 0, 255, CV_MINMAX, CV_8U);

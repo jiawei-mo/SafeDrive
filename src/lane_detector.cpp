@@ -7,8 +7,9 @@ void LaneDetector::detect(const Mat& img, Mat& mask)
 
     Mat roi = img(Rect(0,img.rows/2,img.cols,img.rows/2));
     inRange(roi, Scalar(200, 200, 200), Scalar(255, 255, 255), whiteHist);
-    inRange(roi, Scalar(0, 150, 150), Scalar(180, 255, 255), yellowHist);
+    inRange(roi, Scalar(100, 190, 220), Scalar(150, 220, 255), yellowHist);
     Mat yelloAndWhite = yellowHist + whiteHist;
+    blur(yelloAndWhite, yelloAndWhite, Size(5,5));
 
     vconcat(empty_top, yelloAndWhite, mask);
 }

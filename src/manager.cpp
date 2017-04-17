@@ -148,9 +148,9 @@ bool Manager::findBestMatch()
     //***********************************************search for most similar image***************************************************************
 
 
-    matchedFrameLeft = imread("/home/kimiwings/SafeDrive/test/1.jpg");
+    matchedFrameLeft = imread("/home/kimiwings/workspace/SafeDrive/test/4.jpg");
     GaussianBlur(matchedFrameLeft, matchedFrameLeft, Size(blur_size,blur_size), blur_var, blur_var);
-    matchedFrameRight = imread("/home/kimiwings/SafeDrive/test/2.jpg");
+    matchedFrameRight = imread("/home/kimiwings/workspace/SafeDrive/test/5.jpg");
     GaussianBlur(matchedFrameLeft, matchedFrameLeft, Size(blur_size,blur_size), blur_var, blur_var);
 
     return true;

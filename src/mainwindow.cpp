@@ -20,13 +20,13 @@ MainWindow::~MainWindow()
 
 void MainWindow::on_button_img_clicked()
 {
-    QString Qfile1Name = QFileDialog::getOpenFileName(this, tr("Open Img File"), "/home/kimiwings/SafeDrive/test/3b.jpg", tr("Img File (*.jpg)"));
+    QString Qfile1Name = QFileDialog::getOpenFileName(this, tr("Open Img File"), "/home/kimiwings/workspace/SafeDrive/test/3b.jpg", tr("Img File (*.jpg)"));
     string targetString = Qfile1Name.toStdString();
 
-    QString QlocalSearchFolderName = QFileDialog::getExistingDirectory(this, tr("Open Img Directory"), "/home/kimiwings/SafeDrive/test/video/imgs", QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
+    QString QlocalSearchFolderName = QFileDialog::getExistingDirectory(this, tr("Open Img Directory"), "/home/kimiwings/workspace/SafeDrive/test/video/imgs", QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
     string searchPath = QlocalSearchFolderName.toStdString();
 
-    QString QPosFile = QFileDialog::getOpenFileName(this, tr("Open Pos File"), "/home/kimiwings/SafeDrive/test/old/test1.log", tr("log Files (*.log)"));
+    QString QPosFile = QFileDialog::getOpenFileName(this, tr("Open Pos File"), "/home/kimiwings/workspace/SafeDrive/test/old/test1.log", tr("log Files (*.log)"));
     string posFile = QPosFile.toStdString();
     ifstream params(posFile);
 
@@ -48,15 +48,15 @@ void MainWindow::on_button_img_clicked()
 
 void MainWindow::on_button_video_clicked()
 {
-    QString QImgFolderName = QFileDialog::getExistingDirectory(this, tr("Open Img Directory"), "/home/kimiwings/SafeDrive/test/video/imgs", QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
+    QString QImgFolderName = QFileDialog::getExistingDirectory(this, tr("Open Img Directory"), "/home/kimiwings/workspace/SafeDrive/test/video/imgs", QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
     string imgFolderName = QImgFolderName.toStdString();
     vector<String> imgNames;
     glob(imgFolderName, imgNames);
 
-    QString QlocalSearchFolderName = QFileDialog::getExistingDirectory(this, tr("Open Img Directory"), "/home/kimiwings/SafeDrive/test/video/imgs", QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
+    QString QlocalSearchFolderName = QFileDialog::getExistingDirectory(this, tr("Open Img Directory"), "/home/kimiwings/workspace/SafeDrive/test/video/imgs", QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
     string searchPath = QlocalSearchFolderName.toStdString();
 
-    QString QPosFile = QFileDialog::getOpenFileName(this, tr("Open Pos File"), "/home/kimiwings/SafeDrive/test/video/pos.log", tr("log Files (*.log)"));
+    QString QPosFile = QFileDialog::getOpenFileName(this, tr("Open Pos File"), "/home/kimiwings/workspace/SafeDrive/test/video/pos.log", tr("log Files (*.log)"));
     string posFile = QPosFile.toStdString();
     ifstream infile(posFile);
 

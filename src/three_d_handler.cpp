@@ -120,13 +120,15 @@ void ThreeDHandler::findDisparity(Mat &disp_img, Mat &Q, Mat& left_img, Mat& rig
 
     Mat left_mask, right_mask, left_lane_img, right_lane_img;
     lane_detector->detect(left_rect, left_mask);
+    imshow("left lane", left_mask);
+    waitKey(1);
     left_rect.copyTo(left_lane_img, left_mask);
     lane_detector->detect(right_rect, right_mask);
     right_rect.copyTo(right_lane_img, right_mask);
 
     //force marker pixels to have disparity
-    Mat lane_disp = Mat::zeros(frame_size, CV_16S);
-    int batch_size = 355;
+//    Mat lane_disp = Mat::zeros(frame_size, CV_16S);
+    int batch_size = 30;
     for(int x=batch_size; x<left_rect.cols-batch_size; x++){
         for(int y=0; y<left_rect.rows; y++){
             if(left_mask.at<uchar>(y,x) == 0) continue;
@@ -144,14 +146,14 @@ void ThreeDHandler::findDisparity(Mat &disp_img, Mat &Q, Mat& left_img, Mat& rig
                     min_pos = right_x;
                 }
             }
-            if( imgDisparity.at<short>(y, x)>0) continue;
+//            if( imgDisparity.at<short>(y, x)>0) continue;
             int d = (x-min_pos)*16;
-            lane_disp.at<short>(y, x) = d;
+            imgDisparity.at<short>(y, x) = d;
         }
     }
 
-    medianBlur(lane_disp, lane_disp, 5);
-    imgDisparity += lane_disp;
+//    medianBlur(lane_disp, lane_disp, 5);
+//    imgDisparity += lane_disp;
 
     normalize(imgDisparity, disp_img, 0, 255, CV_MINMAX, CV_8U);
 
@@ -236,6 +238,7 @@ void ThreeDHandler::project(Mat& cur_img, const Mat& obj_img, const Mat& disp_im
     Mat lane_mask;
     lane_detector->detect(obj_img, lane_mask);
     //project road marker
+    Mat canvas = Mat::zeros(cur_img.size(), CV_8UC3);
     cv::Mat_<double> p_homo(4,1);
     for(int x=0; x<obj_img.cols; x++) {
         for(int y=0; y<obj_img.rows; y++) {
@@ -253,11 +256,11 @@ void ThreeDHandler::project(Mat& cur_img, const Mat& obj_img, const Mat& disp_im
             Point2i proj_p(proj_p_homo.at<double>(0,0)/proj_p_homo.at<double>(2,0), proj_p_homo.at<double>(1,0)/proj_p_homo.at<double>(2,0));
             if(imgBoundValid(cur_img, proj_p))
             {
-                cur_img.at<Vec3b>(proj_p.y, proj_p.x) /= 2;
-                cur_img.at<Vec3b>(proj_p.y, proj_p.x) += (obj_img.at<Vec3b>(y, x) / 2);
+                canvas.at<Vec3b>(proj_p.y, proj_p.x) += (obj_img.at<Vec3b>(y, x) / 2);
             }
         }
     }
+    GaussianBlur(canvas, canvas, Size(3,3), 3);
 
-
+    cur_img += canvas;
 }

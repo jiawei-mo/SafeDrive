@@ -36,13 +36,13 @@ INCLUDEPATH += /usr/include/eigen3
 INCLUDEPATH += /usr/include/vtk-6.2
 
 LIBS += -L/usr/local/lib/
-LIBS += -lopencv_core
-LIBS += -lopencv_imgproc
-LIBS += -lopencv_highgui
-LIBS += -lopencv_videoio
-LIBS += -lopencv_features2d
-LIBS += -lopencv_calib3d
-LIBS += -lopencv_imgcodecs
+LIBS += /usr/local/lib/libopencv_core.so.3.1
+LIBS += /usr/local/lib/libopencv_imgproc.so.3.1
+LIBS += /usr/local/lib/libopencv_highgui.so.3.1
+LIBS += /usr/local/lib/libopencv_videoio.so.3.1
+LIBS += /usr/local/lib/libopencv_features2d.so.3.1
+LIBS += /usr/local/lib/libopencv_calib3d.so.3.1
+LIBS += /usr/local/lib/libopencv_imgcodecs.so.3.1
 LIBS += -lboost_system
 LIBS += -lpcl_common
 LIBS += -lpcl_visualization
@@ -50,6 +50,6 @@ LIBS += -lpcl_io
 LIBS += -lboost_thread
 
 
-CONFIG += -std=c++11
+QMAKE_CXXFLAGS += -std=c++11
 QMAKE_CXXFLAGS += -fopenmp
 LIBS += -fopenmp

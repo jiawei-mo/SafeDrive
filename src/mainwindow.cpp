@@ -20,13 +20,13 @@ MainWindow::~MainWindow()
 
 void MainWindow::on_button_img_clicked()
 {
-    QString Qfile1Name = QFileDialog::getOpenFileName(this, tr("Open Img File"), "/home/kimiwings/workspace/SafeDrive/test/3b.jpg", tr("Img File (*.jpg)"));
+    QString Qfile1Name = QFileDialog::getOpenFileName(this, tr("Target image"), "/home/kimiwings/workspace/SafeDrive/test/3b.jpg", tr("Img File (*.jpg)"));
     string targetString = Qfile1Name.toStdString();
 
-    QString QlocalSearchFolderName = QFileDialog::getExistingDirectory(this, tr("Open Img Directory"), "/home/kimiwings/workspace/SafeDrive/test/video/imgs", QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
+    QString QlocalSearchFolderName = QFileDialog::getExistingDirectory(this, tr("Open Database Directory"), "/home/kimiwings/workspace/SafeDrive/test/database", QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
     string searchPath = QlocalSearchFolderName.toStdString();
 
-    QString QPosFile = QFileDialog::getOpenFileName(this, tr("Open Pos File"), "/home/kimiwings/workspace/SafeDrive/test/old/test1.log", tr("log Files (*.log)"));
+    QString QPosFile = QFileDialog::getOpenFileName(this, tr("Open position File"), "/home/kimiwings/workspace/SafeDrive/test/old/test1.log", tr("log Files (*.log)"));
     string posFile = QPosFile.toStdString();
     ifstream params(posFile);
 
@@ -115,7 +115,7 @@ void MainWindow::changeParamAndReprocess()
     ui->label_MD->setText(QString("Min Distance: ") + QString::number(ui->slider_MD->value()));
     ui->label_NGF->setText(QString("Num Grid Feature: ") + QString::number(ui->slider_NGF->value()));
     ui->label_MTF->setText(QString("Match Thres Feature: ") + QString::number(ui->slider_MTF->value() / 100.0f));
-    ui->label_RTF->setText(QString("RANSAC Thres Feature: ") + QString::number(ui->slider_RTF->value() / 1.0f));
+    ui->label_RTF->setText(QString("RANSAC Thres: ") + QString::number(ui->slider_RTF->value() / 10.0f));
     ui->label_SWS->setText(QString("SADWindowSize: ") + QString::number(ui->slider_SWS->value()));
     ui->label_ND->setText(QString("numberOfDisparities: ") + QString::number(ui->slider_ND->value() * 16));
     ui->label_PFC->setText(QString("preFilterCap: ") + QString::number(ui->slider_PFC->value()));
@@ -133,7 +133,7 @@ void MainWindow::changeParamAndReprocess()
     int md = ui->slider_MD->value();
     int ngf = ui->slider_NGF->value();
     float mtf = ui->slider_MTF->value() / 100.0f;
-    float rtf = ui->slider_RTF->value() / 1.0f;
+    float rtf = ui->slider_RTF->value() / 10.0f;
     int sws = ui->slider_SWS->value();
     int nd = ui->slider_ND->value() * 16;
     int pfc = ui->slider_PFC->value();

@@ -44,7 +44,7 @@ public:
     ~ThreeDHandler();
     void changeParam(float rtf, int sws, int nd, int pfc, int mod, int ur, int sw, int sr, int dmd, int s1, int s2);
     void findDisparity(Mat &disp_img, Mat &Q, Mat &left_img, Mat &right_img);
-    void project(Mat& cur_img, const Mat& obj_img, const Mat& disp_img, const Mat &Q);
+    void project(const Mat& obj_img, Mat& cur_img, const Mat& disp_img, const Mat &Q);
 };
 
 #endif // THREEDHANDLER_H

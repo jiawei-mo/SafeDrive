@@ -12,8 +12,8 @@
 #define QL 4        //%
 #define MD 5        //int
 #define NGF 1        //int
-#define MTF 96      //%
-#define RTF 2        //float
+#define MTF 70      //%
+#define RTF 10        // /10
 #define SWS 2      //int
 #define ND 20        //int*16
 #define PFC 75       //int

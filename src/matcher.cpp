@@ -28,7 +28,7 @@ void Matcher::changeParam(int mnf, float ql, int md,  int ngf, float mtf)
     match_thres_feature = mtf;
 }
 
-void Matcher::match(const Mat& left_img, vector<Point2f>& left_matched_kp, const Mat& right_img, vector<Point2f>& right_matched_kp, bool showImg)
+void Matcher::match(const Mat& left_img, vector<Point2f>& left_matched_kp, const Mat& right_img, vector<Point2f>& right_matched_kp, int max_corres)
 {
     left_matched_kp.clear();
     right_matched_kp.clear();
@@ -50,19 +50,6 @@ void Matcher::match(const Mat& left_img, vector<Point2f>& left_matched_kp, const
     }
     for( size_t i = 0; i < right_corners.size(); i++ ) {
         right_kp.push_back(KeyPoint(right_corners[i], 1.f));
-    }
-
-    // match result image
-    Mat corres_img;
-    if(showImg)
-    {
-        corres_img = Mat::zeros(left_img.rows, 2*left_img.cols, left_img.type());
-        Mat left_features = left_img.clone();
-        Mat right_features = right_img.clone();
-        drawKeypoints(left_features, left_kp, left_features);
-        drawKeypoints(right_features, right_kp, right_features);
-        left_features.copyTo(corres_img(Rect(0, 0, left_img.cols, left_img.rows)));
-        right_features.copyTo(corres_img(Rect(left_img.cols, 0, left_img.cols, left_img.rows)));
     }
 
     //************************************************grid matches**************************************************************
@@ -104,8 +91,9 @@ void Matcher::match(const Mat& left_img, vector<Point2f>& left_matched_kp, const
                 goodMatches.push_back(matches[i][0]);
             }
         }
-        vector<DMatch> matchHeap;
-        if((int)goodMatches.size() > 40) {
+
+        if(max_corres>0 && (int)goodMatches.size() > max_corres) {
+            vector<DMatch> matchHeap;
             matchHeap = vector<DMatch>(goodMatches.begin(), goodMatches.begin()+40);
             make_heap(matchHeap.begin(), matchHeap.end(), matchComp());
 
@@ -117,36 +105,24 @@ void Matcher::match(const Mat& left_img, vector<Point2f>& left_matched_kp, const
                     push_heap(matchHeap.begin(), matchHeap.end(), matchComp());
                 }
             }
-        } else {
-            matchHeap = goodMatches;
+            goodMatches = matchHeap;
         }
-        for(int j=0; j<(int)matchHeap.size(); j++) {
-//            cout<<grid_left_kp[i][matchHeap[j].queryIdx].pt<<endl;
-            left_matched_kp.push_back(grid_left_kp[i][matchHeap[j].queryIdx].pt);
-            right_matched_kp.push_back(grid_right_kp[i][matchHeap[j].trainIdx].pt);
+
+        for(int j=0; j<(int)goodMatches.size(); j++) {
+            left_matched_kp.push_back(grid_left_kp[i][goodMatches[j].queryIdx].pt);
+            right_matched_kp.push_back(grid_right_kp[i][goodMatches[j].trainIdx].pt);
         }
-    }
-    if(left_matched_kp.size() == 0) {
-        return;
     }
     //************************************************grid matches**************************************************************
 
-
-    if(showImg)
-    {
-        //show matches between two images side by side
-        for(int i=0; i<(int)right_matched_kp.size(); i++)
-        {
-            line(corres_img, left_matched_kp[i], Point2f(right_matched_kp[i].x+left_img.cols, right_matched_kp[i].y), CV_RGB(255, 0, 0));
-        }
-
-        string windowName = "DEBUG: feature matching";
-        namedWindow(windowName, WINDOW_NORMAL);
-        imshow(windowName, corres_img);
-        waitKey(1);
-    }
-
     return;
+}
+
+size_t Matcher::matchCounter(const Mat& left_frame, const Mat& right_img)
+{
+    vector<Point2f> dummy_kp_left, dummy_kp_right;
+    match(left_frame, dummy_kp_left, right_img, dummy_kp_right);
+    return dummy_kp_right.size();
 }
 
 void Matcher::showDifference(const Mat& image1, const Mat& image2, string title)

@@ -147,11 +147,34 @@ bool Manager::findBestMatch()
 
     //***********************************************search for most similar image***************************************************************
 
+    Mat dbFrame;
+    size_t firstC(0), secondC(0), curC;
+    vector<String> imgNames;
+    glob(searchPath, imgNames);
+    for(size_t i=0;i<imgNames.size(); i++) {
+        if(!fetcher->get_local(dbFrame, imgNames[i])){
+            return false;
+        }
+        curC = matcher->matchCounter(targetFrame, dbFrame);
+        cout<<imgNames[i]<<" "<<curC<<endl;
+        if(curC > firstC)
+        {
+            matchedFrameRight = matchedFrameLeft;
+            matchedFrameLeft = dbFrame;
+            secondC = firstC;
+            firstC = curC;
+        }
+        else if(curC > secondC)
+        {
+            matchedFrameRight = dbFrame;
+            secondC = firstC;
+        }
+    }
 
-    matchedFrameLeft = imread("/home/kimiwings/workspace/SafeDrive/test/4.jpg");
+//    matchedFrameLeft = imread("/home/kimiwings/workspace/SafeDrive/test/1.jpg");
     GaussianBlur(matchedFrameLeft, matchedFrameLeft, Size(blur_size,blur_size), blur_var, blur_var);
-    matchedFrameRight = imread("/home/kimiwings/workspace/SafeDrive/test/5.jpg");
-    GaussianBlur(matchedFrameLeft, matchedFrameLeft, Size(blur_size,blur_size), blur_var, blur_var);
+//    matchedFrameRight = imread("/home/kimiwings/workspace/SafeDrive/test/2.jpg");
+    GaussianBlur(matchedFrameRight, matchedFrameRight, Size(blur_size,blur_size), blur_var, blur_var);
 
     return true;
 }
@@ -166,7 +189,7 @@ void Manager::process()
     three_d_handler->findDisparity(disp_img, Q, matchedFrameLeft, matchedFrameRight);
 
     Mat result = targetFrame.clone();
-    three_d_handler->project(result, matchedFrameLeft, disp_img, Q);
+    three_d_handler->project(matchedFrameLeft, result, disp_img, Q);
 
 #ifdef QT_DEBUG
     namedWindow("Result", WINDOW_NORMAL);

@@ -59,7 +59,7 @@ void ThreeDHandler::changeParam(float rtf, int sws, int nd, int pfc, int mod, in
 
 void showPC(pcl::PointCloud<pcl::PointXYZRGB>::Ptr point_cloud)
 {
-    static pcl::visualization::CloudViewer viewer("Cloud Viewer");
+    static pcl::visualization::CloudViewer viewer("DEBUG:Cloud Viewer");
     viewer.showCloud(point_cloud);
     while( !viewer.wasStopped() )
     {
@@ -70,11 +70,11 @@ void showPC(pcl::PointCloud<pcl::PointXYZRGB>::Ptr point_cloud)
 void ThreeDHandler::findDisparity(Mat &disp_img, Mat &Q, Mat& left_img, Mat& right_img)
 {
     vector<Point2f> left_kp, right_kp;
-    matcher->match(left_img, left_kp, right_img, right_kp, false);
+    matcher->match(left_img, left_kp, right_img, right_kp, 40);
 
     //find essential_mat based on matches using RANSAC
     Mat inliner_mask, essential_mat, R, t;
-    essential_mat  = findEssentialMat(left_kp, right_kp, camera_K, RANSAC, 0.99, ransac_thres_feature, inliner_mask);
+    essential_mat  = findEssentialMat(left_kp, right_kp, camera_K, RANSAC, 0.999, ransac_thres_feature, inliner_mask);
     recoverPose(essential_mat, left_kp, right_kp, camera_K, R, t, inliner_mask);
 
     if(t.at<double>(0,0) > 0)
@@ -92,7 +92,7 @@ void ThreeDHandler::findDisparity(Mat &disp_img, Mat &Q, Mat& left_img, Mat& rig
         left_kp = right_kp;
         right_kp = tmp_vec;
 
-        essential_mat = findEssentialMat(left_kp, right_kp, camera_K, RANSAC, 0.99, ransac_thres_feature, inliner_mask);
+        essential_mat = findEssentialMat(left_kp, right_kp, camera_K, RANSAC, 0.999, ransac_thres_feature, inliner_mask);
         recoverPose(essential_mat, left_kp, right_kp, camera_K, R, t, inliner_mask);
     }
 
@@ -120,8 +120,6 @@ void ThreeDHandler::findDisparity(Mat &disp_img, Mat &Q, Mat& left_img, Mat& rig
 
     Mat left_mask, right_mask, left_lane_img, right_lane_img;
     lane_detector->detect(left_rect, left_mask);
-    imshow("left lane", left_mask);
-    waitKey(1);
     left_rect.copyTo(left_lane_img, left_mask);
     lane_detector->detect(right_rect, right_mask);
     right_rect.copyTo(right_lane_img, right_mask);
@@ -190,22 +188,23 @@ void ThreeDHandler::findDisparity(Mat &disp_img, Mat &Q, Mat& left_img, Mat& rig
     hconcat(left_rect, right_rect, epi);
     for(int j = 0; j < epi.rows; j += (epi.rows / 15) )
         line(epi, Point(0, j), Point(epi.cols, j), Scalar(0, 255, 0), 1, 8);
-    namedWindow("Epipolar line", WINDOW_NORMAL);
-    imshow("Epipolar line", epi);
-    namedWindow("Disparity", WINDOW_NORMAL);
-    imshow("Disparity", disp_img);
+    namedWindow("DEBUG:Epipolar line", WINDOW_NORMAL);
+    imshow("DEBUG:Epipolar line", epi);
+    namedWindow("DEBUG:Disparity", WINDOW_NORMAL);
+    imshow("DEBUG:Disparity", disp_img);
 #endif
 }
 
-void ThreeDHandler::project(Mat& cur_img, const Mat& obj_img, const Mat& disp_img, const Mat &Q)
+void ThreeDHandler::project(const Mat& obj_img, Mat& cur_img, const Mat& disp_img, const Mat &Q)
 {
-    vector<Point2f> p_cur, p_obj;
-    matcher->match(obj_img, p_obj, cur_img, p_cur, true);
+    vector<Point2f> p_obj, p_cur;
+    matcher->match(obj_img, p_obj, cur_img, p_cur, 40);
 
     //register camera frame
     Mat Qf;
     Q.convertTo(Qf, CV_32F);
-    vector<Point2f> pts_img;
+    vector<Point2f> p_img_d;
+    vector<Point2f> p_obj_d;
     vector<Point3f> pts_obj;
     cv::Mat_<float> vec_tmp(4,1);
     for(unsigned int i=0; i<p_obj.size(); i++)
@@ -222,11 +221,39 @@ void ThreeDHandler::project(Mat& cur_img, const Mat& obj_img, const Mat& disp_im
         vec_tmp = Qf*vec_tmp;
         vec_tmp /= vec_tmp(3);
         pts_obj.push_back(Point3f(vec_tmp(0), vec_tmp(1), vec_tmp(2)));
-        pts_img.push_back(p_cur[i]);
+        p_img_d.push_back(p_cur[i]);
+        p_obj_d.push_back(p_obj[i]);
     }
 
     cv::Mat rvec, t, inliers;
-    cv::solvePnPRansac( pts_obj, pts_img, camera_K, cv::Mat(), rvec, t, false, 100, 8.0, 0.99, inliers, cv::SOLVEPNP_ITERATIVE );
+    cv::solvePnPRansac( pts_obj, p_img_d, camera_K, cv::Mat(), rvec, t, false, 100, 8.0, 0.99, inliers, cv::SOLVEPNP_ITERATIVE );
+
+    vector<KeyPoint> left_kp, right_kp;
+    cout<<inliers.type()<<" "<<inliers.size()<<endl;
+    for(size_t i=0; i<inliers.rows; i++)
+    {
+        left_kp.push_back(KeyPoint(p_obj_d[inliers.at<int>(0,i)], 0));
+        right_kp.push_back(KeyPoint(p_img_d[inliers.at<int>(0,i)], 0));
+    }
+
+    Mat corres_img;
+    corres_img = Mat::zeros(obj_img.rows, 2*obj_img.cols, obj_img.type());
+    Mat left_features = obj_img.clone();
+    Mat right_features = cur_img.clone();
+    drawKeypoints(left_features, left_kp, left_features);
+    drawKeypoints(right_features, right_kp, right_features);
+    left_features.copyTo(corres_img(Rect(0, 0, obj_img.cols, obj_img.rows)));
+    right_features.copyTo(corres_img(Rect(obj_img.cols, 0, obj_img.cols, obj_img.rows)));
+//    show matches between two images side by side
+            for(int i=0; i<(int)right_kp.size(); i++)
+    {
+        line(corres_img, left_kp[i].pt, Point2f(right_kp[i].pt.x+obj_img.cols, right_kp[i].pt.y), CV_RGB(255, 0, 0));
+    }
+
+    string windowName = "DEBUG: feature matching";
+    namedWindow(windowName, WINDOW_NORMAL);
+    imshow(windowName, corres_img);
+    waitKey(1);
 
     cout<<"Proj rotation: "<<rvec<<endl;
     cout<<"Proj translation: "<<t<<endl;

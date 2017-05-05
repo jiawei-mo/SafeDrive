@@ -18,7 +18,7 @@
     <property name="geometry">
      <rect>
       <x>20</x>
-      <y>180</y>
+      <y>240</y>
       <width>161</width>
       <height>20</height>
      </rect>
@@ -31,7 +31,7 @@
     <property name="geometry">
      <rect>
       <x>200</x>
-      <y>180</y>
+      <y>240</y>
       <width>160</width>
       <height>16</height>
      </rect>
@@ -62,7 +62,7 @@
     <property name="geometry">
      <rect>
       <x>200</x>
-      <y>210</y>
+      <y>270</y>
       <width>160</width>
       <height>16</height>
      </rect>
@@ -87,7 +87,7 @@
     <property name="geometry">
      <rect>
       <x>20</x>
-      <y>210</y>
+      <y>270</y>
       <width>161</width>
       <height>20</height>
      </rect>
@@ -100,7 +100,7 @@
     <property name="geometry">
      <rect>
       <x>20</x>
-      <y>270</y>
+      <y>330</y>
       <width>161</width>
       <height>20</height>
      </rect>
@@ -113,7 +113,7 @@
     <property name="geometry">
      <rect>
       <x>200</x>
-      <y>240</y>
+      <y>300</y>
       <width>160</width>
       <height>16</height>
      </rect>
@@ -138,7 +138,7 @@
     <property name="geometry">
      <rect>
       <x>200</x>
-      <y>270</y>
+      <y>330</y>
       <width>160</width>
       <height>16</height>
      </rect>
@@ -160,7 +160,7 @@
     <property name="geometry">
      <rect>
       <x>20</x>
-      <y>240</y>
+      <y>300</y>
       <width>161</width>
       <height>20</height>
      </rect>
@@ -173,20 +173,20 @@
     <property name="geometry">
      <rect>
       <x>20</x>
-      <y>330</y>
+      <y>390</y>
       <width>161</width>
       <height>20</height>
      </rect>
     </property>
     <property name="text">
-     <string>RANSAC Thres Feature</string>
+     <string>RANSAC Thres</string>
     </property>
    </widget>
    <widget class="QSlider" name="slider_BS">
     <property name="geometry">
      <rect>
       <x>200</x>
-      <y>120</y>
+      <y>180</y>
       <width>160</width>
       <height>16</height>
      </rect>
@@ -211,7 +211,7 @@
     <property name="geometry">
      <rect>
       <x>200</x>
-      <y>330</y>
+      <y>390</y>
       <width>160</width>
       <height>16</height>
      </rect>
@@ -220,7 +220,10 @@
      <number>1</number>
     </property>
     <property name="maximum">
-     <number>3</number>
+     <number>20</number>
+    </property>
+    <property name="singleStep">
+     <number>1</number>
     </property>
     <property name="value">
      <number>1</number>
@@ -233,7 +236,7 @@
     <property name="geometry">
      <rect>
       <x>20</x>
-      <y>120</y>
+      <y>180</y>
       <width>161</width>
       <height>20</height>
      </rect>
@@ -245,8 +248,8 @@
    <widget class="QPushButton" name="button_reset">
     <property name="geometry">
      <rect>
-      <x>230</x>
-      <y>60</y>
+      <x>30</x>
+      <y>120</y>
       <width>81</width>
       <height>41</height>
      </rect>
@@ -263,8 +266,8 @@
    <widget class="QPushButton" name="button_img">
     <property name="geometry">
      <rect>
-      <x>50</x>
-      <y>10</y>
+      <x>30</x>
+      <y>30</y>
       <width>81</width>
       <height>41</height>
      </rect>
@@ -298,7 +301,7 @@
     <property name="geometry">
      <rect>
       <x>200</x>
-      <y>150</y>
+      <y>210</y>
       <width>160</width>
       <height>16</height>
      </rect>
@@ -323,7 +326,7 @@
     <property name="geometry">
      <rect>
       <x>20</x>
-      <y>150</y>
+      <y>210</y>
       <width>161</width>
       <height>20</height>
      </rect>
@@ -406,7 +409,7 @@
     <property name="geometry">
      <rect>
       <x>20</x>
-      <y>300</y>
+      <y>360</y>
       <width>161</width>
       <height>20</height>
      </rect>
@@ -419,7 +422,7 @@
     <property name="geometry">
      <rect>
       <x>200</x>
-      <y>300</y>
+      <y>360</y>
       <width>160</width>
       <height>16</height>
      </rect>
@@ -546,7 +549,7 @@
     <property name="geometry">
      <rect>
       <x>210</x>
-      <y>10</y>
+      <y>30</y>
       <width>101</width>
       <height>41</height>
      </rect>
@@ -733,41 +736,6 @@
     </property>
     <property name="text">
      <string>S2</string>
-    </property>
-   </widget>
-   <widget class="QSlider" name="slider_RTF_2">
-    <property name="geometry">
-     <rect>
-      <x>200</x>
-      <y>360</y>
-      <width>160</width>
-      <height>16</height>
-     </rect>
-    </property>
-    <property name="minimum">
-     <number>1</number>
-    </property>
-    <property name="maximum">
-     <number>3</number>
-    </property>
-    <property name="value">
-     <number>1</number>
-    </property>
-    <property name="orientation">
-     <enum>Qt::Horizontal</enum>
-    </property>
-   </widget>
-   <widget class="QLabel" name="label_GN">
-    <property name="geometry">
-     <rect>
-      <x>20</x>
-      <y>360</y>
-      <width>161</width>
-      <height>20</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>Grid num</string>
     </property>
    </widget>
   </widget>

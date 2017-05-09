@@ -1,6 +1,6 @@
 #include "headers/three_d_handler.hpp"
 
-bool imgBoundValid(const Mat& img, Point2i pt) {
+bool imgBoundValid(const Mat& img, Point2f pt) {
     bool a = pt.x >= 0;
     bool b = pt.x < img.cols;
     bool c = pt.y >=0;
@@ -113,10 +113,14 @@ void ThreeDHandler::findDisparity(Mat &disp_img, Mat &Q, Mat& left_img, Mat& rig
     remap(left_img, left_rect, left_rect_map_x, left_rect_map_y, INTER_LINEAR);
     remap(right_img, right_rect, right_rect_map_x, right_rect_map_y, INTER_LINEAR);
 
-    Ptr<StereoSGBM> sbm = StereoSGBM::create( minDisparity, numberOfDisparities, SADWindowSize, SP1, SP2, disp12MaxDiff, preFilterCap, uniquenessRatio, speckleWindowSize, speckleRange);
-    Mat imgDisparity;
+    matcher->rectified_match(left_rect, left_kp, right_rect, right_kp, 500);
+    matcher->showMatches(left_rect, left_kp, right_rect, right_kp, "DEBUG: undistorted matches");
 
-    sbm->compute( left_rect, right_rect, imgDisparity );
+    Mat feature_disp = Mat::zeros(frame_size, CV_32F);
+    for(int i=0; i<left_kp.size(); i++) {
+        float disp = left_kp[i].x  - right_kp[i].x;
+        feature_disp.at<float>(left_kp[i].y, left_kp[i].x) = disp;
+    }
 
     Mat left_mask, right_mask, left_lane_img, right_lane_img;
     lane_detector->detect(left_rect, left_mask);
@@ -144,21 +148,27 @@ void ThreeDHandler::findDisparity(Mat &disp_img, Mat &Q, Mat& left_img, Mat& rig
                     min_pos = right_x;
                 }
             }
-//            if( imgDisparity.at<short>(y, x)>0) continue;
-            int d = (x-min_pos)*16;
-            imgDisparity.at<short>(y, x) = d;
+            float d = float(x-min_pos);
+            feature_disp.at<float>(y, x) = d;
         }
     }
+
+    left_img = left_rect;
+    right_img = right_rect;
+
+#ifdef QT_DEBUG
+
+    Ptr<StereoSGBM> sbm = StereoSGBM::create( minDisparity, numberOfDisparities, SADWindowSize, SP1, SP2, disp12MaxDiff, preFilterCap, uniquenessRatio, speckleWindowSize, speckleRange);
+    Mat imgDisparity;
+
+    sbm->compute( left_rect, right_rect, imgDisparity );
+
 
 //    medianBlur(lane_disp, lane_disp, 5);
 //    imgDisparity += lane_disp;
 
     normalize(imgDisparity, disp_img, 0, 255, CV_MINMAX, CV_8U);
 
-    left_img = left_rect;
-    right_img = right_rect;
-
-#ifdef QT_DEBUG
     cv::Mat XYZ(disp_img.size(),CV_32FC3);
     reprojectImageTo3D(disp_img, XYZ, Q, false, CV_32F);
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr point_cloud (new pcl::PointCloud<pcl::PointXYZRGB>);
@@ -193,67 +203,45 @@ void ThreeDHandler::findDisparity(Mat &disp_img, Mat &Q, Mat& left_img, Mat& rig
     namedWindow("DEBUG:Disparity", WINDOW_NORMAL);
     imshow("DEBUG:Disparity", disp_img);
 #endif
+
+    disp_img = feature_disp;
 }
 
 void ThreeDHandler::project(const Mat& obj_img, Mat& cur_img, const Mat& disp_img, const Mat &Q)
 {
-    vector<Point2f> p_obj, p_cur;
-    matcher->match(obj_img, p_obj, cur_img, p_cur, 40);
+    vector<Point2f> obj_kp, img_kp;
+    matcher->match(obj_img, obj_kp, cur_img, img_kp, 500);
 
     //register camera frame
     Mat Qf;
     Q.convertTo(Qf, CV_32F);
-    vector<Point2f> p_img_d;
-    vector<Point2f> p_obj_d;
-    vector<Point3f> pts_obj;
+    vector<Point3f> obj_pts;
+    vector<Point2f> _obj_kp;
+    vector<Point2f> _img_kp;
     cv::Mat_<float> vec_tmp(4,1);
-    for(unsigned int i=0; i<p_obj.size(); i++)
+    cout<<obj_kp.size()<<endl;
+    for(unsigned int i=0; i<obj_kp.size(); i++)
     {
-        float x = p_obj[i].x;
-        float y = p_obj[i].y;
-        int d = disp_img.at<uchar>(y,x);
+        float x = obj_kp[i].x;
+        float y = obj_kp[i].y;
+        float d = disp_img.at<float>(y,x);
         if(d == 0)
         {
             continue;
         }
-
         vec_tmp(0) = x; vec_tmp(1) = y; vec_tmp(2) = d; vec_tmp(3) = 1;
         vec_tmp = Qf*vec_tmp;
         vec_tmp /= vec_tmp(3);
-        pts_obj.push_back(Point3f(vec_tmp(0), vec_tmp(1), vec_tmp(2)));
-        p_img_d.push_back(p_cur[i]);
-        p_obj_d.push_back(p_obj[i]);
+
+        obj_pts.push_back(Point3f(vec_tmp(0), vec_tmp(1), vec_tmp(2)));
+        _obj_kp.push_back(obj_kp[i]);
+        _img_kp.push_back(img_kp[i]);
     }
 
     cv::Mat rvec, t, inliers;
-    cv::solvePnPRansac( pts_obj, p_img_d, camera_K, cv::Mat(), rvec, t, false, 100, 8.0, 0.99, inliers, cv::SOLVEPNP_ITERATIVE );
+    cv::solvePnPRansac( obj_pts, _img_kp, camera_K, cv::Mat(), rvec, t, false, 100, 8.0, 0.99, inliers, cv::SOLVEPNP_ITERATIVE );
 
-    vector<KeyPoint> left_kp, right_kp;
-    cout<<inliers.type()<<" "<<inliers.size()<<endl;
-    for(size_t i=0; i<inliers.rows; i++)
-    {
-        left_kp.push_back(KeyPoint(p_obj_d[inliers.at<int>(0,i)], 0));
-        right_kp.push_back(KeyPoint(p_img_d[inliers.at<int>(0,i)], 0));
-    }
-
-    Mat corres_img;
-    corres_img = Mat::zeros(obj_img.rows, 2*obj_img.cols, obj_img.type());
-    Mat left_features = obj_img.clone();
-    Mat right_features = cur_img.clone();
-    drawKeypoints(left_features, left_kp, left_features);
-    drawKeypoints(right_features, right_kp, right_features);
-    left_features.copyTo(corres_img(Rect(0, 0, obj_img.cols, obj_img.rows)));
-    right_features.copyTo(corres_img(Rect(obj_img.cols, 0, obj_img.cols, obj_img.rows)));
-//    show matches between two images side by side
-            for(int i=0; i<(int)right_kp.size(); i++)
-    {
-        line(corres_img, left_kp[i].pt, Point2f(right_kp[i].pt.x+obj_img.cols, right_kp[i].pt.y), CV_RGB(255, 0, 0));
-    }
-
-    string windowName = "DEBUG: feature matching";
-    namedWindow(windowName, WINDOW_NORMAL);
-    imshow(windowName, corres_img);
-    waitKey(1);
+//    matcher->showMatches(obj_img, _obj_kp, cur_img, _img_kp, "DEBUG:Project matches", inliers);
 
     cout<<"Proj rotation: "<<rvec<<endl;
     cout<<"Proj translation: "<<t<<endl;
@@ -270,7 +258,7 @@ void ThreeDHandler::project(const Mat& obj_img, Mat& cur_img, const Mat& disp_im
     for(int x=0; x<obj_img.cols; x++) {
         for(int y=0; y<obj_img.rows; y++) {
             if(lane_mask.at<uchar>(y,x) == 0) continue;
-            int d = disp_img.at<uchar>(y,x);
+            float d = disp_img.at<float>(y,x);
             if(d == 0)
             {
                 continue;
@@ -280,7 +268,7 @@ void ThreeDHandler::project(const Mat& obj_img, Mat& cur_img, const Mat& disp_im
             p_homo = Q*p_homo;
             p_homo /= p_homo(3);
             Mat proj_p_homo = camera_K*P*p_homo;
-            Point2i proj_p(proj_p_homo.at<double>(0,0)/proj_p_homo.at<double>(2,0), proj_p_homo.at<double>(1,0)/proj_p_homo.at<double>(2,0));
+            Point2f proj_p(proj_p_homo.at<double>(0,0)/proj_p_homo.at<double>(2,0), proj_p_homo.at<double>(1,0)/proj_p_homo.at<double>(2,0));
             if(imgBoundValid(cur_img, proj_p))
             {
                 canvas.at<Vec3b>(proj_p.y, proj_p.x) += (obj_img.at<Vec3b>(y, x) / 2);

@@ -30,7 +30,6 @@ HEADERS  += headers/mainwindow.h \
 
 FORMS    += mainwindow.ui
 
-INCLUDEPATH += /usr/local/include/opencv
 INCLUDEPATH += /usr/include/pcl-1.7
 INCLUDEPATH += /usr/include/eigen3
 INCLUDEPATH += /usr/include/vtk-6.2

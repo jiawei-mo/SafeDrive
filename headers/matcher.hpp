@@ -37,8 +37,10 @@ protected:
 public:
     Matcher();
     void changeParam(int mnf, float ql, int md,  int ngf, float mtf);
-    void match(const Mat& left_frame, vector<Point2f> &left_matched_kp, const Mat &right_img, vector<Point2f>& right_matched_kp, int max_corres=-1);
-    size_t matchCounter(const Mat& left_frame, const Mat& right_img);
+    void match(const Mat& left_img, vector<Point2f> &left_matched_kp, const Mat &right_img, vector<Point2f>& right_matched_kp, int max_corres=-1);
+    void rectified_match(const Mat& left_img, vector<Point2f> &left_matched_kp, const Mat &right_img, vector<Point2f>& right_matched_kp, int max_corres=-1);
+    size_t matchCounter(const Mat& left_img, const Mat& right_img);
+    void showMatches(const Mat& left_img, const vector<Point2f> &left_p, const Mat& right_img, const vector<Point2f> &right_p, const string &windowName, const Mat& inliers=Mat());
 
     //helpers
     void showDifference(const Mat& image1, const Mat& image2, string title);

@@ -7,8 +7,6 @@
 
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
-#include <pcl/visualization/pcl_visualizer.h>
-#include <pcl/visualization/cloud_viewer.h>
 #include <pcl/io/pcd_io.h>
 
 #include "headers/parameters.hpp"
@@ -26,24 +24,13 @@ private:
     Mat camera_coeff;
 
     float ransac_thres_feature;
-    int SADWindowSize;
-    int numberOfDisparities;
-    int preFilterCap;
-    int minDisparity;
-    int uniquenessRatio;
-    int speckleWindowSize;
-    int speckleRange;
-    int disp12MaxDiff;
-    int SP1;
-    int SP2;
-
-    boost::thread showPoints;
 
 public:
     ThreeDHandler();
+    ThreeDHandler(const shared_ptr<Matcher> _matcher);
     ~ThreeDHandler();
-    void changeParam(float rtf, int sws, int nd, int pfc, int mod, int ur, int sw, int sr, int dmd, int s1, int s2);
-    void findDisparity(Mat &disp_img, Mat &Q, Mat &left_img, Mat &right_img);
+    void changeParam(const shared_ptr<Matcher> matcher, float rtf);
+    void findDisparity(Mat &feature_disp, Mat &Q, Mat &left_img, Mat &right_img);
     void project(const Mat& obj_img, Mat& cur_img, const Mat& disp_img, const Mat &Q);
 };
 

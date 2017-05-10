@@ -9,68 +9,37 @@ bool imgBoundValid(const Mat& img, Point2f pt) {
 }
 
 ThreeDHandler::ThreeDHandler()
+{}
+
+ThreeDHandler::~ThreeDHandler()
+{}
+
+ThreeDHandler::ThreeDHandler(const shared_ptr<Matcher> _matcher)
 {
-    matcher = shared_ptr<Matcher>(new Matcher());
+    matcher = _matcher;
     lane_detector = shared_ptr<LaneDetector>(new LaneDetector());
     ransac_thres_feature = RTF / 1.0f;
-    SADWindowSize = SWS;
-    numberOfDisparities = ND * 16;
-    preFilterCap = PFC;
-    minDisparity = MOD;
-    uniquenessRatio = UR;
-    speckleWindowSize = SW;
-    speckleRange = SR;
-    disp12MaxDiff = DMD;
-    SP1 = S1;
-    SP2 = S2;
 
     camera_K = (cv::Mat_<double>(3,3) << 1130.2, 0, 677.1,
                                      0, 1129.9, 507.5,
                                      0, 0, 1);
 
     camera_coeff = (cv::Mat_<double>(1,5) << 0.0995, -0.2875, 0, 0, 0);
-
-//    camera_K = (cv::Mat_<double>(3,3) << 1623.4, 0, 1081.9,
-//                                     0, 1623.7, 709.9,
-//                                     0, 0, 1);
-
-//    camera_coeff = (cv::Mat_<double>(1,5) << -0.2004, 0.1620, 0, 0, 0);
 }
-
-ThreeDHandler::~ThreeDHandler()
+void ThreeDHandler::changeParam(const shared_ptr<Matcher> _matcher, float rtf)
 {
-        showPoints.join();
-}
-
-void ThreeDHandler::changeParam(float rtf, int sws, int nd, int pfc, int mod, int ur, int sw, int sr, int dmd, int s1, int s2)
-{
+    matcher = _matcher;
     ransac_thres_feature = rtf;
-    SADWindowSize = sws;
-    numberOfDisparities = nd;
-    preFilterCap = pfc;
-    minDisparity = mod;
-    uniquenessRatio = ur;
-    speckleWindowSize = sw;
-    speckleRange = sr;
-    disp12MaxDiff = dmd;
-    SP1 = s1;
-    SP2 = s2;
 }
 
-void showPC(pcl::PointCloud<pcl::PointXYZRGB>::Ptr point_cloud)
-{
-    static pcl::visualization::CloudViewer viewer("DEBUG:Cloud Viewer");
-    viewer.showCloud(point_cloud);
-    while( !viewer.wasStopped() )
-    {
-        sleep(1);
-    }
-}
-
-void ThreeDHandler::findDisparity(Mat &disp_img, Mat &Q, Mat& left_img, Mat& right_img)
+void ThreeDHandler::findDisparity(Mat &feature_disp, Mat &Q, Mat& left_img, Mat& right_img)
 {
     vector<Point2f> left_kp, right_kp;
-    matcher->match(left_img, left_kp, right_img, right_kp, 40);
+    matcher->match(left_img, left_kp, right_img, right_kp);
+
+#ifdef QT_DEBUG
+    cout<<"feature correspondence count before recoverPose: "<<left_kp.size()<<endl;
+#endif
 
     //find essential_mat based on matches using RANSAC
     Mat inliner_mask, essential_mat, R, t;
@@ -99,40 +68,51 @@ void ThreeDHandler::findDisparity(Mat &disp_img, Mat &Q, Mat& left_img, Mat& rig
     Mat rot_vec;
     Rodrigues(R, rot_vec);
 
+#ifdef QT_DEBUG
     cout<<"R= "<<rot_vec<<endl;
     cout<<"t= "<<t<<endl;
+#endif
 
     Size frame_size = left_img.size();
     Mat R1, R2, P1, P2;
     stereoRectify(camera_K, camera_coeff, camera_K, camera_coeff,frame_size, R, t, R1, R2, P1, P2, Q, CALIB_ZERO_DISPARITY, 0, frame_size, 0, 0);
-//    cout<<R1<<endl<<R2<<endl<<P1<<endl<<P2<<endl<<Q<<endl;
 
-    Mat left_rect_map_x, left_rect_map_y, right_rect_map_x, right_rect_map_y,left_rect,right_rect;
+
+    Mat left_rect_map_x, left_rect_map_y, right_rect_map_x, right_rect_map_y;
     initUndistortRectifyMap(camera_K, camera_coeff, R1, P1, frame_size,CV_32F, left_rect_map_x, left_rect_map_y);
     initUndistortRectifyMap(camera_K, camera_coeff, R2, P2, frame_size, CV_32F, right_rect_map_x, right_rect_map_y);
-    remap(left_img, left_rect, left_rect_map_x, left_rect_map_y, INTER_LINEAR);
-    remap(right_img, right_rect, right_rect_map_x, right_rect_map_y, INTER_LINEAR);
+    remap(left_img, left_img, left_rect_map_x, left_rect_map_y, INTER_LINEAR);
+    remap(right_img, right_img, right_rect_map_x, right_rect_map_y, INTER_LINEAR);
 
-    matcher->rectified_match(left_rect, left_kp, right_rect, right_kp, 500);
-    matcher->showMatches(left_rect, left_kp, right_rect, right_kp, "DEBUG: undistorted matches");
+    matcher->rectified_match(left_img, left_kp, right_img, right_kp);
 
-    Mat feature_disp = Mat::zeros(frame_size, CV_32F);
-    for(int i=0; i<left_kp.size(); i++) {
+#ifdef QT_DEBUG
+    Mat epi;
+    hconcat(left_img, right_img, epi);
+    for(int j = 0; j < epi.rows; j += (epi.rows / 15) ) {
+        line(epi, Point(0, j), Point(epi.cols, j), Scalar(0, 255, 0), 1, 8);
+    }
+    namedWindow("DEBUG:Epipolar line", WINDOW_NORMAL);
+    imshow("DEBUG:Epipolar line", epi);
+    matcher->showMatches(left_img, left_kp, right_img, right_kp, "DEBUG: undistorted matches");
+#endif
+
+    feature_disp = Mat::zeros(frame_size, CV_32F);
+    for(unsigned int i=0; i<left_kp.size(); i++) {
         float disp = left_kp[i].x  - right_kp[i].x;
         feature_disp.at<float>(left_kp[i].y, left_kp[i].x) = disp;
     }
 
     Mat left_mask, right_mask, left_lane_img, right_lane_img;
-    lane_detector->detect(left_rect, left_mask);
-    left_rect.copyTo(left_lane_img, left_mask);
-    lane_detector->detect(right_rect, right_mask);
-    right_rect.copyTo(right_lane_img, right_mask);
+    lane_detector->detect(left_img, left_mask);
+    left_img.copyTo(left_lane_img, left_mask);
+    lane_detector->detect(right_img, right_mask);
+    right_img.copyTo(right_lane_img, right_mask);
 
     //force marker pixels to have disparity
-//    Mat lane_disp = Mat::zeros(frame_size, CV_16S);
     int batch_size = 30;
-    for(int x=batch_size; x<left_rect.cols-batch_size; x++){
-        for(int y=0; y<left_rect.rows; y++){
+    for(int x=batch_size; x<left_img.cols-batch_size; x++){
+        for(int y=0; y<left_img.rows; y++){
             if(left_mask.at<uchar>(y,x) == 0) continue;
 
             Mat left_batch = left_lane_img(Rect(x-batch_size, y, batch_size*2, 1));
@@ -153,21 +133,19 @@ void ThreeDHandler::findDisparity(Mat &disp_img, Mat &Q, Mat& left_img, Mat& rig
         }
     }
 
-    left_img = left_rect;
-    right_img = right_rect;
-
 #ifdef QT_DEBUG
+    namedWindow("DEBUG:Feature Disparity", WINDOW_NORMAL);
+    imshow("DEBUG:Feature Disparity", feature_disp);
 
-    Ptr<StereoSGBM> sbm = StereoSGBM::create( minDisparity, numberOfDisparities, SADWindowSize, SP1, SP2, disp12MaxDiff, preFilterCap, uniquenessRatio, speckleWindowSize, speckleRange);
+    Ptr<StereoSGBM> sbm = StereoSGBM::create( MOD, ND, SWS, S1, S2, DMD, PFC, UR, SW, SR);
     Mat imgDisparity;
 
-    sbm->compute( left_rect, right_rect, imgDisparity );
-
-
-//    medianBlur(lane_disp, lane_disp, 5);
-//    imgDisparity += lane_disp;
-
+    sbm->compute( left_img, right_img, imgDisparity );
+    Mat disp_img;
     normalize(imgDisparity, disp_img, 0, 255, CV_MINMAX, CV_8U);
+
+    namedWindow("DEBUG:Dense Disparity", WINDOW_NORMAL);
+    imshow("DEBUG:Dense Disparity", disp_img);
 
     cv::Mat XYZ(disp_img.size(),CV_32FC3);
     reprojectImageTo3D(disp_img, XYZ, Q, false, CV_32F);
@@ -183,7 +161,7 @@ void ThreeDHandler::findDisparity(Mat &disp_img, Mat &Q, Mat& left_img, Mat& rig
                 p.x = pos_vec[0];
                 p.y = pos_vec[1];
                 p.z = pos_vec[2];
-                Vec3b &color_vec = left_rect.at<Vec3b>(j, i);
+                Vec3b &color_vec = left_img.at<Vec3b>(j, i);
                 p.r = color_vec[2];
                 p.g = color_vec[1];
                 p.b = color_vec[0];
@@ -192,25 +170,16 @@ void ThreeDHandler::findDisparity(Mat &disp_img, Mat &Q, Mat& left_img, Mat& rig
         }
     }
 
-    showPoints = boost::thread(showPC, point_cloud);
+    assert(point_cloud->size()>0);
+    pcl::io::savePCDFile("test_pcd.pcd", *point_cloud);
 
-    Mat epi;
-    hconcat(left_rect, right_rect, epi);
-    for(int j = 0; j < epi.rows; j += (epi.rows / 15) )
-        line(epi, Point(0, j), Point(epi.cols, j), Scalar(0, 255, 0), 1, 8);
-    namedWindow("DEBUG:Epipolar line", WINDOW_NORMAL);
-    imshow("DEBUG:Epipolar line", epi);
-    namedWindow("DEBUG:Disparity", WINDOW_NORMAL);
-    imshow("DEBUG:Disparity", disp_img);
 #endif
-
-    disp_img = feature_disp;
 }
 
 void ThreeDHandler::project(const Mat& obj_img, Mat& cur_img, const Mat& disp_img, const Mat &Q)
 {
     vector<Point2f> obj_kp, img_kp;
-    matcher->match(obj_img, obj_kp, cur_img, img_kp, 500);
+    matcher->match(obj_img, obj_kp, cur_img, img_kp);
 
     //register camera frame
     Mat Qf;
@@ -219,7 +188,6 @@ void ThreeDHandler::project(const Mat& obj_img, Mat& cur_img, const Mat& disp_im
     vector<Point2f> _obj_kp;
     vector<Point2f> _img_kp;
     cv::Mat_<float> vec_tmp(4,1);
-    cout<<obj_kp.size()<<endl;
     for(unsigned int i=0; i<obj_kp.size(); i++)
     {
         float x = obj_kp[i].x;
@@ -241,10 +209,12 @@ void ThreeDHandler::project(const Mat& obj_img, Mat& cur_img, const Mat& disp_im
     cv::Mat rvec, t, inliers;
     cv::solvePnPRansac( obj_pts, _img_kp, camera_K, cv::Mat(), rvec, t, false, 100, 8.0, 0.99, inliers, cv::SOLVEPNP_ITERATIVE );
 
-//    matcher->showMatches(obj_img, _obj_kp, cur_img, _img_kp, "DEBUG:Project matches", inliers);
+#ifdef QT_DEBUG
+    matcher->showMatches(obj_img, _obj_kp, cur_img, _img_kp, "DEBUG:Project matches", inliers);
 
     cout<<"Proj rotation: "<<rvec<<endl;
     cout<<"Proj translation: "<<t<<endl;
+#endif
 
     Mat R, P;
     Rodrigues(rvec, R);
@@ -275,7 +245,7 @@ void ThreeDHandler::project(const Mat& obj_img, Mat& cur_img, const Mat& disp_im
             }
         }
     }
-    GaussianBlur(canvas, canvas, Size(3,3), 3);
+    GaussianBlur(canvas, canvas, Size(BS, BS), BV);
 
     cur_img += canvas;
 }

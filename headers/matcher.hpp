@@ -31,14 +31,13 @@ protected:
     int max_num_features;
     float quality_level;
     int min_distance;
-    int num_grid_feature;
     float match_thres_feature;
 
 public:
     Matcher();
-    void changeParam(int mnf, float ql, int md,  int ngf, float mtf);
-    void match(const Mat& left_img, vector<Point2f> &left_matched_kp, const Mat &right_img, vector<Point2f>& right_matched_kp, int max_corres=-1);
-    void rectified_match(const Mat& left_img, vector<Point2f> &left_matched_kp, const Mat &right_img, vector<Point2f>& right_matched_kp, int max_corres=-1);
+    void changeParam(int mnf, float ql, int md, float mtf);
+    void match(const Mat& left_img, vector<Point2f> &left_matched_kp, const Mat &right_img, vector<Point2f>& right_matched_kp);
+    void rectified_match(const Mat& left_img, vector<Point2f> &left_matched_kp, const Mat &right_img, vector<Point2f>& right_matched_kp);
     size_t matchCounter(const Mat& left_img, const Mat& right_img);
     void showMatches(const Mat& left_img, const vector<Point2f> &left_p, const Mat& right_img, const vector<Point2f> &right_p, const string &windowName, const Mat& inliers=Mat());
 

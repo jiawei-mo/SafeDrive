@@ -36,5 +36,6 @@ bool IMGFetcher::get_local(Mat& output, string filename)
     if(output.empty()) {
         return false;
     }
+    GaussianBlur(output, output, Size(BS,BS), BV, BV);
     return true;
 }

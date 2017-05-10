@@ -20,9 +20,6 @@ private:
 
     string searchPath;
 
-    int blur_size;
-    float blur_var;
-
     float lat;
     float lon;
     float head;
@@ -35,7 +32,7 @@ private:
     bool findBestMatch();
 public:
     Manager();
-    void changeParam(int bs, float bv, int mnf, float ql, int md,  int ngf, float mtf, float rtf, int sws, int nd, int pfc, int mod, int ur, int sw, int sr, int dmd, int s1, int s2);
+    void changeParam(int mnf, float ql, int md, float mtf, float rtf);
     void initialize(string targetName, float lt, float ln, float hd, float ph, string sp);
     void process();
 };

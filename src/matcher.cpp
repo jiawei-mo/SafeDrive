@@ -13,22 +13,20 @@ Matcher::Matcher()
     max_num_features = MNF;
     quality_level = QL / 100.0f;
     min_distance = MD;
-    num_grid_feature = NGF;
     match_thres_feature = MTF / 100.0f;
     detector = ORB::create();
     matcher = DescriptorMatcher::create("BruteForce-Hamming");
 }
 
-void Matcher::changeParam(int mnf, float ql, int md,  int ngf, float mtf)
+void Matcher::changeParam(int mnf, float ql, int md, float mtf)
 {
     max_num_features = mnf;
     quality_level = ql;
     min_distance = md;
-    num_grid_feature = ngf;
     match_thres_feature = mtf;
 }
 
-void Matcher::match(const Mat& left_img, vector<Point2f>& left_matched_kp, const Mat& right_img, vector<Point2f>& right_matched_kp, int max_corres)
+void Matcher::match(const Mat& left_img, vector<Point2f>& left_matched_kp, const Mat& right_img, vector<Point2f>& right_matched_kp)
 {
     left_matched_kp.clear();
     right_matched_kp.clear();
@@ -52,85 +50,43 @@ void Matcher::match(const Mat& left_img, vector<Point2f>& left_matched_kp, const
         right_kp.push_back(KeyPoint(right_corners[i], 1.f));
     }
 
-    //************************************************grid matches**************************************************************
-    int grid_num = num_grid_feature*num_grid_feature;
+    Mat left_desc, right_desc;
+    detector->compute(left_img,left_kp, left_desc);
+    detector->compute(right_img, right_kp, right_desc);
 
-    vector<vector<KeyPoint> > grid_left_kp(grid_num, vector<KeyPoint>());
-    vector<Mat> grid_left_desc(grid_num, Mat());
+    vector<vector<DMatch> > matches;
+    matcher->knnMatch(left_desc, right_desc, matches, 2);
+    vector<DMatch> goodMatches;
 
-    vector<vector<KeyPoint> > grid_right_kp(grid_num, vector<KeyPoint>());
-    vector<Mat> grid_right_desc(grid_num, Mat());
-
-    int n_c = right_img.cols;
-    int n_r = right_img.rows;
-    for(int i=0; i<(int)right_kp.size(); i++) {
-        int area = checkArea(right_kp[i].pt, n_c, n_r, num_grid_feature);
-        grid_right_kp[area].push_back(right_kp[i]);
-    }
-    for(int i=0; i<(int)left_kp.size(); i++) {
-        int area = checkArea(left_kp[i].pt, n_c, n_r, num_grid_feature);
-        grid_left_kp[area].push_back(left_kp[i]);
-    }
-
-    for(int i=0; i<grid_num; i++) {
-        detector->compute(right_img, grid_right_kp[i], grid_right_desc[i]);
-        detector->compute(left_img, grid_left_kp[i], grid_left_desc[i]);
-    }
-
-    for(int i=0; i<grid_num; i++) {
-        vector<vector<DMatch> > matches;
-        if(grid_right_desc[i].empty() || grid_left_desc[i].empty()) {
-            continue;
-        }
-        matcher->knnMatch(grid_left_desc[i], grid_right_desc[i], matches, 2);
-        vector<DMatch> goodMatches;
-        for(int i=0; i<(int)matches.size(); i++) {
-            if(matches[i][0].distance < match_thres_feature*matches[i][1].distance)
-            {
-                matches[i][0].distance = matches[i][0].distance / matches[i][1].distance;
-                goodMatches.push_back(matches[i][0]);
-            }
-        }
-
-        if(max_corres>0 && (int)goodMatches.size() > max_corres) {
-            vector<DMatch> matchHeap;
-            matchHeap = vector<DMatch>(goodMatches.begin(), goodMatches.begin()+40);
-            make_heap(matchHeap.begin(), matchHeap.end(), matchComp());
-
-            for(int j=40; j<(int)goodMatches.size(); j++) {
-                if(matchHeap.front().distance > goodMatches[j].distance) {
-                    pop_heap(matchHeap.begin(), matchHeap.end(), matchComp());
-                    matchHeap.pop_back();
-                    matchHeap.push_back(goodMatches[j]);
-                    push_heap(matchHeap.begin(), matchHeap.end(), matchComp());
-                }
-            }
-            goodMatches = matchHeap;
-        }
-
-        for(int j=0; j<(int)goodMatches.size(); j++) {
-            left_matched_kp.push_back(grid_left_kp[i][goodMatches[j].queryIdx].pt);
-            right_matched_kp.push_back(grid_right_kp[i][goodMatches[j].trainIdx].pt);
+    for(unsigned int i=0; i<matches.size(); i++) {
+        if(float(matches[i][0].distance) < match_thres_feature*float(matches[i][1].distance))
+        {
+            matches[i][0].distance = matches[i][0].distance / matches[i][1].distance;
+            goodMatches.push_back(matches[i][0]);
         }
     }
-    //************************************************grid matches**************************************************************
+
+    for(int j=0; j<(int)goodMatches.size(); j++) {
+        left_matched_kp.push_back(left_kp[goodMatches[j].queryIdx].pt);
+        right_matched_kp.push_back(right_kp[goodMatches[j].trainIdx].pt);
+    }
 
     return;
 }
 
-void Matcher::rectified_match(const Mat& left_img, vector<Point2f> &left_matched_kp, const Mat &right_img, vector<Point2f>& right_matched_kp, int max_corres)
+void Matcher::rectified_match(const Mat& left_img, vector<Point2f> &left_matched_kp, const Mat &right_img, vector<Point2f>& right_matched_kp)
 {
     left_matched_kp.clear();
     right_matched_kp.clear();
-    vector<Point2f> orig_kp_left, orig_kp_right;
-    match(left_img, orig_kp_left, right_img, orig_kp_right, max_corres);
+    vector<Point2f> left_kp, right_kp;
+    match(left_img, left_kp, right_img, right_kp);
 
-    for(unsigned int i=0; i<orig_kp_left.size(); i++) {
-        float y_dist = orig_kp_left[i].y - orig_kp_right[i].y;
+    for(unsigned int i=0; i<left_kp.size(); i++) {
+        float y_dist = left_kp[i].y - right_kp[i].y;
         y_dist *= y_dist;
         if(y_dist <= 4) {
-            left_matched_kp.push_back(orig_kp_left[i]);
-            right_matched_kp.push_back(orig_kp_right[i]);
+            left_matched_kp.push_back(left_kp[i]);
+            right_matched_kp.push_back(right_kp[i]);
         }
     }
 }

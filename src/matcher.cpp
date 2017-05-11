@@ -56,7 +56,8 @@ void Matcher::match(const Mat& left_img, vector<Point2f>& left_matched_kp, const
     detector->compute(left_img,left_kp, left_desc);
     detector->compute(right_img, right_kp, right_desc);
 
-    vector<vector<DMatch> > matches;
+    vector<vector<DMatch> > lr_matches, rl_matches;
+    matcher->knnMatch(left_desc, right_desc, matches, 2);
     matcher->knnMatch(left_desc, right_desc, matches, 2);
 
     for(unsigned int i=0; i<matches.size(); i++) {

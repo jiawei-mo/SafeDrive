@@ -42,7 +42,9 @@ private slots:
     void on_slider_QL_sliderReleased();
     void on_slider_MD_sliderReleased();
     void on_slider_MTF_sliderReleased();
-    void on_slider_RTF_sliderReleased();
+    void on_slider_RTE_sliderReleased();
+    void on_slider_RTP_sliderReleased();
+    void on_slider_MTG_sliderReleased();
 };
 
 #endif // MAINWINDOW_H

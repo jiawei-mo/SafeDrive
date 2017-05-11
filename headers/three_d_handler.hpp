@@ -23,15 +23,16 @@ private:
     Mat camera_K;
     Mat camera_coeff;
 
-    float ransac_thres_feature;
+    float ransac_thres_essential;
+    float ransac_thres_pnp;
 
 public:
     ThreeDHandler();
     ThreeDHandler(const shared_ptr<Matcher> _matcher);
     ~ThreeDHandler();
-    void changeParam(const shared_ptr<Matcher> matcher, float rtf);
-    void findDisparity(Mat &feature_disp, Mat &Q, Mat &left_img, Mat &right_img);
-    void project(const Mat& obj_img, Mat& cur_img, const Mat& disp_img, const Mat &Q);
+    void changeParam(const shared_ptr<Matcher> matcher, float rte, float rtp);
+    void findDisparity(vector<KeyPoint> &feature_disp, Mat &marker_disp, Mat &Q, Mat &left_img, Mat &right_img);
+    void project(const Mat& obj_img, Mat& cur_img, vector<KeyPoint> &feature_disp, const Mat& marker_disp, const Mat &Q);
 };
 
 #endif // THREEDHANDLER_H

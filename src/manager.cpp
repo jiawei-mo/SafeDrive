@@ -18,10 +18,10 @@ void Manager::initialize(string targetName, float lt, float ln, float hd, float 
     searchPath = sp;
 }
 
-void Manager::changeParam(int mnf, float ql, int md, float mtf, float rtf)
+void Manager::changeParam(int mnf, float ql, int md, float mtf, float mtg, float rte, float rtp)
 {
-    matcher->changeParam(mnf, ql, md, mtf);
-    three_d_handler->changeParam(matcher, rtf);
+    matcher->changeParam(mnf, ql, md, mtf, mtg);
+    three_d_handler->changeParam(matcher, rte, rtp);
 }
 
 bool Manager::findBestMatch()
@@ -59,11 +59,12 @@ void Manager::process()
         return;
     }
 
-    Mat disp_img, Q;
-    three_d_handler->findDisparity(disp_img, Q, matchedFrameLeft, matchedFrameRight);
+    vector<KeyPoint> feature_disp;
+    Mat marker_disp, Q;
+    three_d_handler->findDisparity(feature_disp, marker_disp, Q, matchedFrameLeft, matchedFrameRight);
 
     Mat result = targetFrame.clone();
-    three_d_handler->project(matchedFrameLeft, result, disp_img, Q);
+    three_d_handler->project(matchedFrameLeft, result, feature_disp, marker_disp, Q);
 
     namedWindow("Result", WINDOW_NORMAL);
     imshow("Result", result);

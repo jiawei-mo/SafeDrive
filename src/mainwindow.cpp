@@ -23,11 +23,24 @@ void MainWindow::on_button_img_clicked()
     QString Qfile1Name = QFileDialog::getOpenFileName(this, tr("Target image"), "/home/kimiwings/workspace/SafeDrive/test/3.jpg", tr("Img File (*.jpg)"));
     string targetString = Qfile1Name.toStdString();
 
+    if(targetString.empty()) {
+        return;
+    }
+
     QString QlocalSearchFolderName = QFileDialog::getExistingDirectory(this, tr("Open Database Directory"), "/home/kimiwings/workspace/SafeDrive/test/database", QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
     string searchPath = QlocalSearchFolderName.toStdString();
 
+    if(searchPath.empty()) {
+        return;
+    }
+
     QString QPosFile = QFileDialog::getOpenFileName(this, tr("Open position File"), "/home/kimiwings/workspace/SafeDrive/test/back_up/test1.log", tr("log Files (*.log)"));
     string posFile = QPosFile.toStdString();
+
+    if(posFile.empty()) {
+        return;
+    }
+
     ifstream params(posFile);
 
     string param;
@@ -89,7 +102,9 @@ void MainWindow::on_button_reset_clicked()
     ui->slider_QL->setValue(QL);
     ui->slider_MD->setValue(MD);
     ui->slider_MTF->setValue(MTF);
-    ui->slider_RTF->setValue(RTF);
+    ui->slider_MTG->setValue(MTG);
+    ui->slider_RTE->setValue(RTE);
+    ui->slider_RTP->setValue(RTP);
     changeParamAndReprocess();
 }
 
@@ -99,14 +114,18 @@ void MainWindow::changeParamAndReprocess()
     ui->label_QL->setText(QString("Quality Level: ") + QString::number(ui->slider_QL->value() / 100.0f));
     ui->label_MD->setText(QString("Min Distance: ") + QString::number(ui->slider_MD->value()));
     ui->label_MTF->setText(QString("Match Thres: ") + QString::number(ui->slider_MTF->value() / 100.0f));
-    ui->label_RTF->setText(QString("RANSAC Thres: ") + QString::number(ui->slider_RTF->value() / 10.0f));
+    ui->label_MTG->setText(QString("Match Thres KP: ") + QString::number(ui->slider_MTG->value() / 100.0f));
+    ui->label_RTE->setText(QString("RANSAC PnP: ") + QString::number(ui->slider_RTE->value() / 10.0f));
+    ui->label_RTP->setText(QString("RANSAC Essential: ") + QString::number(ui->slider_RTP->value() / 10.0f));
 
     int mnf = ui->slider_MNF->value();
     float ql = ui->slider_QL->value() / 100.0f;
     int md = ui->slider_MD->value();
     float mtf = ui->slider_MTF->value() / 100.0f;
-    float rtf = ui->slider_RTF->value() / 10.0f;
-    manager->changeParam(mnf, ql, md, mtf, rtf);
+    float mtg = ui->slider_MTG->value() / 100.0f;
+    float rte = ui->slider_RTE->value() / 10.0f;
+    float rtp = ui->slider_RTP->value() / 10.0f;
+    manager->changeParam(mnf, ql, md, mtf, mtg, rte, rtp);
 
     manager->process();
 }
@@ -131,8 +150,17 @@ void MainWindow::on_slider_MTF_sliderReleased()
     changeParamAndReprocess();
 }
 
-void MainWindow::on_slider_RTF_sliderReleased()
+void MainWindow::on_slider_RTE_sliderReleased()
 {
     changeParamAndReprocess();
 }
 
+void MainWindow::on_slider_RTP_sliderReleased()
+{
+    changeParamAndReprocess();
+}
+
+void MainWindow::on_slider_MTG_sliderReleased()
+{
+    changeParamAndReprocess();
+}

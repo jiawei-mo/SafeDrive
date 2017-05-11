@@ -32,7 +32,7 @@ private:
     bool findBestMatch();
 public:
     Manager();
-    void changeParam(int mnf, float ql, int md, float mtf, float rtf);
+    void changeParam(int mnf, float ql, int md, float mtf, float mtg, float rte, float rtp);
     void initialize(string targetName, float lt, float ln, float hd, float ph, string sp);
     void process();
 };

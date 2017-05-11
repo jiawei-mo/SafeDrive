@@ -19,11 +19,13 @@
 #define S1 448      //int
 #define S2 800      //int
 
-#define MNF 4000    //int
+#define MNF 5000    //int
 #define QL 4        //%
 #define MD 5        //int
 #define MTF 75      //%
-#define RTF 3        // /10
+#define MTG 100      //%
+#define RTE 10        // /10
+#define RTP 30        // /10
 
 #define QT_DEBUG
 

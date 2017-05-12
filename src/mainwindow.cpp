@@ -115,8 +115,8 @@ void MainWindow::changeParamAndReprocess()
     ui->label_MD->setText(QString("Min Distance: ") + QString::number(ui->slider_MD->value()));
     ui->label_MTF->setText(QString("Match Thres: ") + QString::number(ui->slider_MTF->value() / 100.0f));
     ui->label_MTG->setText(QString("Match Thres KP: ") + QString::number(ui->slider_MTG->value() / 100.0f));
-    ui->label_RTE->setText(QString("RANSAC PnP: ") + QString::number(ui->slider_RTE->value() / 10.0f));
-    ui->label_RTP->setText(QString("RANSAC Essential: ") + QString::number(ui->slider_RTP->value() / 10.0f));
+    ui->label_RTE->setText(QString("RANSAC Essential: ") + QString::number(ui->slider_RTE->value() / 10.0f));
+    ui->label_RTP->setText(QString("RANSAC PnP: ") + QString::number(ui->slider_RTP->value() / 10.0f));
 
     int mnf = ui->slider_MNF->value();
     float ql = ui->slider_QL->value() / 100.0f;

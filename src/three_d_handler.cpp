@@ -1,4 +1,14 @@
 #include "headers/three_d_handler.hpp"
+#define SWS 2      //int
+#define ND 320        //int*16
+#define PFC 75       //int
+#define MOD 1        //int
+#define UR 1      //int
+#define SW 600      //int
+#define SR 12      //int
+#define DMD 1      //int
+#define S1 448      //int
+#define S2 800      //int
 
 bool imgBoundValid(const Mat& img, Point2f pt) {
     bool a = pt.x >= 0;
@@ -63,18 +73,19 @@ void ThreeDHandler::findDisparity(vector<KeyPoint> &feature_disp, Mat& marker_di
         recoverPose(essential_mat, left_kp, right_kp, camera_K, R, t, inliner_mask);
     }
 
+    cout<<"Essential inliers: "<<sum(inliner_mask)[0]<<" / "<<left_kp.size()<<endl;
+
     Mat rot_vec;
     Rodrigues(R, rot_vec);
 
 #ifdef QT_DEBUG
-    cout<<"R= "<<rot_vec<<endl;
-    cout<<"t= "<<t<<endl;
+//    cout<<"R= "<<rot_vec<<endl;
+//    cout<<"t= "<<t<<endl;
 #endif
 
     Size frame_size = left_img.size();
     Mat R1, R2, P1, P2;
     stereoRectify(camera_K, camera_coeff, camera_K, camera_coeff,frame_size, R, t, R1, R2, P1, P2, Q, CALIB_ZERO_DISPARITY, 0, frame_size, 0, 0);
-
 
     Mat left_rect_map_x, left_rect_map_y, right_rect_map_x, right_rect_map_y;
     initUndistortRectifyMap(camera_K, camera_coeff, R1, P1, frame_size,CV_32F, left_rect_map_x, left_rect_map_y);
@@ -88,10 +99,35 @@ void ThreeDHandler::findDisparity(vector<KeyPoint> &feature_disp, Mat& marker_di
     matcher->showMatches(left_img, left_kp, right_img, right_kp, "DEBUG: undistorted matches");
 #endif
 
+    Mat left_rep = left_img.clone();
+    Mat right_rep = right_img.clone();
+    Mat_<double> point_3d_tmp(4,1),point_2d_tmp(3,1);
     for(unsigned int i=0; i<left_kp.size(); i++) {
         float disp = left_kp[i].x  - right_kp[i].x;
         feature_disp.push_back(KeyPoint(left_kp[i], disp));
+
+        //reprojection
+        point_3d_tmp(0) = left_kp[i].x; point_3d_tmp(1) = left_kp[i].y; point_3d_tmp(2) = disp; point_3d_tmp(3) = 1;
+        point_3d_tmp = Q*point_3d_tmp;
+        point_3d_tmp /= point_3d_tmp(3);
+
+        circle(left_rep, left_kp[i], 5, Scalar(255,0,0));
+        point_2d_tmp = P1*point_3d_tmp;
+        point_2d_tmp /= point_2d_tmp(2);
+        circle(left_rep, Point2f(point_2d_tmp(0), point_2d_tmp(1)), 2, Scalar(0,0,255));
+
+        circle(right_rep, right_kp[i], 5, Scalar(255,0,0));
+        point_2d_tmp = P2*point_3d_tmp;
+        point_2d_tmp /= point_2d_tmp(2);
+        circle(right_rep, Point2f(point_2d_tmp(0), point_2d_tmp(1)), 2, Scalar(0,0,255));
     }
+
+    namedWindow("DEBUG:Essential reprojection, left", WINDOW_NORMAL);
+    imshow("DEBUG:Essential reprojection, left", left_rep);
+    waitKey(1);
+    namedWindow("DEBUG:Essential reprojection, right", WINDOW_NORMAL);
+    imshow("DEBUG:Essential reprojection, right", right_rep);
+    waitKey(1);
 
     Mat left_mask, right_mask, left_lane_img, right_lane_img;
     lane_detector->detect(left_img, left_mask);
@@ -170,34 +206,44 @@ void ThreeDHandler::project(const Mat& obj_img, Mat& cur_img, vector<KeyPoint> &
     matcher->match_given_kp(obj_img, feature_disp, cur_img, img_kp);
 
     //register camera frame
-    Mat Qf;
-    Q.convertTo(Qf, CV_32F);
     vector<Point3f> obj_pts;
     vector<Point2f> _obj_kp;
     vector<Point2f> _img_kp;
-    cv::Mat_<float> vec_tmp(4,1);
+    Mat rep_img = cur_img.clone();
+    cv::Mat_<double> point_3d_tmp(4,1);
     for(unsigned int i=0; i<feature_disp.size(); i++)
     {
         float x = feature_disp[i].pt.x;
         float y = feature_disp[i].pt.y;
         float d = feature_disp[i].size;
-        vec_tmp(0) = x; vec_tmp(1) = y; vec_tmp(2) = d; vec_tmp(3) = 1;
-        vec_tmp = Qf*vec_tmp;
-        vec_tmp /= vec_tmp(3);
+        point_3d_tmp(0) = x; point_3d_tmp(1) = y; point_3d_tmp(2) = d; point_3d_tmp(3) = 1;
+        point_3d_tmp = Q*point_3d_tmp;
+        point_3d_tmp /= point_3d_tmp(3);
 
-        obj_pts.push_back(Point3f(vec_tmp(0), vec_tmp(1), vec_tmp(2)));
+        circle(rep_img, img_kp[i], 5, Scalar(255,0,0));
+
+        obj_pts.push_back(Point3f(point_3d_tmp(0), point_3d_tmp(1), point_3d_tmp(2)));
         _obj_kp.push_back(feature_disp[i].pt);
         _img_kp.push_back(img_kp[i]);
     }
 
+
     cv::Mat rvec, t, inliers;
-    cv::solvePnPRansac( obj_pts, _img_kp, camera_K, cv::Mat(), rvec, t, false, 1000, ransac_thres_pnp, 0.99, inliers, cv::SOLVEPNP_ITERATIVE );
+    cv::solvePnPRansac( obj_pts, _img_kp, camera_K, camera_coeff, rvec, t, false, 1000, ransac_thres_pnp, 0.99, inliers, cv::SOLVEPNP_ITERATIVE );
 #ifdef QT_DEBUG
     cout<<"PnP inliers: "<<inliers.rows<<" / "<<_img_kp.size()<<endl;
     matcher->showMatches(obj_img, _obj_kp, cur_img, _img_kp, "DEBUG:Project matches", inliers);
 
-    cout<<"Proj rotation: "<<rvec<<endl;
-    cout<<"Proj translation: "<<t<<endl;
+//    cout<<"Proj rotation: "<<rvec<<endl;
+//    cout<<"Proj translation: "<<t<<endl;
+    vector<Point2f> points_2d;
+    projectPoints(obj_pts, rvec, t, camera_K, camera_coeff, points_2d);
+    for(unsigned int i=0; i<points_2d.size(); i++) {
+        circle(rep_img, points_2d[i], 2, Scalar(0,0,255));
+    }
+    namedWindow("DEBUG:PnP reprojection", WINDOW_NORMAL);
+    imshow("DEBUG:PnP reprojection", rep_img);
+    waitKey(1);
 #endif
 
     Mat R, P;

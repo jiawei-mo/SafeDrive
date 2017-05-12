@@ -8,24 +8,14 @@
 
 #define BS 5        //2* + 1
 #define BV 0.4        // /10
-#define SWS 2      //int
-#define ND 320        //int*16
-#define PFC 75       //int
-#define MOD 1        //int
-#define UR 1      //int
-#define SW 600      //int
-#define SR 12      //int
-#define DMD 1      //int
-#define S1 448      //int
-#define S2 800      //int
 
 #define MNF 5000    //int
 #define QL 4        //%
 #define MD 5        //int
 #define MTF 75      //%
-#define MTG 100      //%
+#define MTG 80      //%
 #define RTE 10        // /10
-#define RTP 30        // /10
+#define RTP 15        // /10
 
 #define QT_DEBUG
 

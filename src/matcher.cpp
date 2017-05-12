@@ -56,15 +56,33 @@ void Matcher::match(const Mat& left_img, vector<Point2f>& left_matched_kp, const
     detector->compute(left_img,left_kp, left_desc);
     detector->compute(right_img, right_kp, right_desc);
 
-    vector<vector<DMatch> > lr_matches, rl_matches;
-    matcher->knnMatch(left_desc, right_desc, matches, 2);
-    matcher->knnMatch(left_desc, right_desc, matches, 2);
+    vector<vector<DMatch> > _lr_matches, _rl_matches;
+    matcher->knnMatch(left_desc, right_desc, _lr_matches, 2);
+    matcher->knnMatch(right_desc, left_desc, _rl_matches, 2);
 
-    for(unsigned int i=0; i<matches.size(); i++) {
-        if(float(matches[i][0].distance) < match_thres_feature*float(matches[i][1].distance))
+    vector<vector<DMatch> > lr_matches, rl_matches;
+    for(unsigned int i=0; i<_lr_matches.size(); i++) {
+        if(float(_lr_matches[i][0].distance) < match_thres_feature*float(_lr_matches[i][1].distance))
         {
-            left_matched_kp.push_back(left_kp[matches[i][0].queryIdx].pt);
-            right_matched_kp.push_back(right_kp[matches[i][0].trainIdx].pt);
+            lr_matches.push_back(_lr_matches[i]);
+        }
+    }
+    for(unsigned int i=0; i<_rl_matches.size(); i++) {
+        if(float(_rl_matches[i][0].distance) < match_thres_feature*float(_rl_matches[i][1].distance))
+        {
+            rl_matches.push_back(_rl_matches[i]);
+        }
+    }
+
+    unordered_map<int, int> match_hash;
+    for(auto& it:rl_matches) {
+        match_hash[it[0].trainIdx] = it[0].queryIdx;
+    }
+
+    for(unsigned int i=0; i<lr_matches.size(); i++) {
+        if(match_hash.find(lr_matches[i][0].queryIdx) != match_hash.end()) {
+            left_matched_kp.push_back(left_kp[lr_matches[i][0].queryIdx].pt);
+            right_matched_kp.push_back(right_kp[lr_matches[i][0].trainIdx].pt);
         }
     }
 

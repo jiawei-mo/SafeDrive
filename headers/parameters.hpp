@@ -1,10 +1,16 @@
 #ifndef PARAMETERS_HPP
 #define PARAMETERS_HPP
 
-#define MATCH_STEP_G 3
-#define MATCH_STEP_L 5
-#define MATCH_LAT_LENGTH 0.0001
-#define MATCH_LON_LENGTH 0.0001
+//camera paramaters
+#define FX 1130.2
+#define FY 1129.9
+#define CX 677.1
+#define CY 507.5
+#define CO1 0.0995
+#define CO2 -0.2875
+#define CO3 0
+#define CO4 0
+#define CO5 0
 
 #define BS 5        //2* + 1
 #define BV 0.4        // /10

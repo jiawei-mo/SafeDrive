@@ -150,31 +150,21 @@ size_t Matcher::matchCounter(const Mat& left_img, const Mat& right_img)
     return dummy_kp_right.size();
 }
 
-void Matcher::showMatches(const Mat& left_img, const vector<Point2f>& left_p, const Mat& right_img, const vector<Point2f>& right_p, const string& windowName, const Mat& inliers)
+void Matcher::showMatches(const Mat& left_img, const vector<Point2f>& left_p, const Mat& right_img, const vector<Point2f>& right_p, const string& windowName)
 {
     vector<KeyPoint> left_kp, right_kp;
-    if(inliers.rows > 0) {
-        for(int i=0; i<inliers.rows; i++)
-        {
-            left_kp.push_back(KeyPoint(left_p[inliers.at<int>(0,i)], 0.0f));
-            right_kp.push_back(KeyPoint(right_p[inliers.at<int>(0,i)], 0.0f));
-        }
-    } else {
-        for(unsigned int i=0; i<left_p.size(); i++)
-        {
-            left_kp.push_back(KeyPoint(left_p[i], 0.0f));
-            right_kp.push_back(KeyPoint(right_p[i], 0.0f));
-        }
+    for(unsigned int i=0; i<left_p.size(); i++)
+    {
+        left_kp.push_back(KeyPoint(left_p[i], 0.0f));
+        right_kp.push_back(KeyPoint(right_p[i], 0.0f));
     }
 
-    Mat corres_img;
-    corres_img = Mat::zeros(left_img.rows, 2*left_img.cols, left_img.type());
     Mat left_features = left_img.clone();
     Mat right_features = right_img.clone();
     drawKeypoints(left_features, left_kp, left_features);
     drawKeypoints(right_features, right_kp, right_features);
-    left_features.copyTo(corres_img(Rect(0, 0, left_img.cols, left_img.rows)));
-    right_features.copyTo(corres_img(Rect(left_img.cols, 0, left_img.cols, left_img.rows)));
+    Mat corres_img;
+    hconcat(left_features, right_features, corres_img);
     //    show matches between two images side by side
     for(unsigned int i=0; i<right_kp.size(); i++)
     {
@@ -184,6 +174,44 @@ void Matcher::showMatches(const Mat& left_img, const vector<Point2f>& left_p, co
     namedWindow(windowName, WINDOW_NORMAL);
     imshow(windowName, corres_img);
     waitKey(1);
+}
+
+void Matcher::denseMatchAndGeneratePCL(Mat& left_img, const Mat& right_img, const Mat& Q)
+{
+    Ptr<StereoSGBM> sbm = StereoSGBM::create( 1, 320, 2, 448, 800, 1, 75, 1, 600, 12);
+    Mat imgDisparity, disp_img;
+    sbm->compute( left_img, right_img, imgDisparity );
+    normalize(imgDisparity, disp_img, 0, 255, CV_MINMAX, CV_8U);
+
+//    namedWindow("DEBUG:Dense Disparity", WINDOW_NORMAL);
+//    imshow("DEBUG:Dense Disparity", disp_img);
+
+    cv::Mat XYZ(disp_img.size(),CV_32FC3);
+    reprojectImageTo3D(disp_img, XYZ, Q, false, CV_32F);
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr point_cloud (new pcl::PointCloud<pcl::PointXYZRGB>);
+    for(int i=0; i<XYZ.cols; i++)
+    {
+        for(int j=0; j<XYZ.rows; j++)
+        {
+            Vec3f &pos_vec = XYZ.at<Vec3f>(j, i);
+            if((pos_vec[2] > 0.0 && pos_vec[2] < 200.0) || (pos_vec[2] > -200.0 && pos_vec[2] < -0.0))
+            {
+                pcl::PointXYZRGB p;
+                p.x = pos_vec[0];
+                p.y = pos_vec[1];
+                p.z = pos_vec[2];
+                Vec3b &color_vec = left_img.at<Vec3b>(j, i);
+                p.r = color_vec[2];
+                p.g = color_vec[1];
+                p.b = color_vec[0];
+                point_cloud->push_back(p);
+            }
+        }
+    }
+
+    assert(point_cloud->size()>0);
+    pcl::io::savePCDFile("test_pcd.pcd", *point_cloud);
+
 }
 
 void Matcher::showDifference(const Mat& image1, const Mat& image2, string title)

@@ -5,10 +5,6 @@
 #include "opencv2/features2d.hpp"
 #include "opencv2/calib3d/calib3d.hpp"
 
-#include <pcl/point_cloud.h>
-#include <pcl/point_types.h>
-#include <pcl/io/pcd_io.h>
-
 #include "headers/parameters.hpp"
 #include "headers/lane_detector.hpp"
 #include "headers/matcher.hpp"

@@ -1,14 +1,4 @@
 #include "headers/three_d_handler.hpp"
-#define SWS 2      //int
-#define ND 320        //int*16
-#define PFC 75       //int
-#define MOD 1        //int
-#define UR 1      //int
-#define SW 600      //int
-#define SR 12      //int
-#define DMD 1      //int
-#define S1 448      //int
-#define S2 800      //int
 
 bool imgBoundValid(const Mat& img, Point2f pt) {
     bool a = pt.x >= 0;
@@ -31,11 +21,11 @@ ThreeDHandler::ThreeDHandler(const shared_ptr<Matcher> _matcher)
     ransac_thres_essential = RTE / 1.0f;
     ransac_thres_pnp = RTP / 1.0f;
 
-    camera_K = (cv::Mat_<double>(3,3) << 1130.2, 0, 677.1,
-                                     0, 1129.9, 507.5,
+    camera_K = (cv::Mat_<double>(3,3) << FX, 0, CX,
+                                     0, FY, CY,
                                      0, 0, 1);
 
-    camera_coeff = (cv::Mat_<double>(1,5) << 0.0995, -0.2875, 0, 0, 0);
+    camera_coeff = (cv::Mat_<double>(1,5) << CO1, CO2, CO3, CO4, CO5);
 }
 void ThreeDHandler::changeParam(const shared_ptr<Matcher> _matcher, float rte, float rtp)
 {
@@ -73,7 +63,6 @@ void ThreeDHandler::findDisparity(vector<KeyPoint> &feature_disp, Mat& marker_di
         recoverPose(essential_mat, left_kp, right_kp, camera_K, R, t, inliner_mask);
     }
 
-    cout<<"Essential inliers: "<<sum(inliner_mask)[0]<<" / "<<left_kp.size()<<endl;
 
     Mat rot_vec;
     Rodrigues(R, rot_vec);
@@ -81,6 +70,7 @@ void ThreeDHandler::findDisparity(vector<KeyPoint> &feature_disp, Mat& marker_di
 #ifdef QT_DEBUG
 //    cout<<"R= "<<rot_vec<<endl;
 //    cout<<"t= "<<t<<endl;
+    cout<<"Essential inliers: "<<sum(inliner_mask)[0]<<" / "<<left_kp.size()<<endl;
 #endif
 
     Size frame_size = left_img.size();
@@ -99,8 +89,8 @@ void ThreeDHandler::findDisparity(vector<KeyPoint> &feature_disp, Mat& marker_di
     matcher->showMatches(left_img, left_kp, right_img, right_kp, "DEBUG: undistorted matches");
 #endif
 
-    Mat left_rep = left_img.clone();
-    Mat right_rep = right_img.clone();
+    Mat img_rep;
+    hconcat(left_img, right_img, img_rep);
     Mat_<double> point_3d_tmp(4,1),point_2d_tmp(3,1);
     for(unsigned int i=0; i<left_kp.size(); i++) {
         float disp = left_kp[i].x  - right_kp[i].x;
@@ -111,26 +101,28 @@ void ThreeDHandler::findDisparity(vector<KeyPoint> &feature_disp, Mat& marker_di
         point_3d_tmp = Q*point_3d_tmp;
         point_3d_tmp /= point_3d_tmp(3);
 
-        circle(left_rep, left_kp[i], 5, Scalar(255,0,0));
+        circle(img_rep, left_kp[i], 5, Scalar(255,0,0));
         point_2d_tmp = P1*point_3d_tmp;
         point_2d_tmp /= point_2d_tmp(2);
-        circle(left_rep, Point2f(point_2d_tmp(0), point_2d_tmp(1)), 2, Scalar(0,0,255));
+        drawMarker(img_rep, Point2f(point_2d_tmp(0), point_2d_tmp(1)), Scalar(0,0,255), MARKER_CROSS, 5);
 
-        circle(right_rep, right_kp[i], 5, Scalar(255,0,0));
+        circle(img_rep, Point2f(right_kp[i].x+left_img.cols, right_kp[i].y), 5, Scalar(255,0,0));
         point_2d_tmp = P2*point_3d_tmp;
         point_2d_tmp /= point_2d_tmp(2);
-        circle(right_rep, Point2f(point_2d_tmp(0), point_2d_tmp(1)), 2, Scalar(0,0,255));
+        drawMarker(img_rep, Point2f(point_2d_tmp(0)+left_img.cols, point_2d_tmp(1)), Scalar(0,0,255), MARKER_CROSS, 5);
     }
 
-    namedWindow("DEBUG:Essential reprojection, left", WINDOW_NORMAL);
-    imshow("DEBUG:Essential reprojection, left", left_rep);
-    waitKey(1);
-    namedWindow("DEBUG:Essential reprojection, right", WINDOW_NORMAL);
-    imshow("DEBUG:Essential reprojection, right", right_rep);
+    namedWindow("DEBUG:Essential reprojection", WINDOW_NORMAL);
+    imshow("DEBUG:Essential reprojection", img_rep);
     waitKey(1);
 
     Mat left_mask, right_mask, left_lane_img, right_lane_img;
     lane_detector->detect(left_img, left_mask);
+
+    namedWindow("DEBUG:Land Marker", WINDOW_NORMAL);
+    imshow("DEBUG:Land Marker", left_mask);
+    waitKey(1);
+
     left_img.copyTo(left_lane_img, left_mask);
     lane_detector->detect(right_img, right_mask);
     right_img.copyTo(right_lane_img, right_mask);
@@ -161,42 +153,7 @@ void ThreeDHandler::findDisparity(vector<KeyPoint> &feature_disp, Mat& marker_di
     }
 
 #ifdef QT_DEBUG
-    Ptr<StereoSGBM> sbm = StereoSGBM::create( MOD, ND, SWS, S1, S2, DMD, PFC, UR, SW, SR);
-    Mat imgDisparity;
-
-    sbm->compute( left_img, right_img, imgDisparity );
-    Mat disp_img;
-    normalize(imgDisparity, disp_img, 0, 255, CV_MINMAX, CV_8U);
-
-//    namedWindow("DEBUG:Dense Disparity", WINDOW_NORMAL);
-//    imshow("DEBUG:Dense Disparity", disp_img);
-
-    cv::Mat XYZ(disp_img.size(),CV_32FC3);
-    reprojectImageTo3D(disp_img, XYZ, Q, false, CV_32F);
-    pcl::PointCloud<pcl::PointXYZRGB>::Ptr point_cloud (new pcl::PointCloud<pcl::PointXYZRGB>);
-    for(int i=0; i<XYZ.cols; i++)
-    {
-        for(int j=0; j<XYZ.rows; j++)
-        {
-            Vec3f &pos_vec = XYZ.at<Vec3f>(j, i);
-            if((pos_vec[2] > 0.0 && pos_vec[2] < 200.0) || (pos_vec[2] > -200.0 && pos_vec[2] < -0.0))
-            {
-                pcl::PointXYZRGB p;
-                p.x = pos_vec[0];
-                p.y = pos_vec[1];
-                p.z = pos_vec[2];
-                Vec3b &color_vec = left_img.at<Vec3b>(j, i);
-                p.r = color_vec[2];
-                p.g = color_vec[1];
-                p.b = color_vec[0];
-                point_cloud->push_back(p);
-            }
-        }
-    }
-
-    assert(point_cloud->size()>0);
-    pcl::io::savePCDFile("test_pcd.pcd", *point_cloud);
-
+    matcher->denseMatchAndGeneratePCL(left_img, right_img, Q);
 #endif
 }
 
@@ -207,8 +164,7 @@ void ThreeDHandler::project(const Mat& obj_img, Mat& cur_img, vector<KeyPoint> &
 
     //register camera frame
     vector<Point3f> obj_pts;
-    vector<Point2f> _obj_kp;
-    vector<Point2f> _img_kp;
+    vector<Point2f> _obj_kp, _img_kp;
     Mat rep_img = cur_img.clone();
     cv::Mat_<double> point_3d_tmp(4,1);
     for(unsigned int i=0; i<feature_disp.size(); i++)
@@ -220,8 +176,6 @@ void ThreeDHandler::project(const Mat& obj_img, Mat& cur_img, vector<KeyPoint> &
         point_3d_tmp = Q*point_3d_tmp;
         point_3d_tmp /= point_3d_tmp(3);
 
-        circle(rep_img, img_kp[i], 5, Scalar(255,0,0));
-
         obj_pts.push_back(Point3f(point_3d_tmp(0), point_3d_tmp(1), point_3d_tmp(2)));
         _obj_kp.push_back(feature_disp[i].pt);
         _img_kp.push_back(img_kp[i]);
@@ -230,16 +184,26 @@ void ThreeDHandler::project(const Mat& obj_img, Mat& cur_img, vector<KeyPoint> &
 
     cv::Mat rvec, t, inliers;
     cv::solvePnPRansac( obj_pts, _img_kp, camera_K, camera_coeff, rvec, t, false, 1000, ransac_thres_pnp, 0.99, inliers, cv::SOLVEPNP_ITERATIVE );
+
 #ifdef QT_DEBUG
     cout<<"PnP inliers: "<<inliers.rows<<" / "<<_img_kp.size()<<endl;
-    matcher->showMatches(obj_img, _obj_kp, cur_img, _img_kp, "DEBUG:Project matches", inliers);
+    vector<Point3f> obj_pts_inlier;
+    vector<Point2f> obj_kp_inlier, img_kp_inlier;
+    for(int i=0; i<inliers.rows; i++)
+    {
+        obj_pts_inlier.push_back(obj_pts[inliers.at<int>(0,i)]);
+        obj_kp_inlier.push_back(_obj_kp[inliers.at<int>(0,i)]);
+        img_kp_inlier.push_back(_img_kp[inliers.at<int>(0,i)]);
+        circle(rep_img, img_kp[inliers.at<int>(0,i)], 5, Scalar(255,0,0));
+    }
+    matcher->showMatches(obj_img, obj_kp_inlier, cur_img, img_kp_inlier, "DEBUG:Project matches");
 
 //    cout<<"Proj rotation: "<<rvec<<endl;
 //    cout<<"Proj translation: "<<t<<endl;
     vector<Point2f> points_2d;
-    projectPoints(obj_pts, rvec, t, camera_K, camera_coeff, points_2d);
+    projectPoints(obj_pts_inlier, rvec, t, camera_K, camera_coeff, points_2d);
     for(unsigned int i=0; i<points_2d.size(); i++) {
-        circle(rep_img, points_2d[i], 2, Scalar(0,0,255));
+        drawMarker(rep_img, points_2d[i], Scalar(0,0,255), MARKER_CROSS, 5);
     }
     namedWindow("DEBUG:PnP reprojection", WINDOW_NORMAL);
     imshow("DEBUG:PnP reprojection", rep_img);

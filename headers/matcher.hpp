@@ -7,6 +7,10 @@
 #include "opencv2/features2d.hpp"
 #include "opencv2/calib3d/calib3d.hpp"
 
+#include <pcl/point_cloud.h>
+#include <pcl/point_types.h>
+#include <pcl/io/pcd_io.h>
+
 #include "headers/parameters.hpp"
 
 using namespace cv;
@@ -41,7 +45,8 @@ public:
     void match_given_kp(const Mat& template_img, vector<KeyPoint>& template_kp, const Mat& match_img, vector<Point2f>& matched_kp);
     void rectified_match(const Mat& left_img, vector<Point2f> &left_matched_kp, const Mat &right_img, vector<Point2f>& right_matched_kp);
     size_t matchCounter(const Mat& left_img, const Mat& right_img);
-    void showMatches(const Mat& left_img, const vector<Point2f> &left_p, const Mat& right_img, const vector<Point2f> &right_p, const string &windowName, const Mat& inliers=Mat());
+    void showMatches(const Mat& left_img, const vector<Point2f> &left_p, const Mat& right_img, const vector<Point2f> &right_p, const string &windowName);
+    void denseMatchAndGeneratePCL(Mat &left_img, const Mat& right_img, const Mat& Q);
 
     //helpers
     void showDifference(const Mat& image1, const Mat& image2, string title);

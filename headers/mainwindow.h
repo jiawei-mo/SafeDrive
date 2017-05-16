@@ -29,6 +29,7 @@ private:
     Ui::MainWindow *ui;
 
     shared_ptr<Manager> manager;
+    bool initialied;
 
     void changeParamAndReprocess();
     void process();

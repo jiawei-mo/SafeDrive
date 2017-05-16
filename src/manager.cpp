@@ -46,7 +46,7 @@ bool Manager::findBestMatch()
         else if(curC > secondC)
         {
             matchedFrameRight = dbFrame;
-            secondC = firstC;
+            secondC = curC;
         }
     }
 

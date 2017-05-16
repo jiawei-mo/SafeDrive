@@ -38,6 +38,7 @@ void ThreeDHandler::findDisparity(vector<KeyPoint> &feature_disp, Mat& marker_di
 {
     vector<Point2f> left_kp, right_kp;
     matcher->match(left_img, left_kp, right_img, right_kp);
+    matcher->showMatches(left_img, left_kp, right_img, right_kp, "DEBUG: original matches");
 
     //find essential_mat based on matches using RANSAC
     Mat inliner_mask, essential_mat, R, t;
@@ -151,7 +152,11 @@ void ThreeDHandler::findDisparity(vector<KeyPoint> &feature_disp, Mat& marker_di
             marker_disp.at<float>(y, x) = d;
         }
     }
+    Mat disp_img;
+    normalize(marker_disp, disp_img, 0, 255, CV_MINMAX, CV_8U);
 
+    namedWindow("DEBUG:Dense Disparity", WINDOW_NORMAL);
+    imshow("DEBUG:Dense Disparity", disp_img);
 #ifdef QT_DEBUG
     matcher->denseMatchAndGeneratePCL(left_img, right_img, Q);
 #endif
@@ -183,7 +188,7 @@ void ThreeDHandler::project(const Mat& obj_img, Mat& cur_img, vector<KeyPoint> &
 
 
     cv::Mat rvec, t, inliers;
-    cv::solvePnPRansac( obj_pts, _img_kp, camera_K, camera_coeff, rvec, t, false, 1000, ransac_thres_pnp, 0.99, inliers, cv::SOLVEPNP_ITERATIVE );
+    cv::solvePnPRansac( obj_pts, _img_kp, camera_K, camera_coeff, rvec, t, true, 500, ransac_thres_pnp, 0.99, inliers, cv::SOLVEPNP_ITERATIVE );
 
 #ifdef QT_DEBUG
     cout<<"PnP inliers: "<<inliers.rows<<" / "<<_img_kp.size()<<endl;

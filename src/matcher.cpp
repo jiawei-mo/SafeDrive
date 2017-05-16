@@ -100,7 +100,7 @@ void Matcher::match_given_kp(const Mat& template_img, vector<KeyPoint>& template
     Mat match_gray;
     vector<Point2f> match_corners;
     cvtColor(match_img, match_gray, CV_BGR2GRAY);
-    goodFeaturesToTrack(match_gray, match_corners, max_num_features, quality_level, min_distance);
+    goodFeaturesToTrack(match_gray, match_corners, max_num_features, 2.0*quality_level, min_distance);
 
     vector<KeyPoint> _template_kp(template_kp), _matched_kp;
     for( size_t i = 0; i < match_corners.size(); i++ ) {

@@ -15,10 +15,10 @@
 #define BS 5        //2* + 1
 #define BV 0.4        // /10
 
-#define MNF 5000    //int
-#define QL 4        //%
+#define MNF 2000    //int
+#define QL 10        //%
 #define MD 5        //int
-#define MTF 75      //%
+#define MTF 70      //%
 #define MTG 80      //%
 #define RTE 10        // /10
 #define RTP 15        // /10

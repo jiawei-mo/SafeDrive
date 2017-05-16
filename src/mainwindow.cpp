@@ -11,6 +11,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->setupUi(this);
 
     manager = shared_ptr<Manager>(new Manager());
+    initialied = false;
 }
 
 MainWindow::~MainWindow()
@@ -56,7 +57,11 @@ void MainWindow::on_button_img_clicked()
 
     manager->initialize(targetString, lat, lon, head, pitch, searchPath);
 
-    on_button_reset_clicked();
+    if(!initialied) {
+        on_button_reset_clicked();
+    } else {
+        manager->process();
+    }
 }
 
 void MainWindow::on_button_video_clicked()
@@ -92,7 +97,11 @@ void MainWindow::on_button_video_clicked()
 
         manager->initialize(imgNames[i], lat, lon, head, pitch, searchPath);
 
-        on_button_reset_clicked();
+        if(!initialied) {
+            on_button_reset_clicked();
+        } else {
+            manager->process();
+        }
     }
 }
 
@@ -105,6 +114,7 @@ void MainWindow::on_button_reset_clicked()
     ui->slider_MTG->setValue(MTG);
     ui->slider_RTE->setValue(RTE);
     ui->slider_RTP->setValue(RTP);
+    initialied = true;
     changeParamAndReprocess();
 }
 

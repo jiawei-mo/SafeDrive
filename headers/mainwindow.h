@@ -9,7 +9,7 @@
 #include <fstream>
 #include <sstream>
 
-#include "parameters.hpp"
+#include "headers/parameters.hpp"
 
 using namespace std;
 
@@ -46,6 +46,7 @@ private slots:
     void on_slider_RTE_sliderReleased();
     void on_slider_RTP_sliderReleased();
     void on_slider_MTG_sliderReleased();
+    void on_check_DEBUG_clicked(bool checked);
 };
 
 #endif // MAINWINDOW_H

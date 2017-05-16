@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>379</width>
-    <height>324</height>
+    <width>370</width>
+    <height>320</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -71,7 +71,7 @@
      <number>1</number>
     </property>
     <property name="maximum">
-     <number>50</number>
+     <number>10</number>
     </property>
     <property name="singleStep">
      <number>1</number>
@@ -175,7 +175,7 @@
    <widget class="QPushButton" name="button_reset">
     <property name="geometry">
      <rect>
-      <x>280</x>
+      <x>180</x>
       <y>20</y>
       <width>81</width>
       <height>41</height>
@@ -231,13 +231,13 @@
      </rect>
     </property>
     <property name="minimum">
-     <number>0</number>
+     <number>50</number>
     </property>
     <property name="maximum">
      <number>100</number>
     </property>
     <property name="value">
-     <number>0</number>
+     <number>50</number>
     </property>
     <property name="orientation">
      <enum>Qt::Horizontal</enum>
@@ -246,7 +246,7 @@
    <widget class="QPushButton" name="button_video">
     <property name="geometry">
      <rect>
-      <x>150</x>
+      <x>100</x>
       <y>20</y>
       <width>81</width>
       <height>41</height>
@@ -274,7 +274,7 @@
      <number>1</number>
     </property>
     <property name="maximum">
-     <number>200</number>
+     <number>20</number>
     </property>
     <property name="singleStep">
      <number>1</number>
@@ -322,16 +322,29 @@
      </rect>
     </property>
     <property name="minimum">
-     <number>0</number>
+     <number>50</number>
     </property>
     <property name="maximum">
      <number>100</number>
     </property>
     <property name="value">
-     <number>0</number>
+     <number>50</number>
     </property>
     <property name="orientation">
      <enum>Qt::Horizontal</enum>
+    </property>
+   </widget>
+   <widget class="QCheckBox" name="check_DEBUG">
+    <property name="geometry">
+     <rect>
+      <x>270</x>
+      <y>30</y>
+      <width>92</width>
+      <height>23</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>DEBUG</string>
     </property>
    </widget>
   </widget>

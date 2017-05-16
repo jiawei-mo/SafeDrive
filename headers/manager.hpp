@@ -5,6 +5,7 @@
 #include "headers/matcher.hpp"
 #include "headers/lane_detector.hpp"
 #include "headers/img_fetcher.hpp"
+#include "headers/parameters.hpp"
 
 using namespace cv;
 using namespace std;
@@ -12,7 +13,6 @@ using namespace std;
 class Manager
 {
 private:
-
     shared_ptr<ThreeDHandler> three_d_handler;
     shared_ptr<Matcher> matcher;
     shared_ptr<LaneDetector> lane_detector;

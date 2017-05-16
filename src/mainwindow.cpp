@@ -3,7 +3,7 @@
 #include "headers/mainwindow.h"
 #include "ui_mainwindow.h"
 
-
+bool DEBUG = false;
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
@@ -21,7 +21,8 @@ MainWindow::~MainWindow()
 
 void MainWindow::on_button_img_clicked()
 {
-    QString Qfile1Name = QFileDialog::getOpenFileName(this, tr("Target image"), "/home/kimiwings/workspace/SafeDrive/test/3.jpg", tr("Img File (*.jpg)"));
+    destroyAllWindows();
+    QString Qfile1Name = QFileDialog::getOpenFileName(this, tr("Target image"), "/home/kimiwings/workspace/SafeDrive/test/imgs/3.jpg", tr("Img File (*.jpg)"));
     string targetString = Qfile1Name.toStdString();
 
     if(targetString.empty()) {
@@ -35,7 +36,7 @@ void MainWindow::on_button_img_clicked()
         return;
     }
 
-    QString QPosFile = QFileDialog::getOpenFileName(this, tr("Open position File"), "/home/kimiwings/workspace/SafeDrive/test/back_up/test1.log", tr("log Files (*.log)"));
+    QString QPosFile = QFileDialog::getOpenFileName(this, tr("Open position File"), "/home/kimiwings/workspace/SafeDrive/test/pos.log", tr("log Files (*.log)"));
     string posFile = QPosFile.toStdString();
 
     if(posFile.empty()) {
@@ -66,16 +67,31 @@ void MainWindow::on_button_img_clicked()
 
 void MainWindow::on_button_video_clicked()
 {
-    QString QImgFolderName = QFileDialog::getExistingDirectory(this, tr("Open Img Directory"), "/home/kimiwings/workspace/SafeDrive/test/video/imgs", QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
+    destroyAllWindows();
+    QString QImgFolderName = QFileDialog::getExistingDirectory(this, tr("Open target Directory"), "/home/kimiwings/workspace/SafeDrive/test/imgs", QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
     string imgFolderName = QImgFolderName.toStdString();
+
+    if(imgFolderName.empty()) {
+        return;
+    }
+
     vector<String> imgNames;
     glob(imgFolderName, imgNames);
 
-    QString QlocalSearchFolderName = QFileDialog::getExistingDirectory(this, tr("Open Img Directory"), "/home/kimiwings/workspace/SafeDrive/test/video/imgs", QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
+    QString QlocalSearchFolderName = QFileDialog::getExistingDirectory(this, tr("Open Database Directory"), "/home/kimiwings/workspace/SafeDrive/test/database", QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
     string searchPath = QlocalSearchFolderName.toStdString();
 
-    QString QPosFile = QFileDialog::getOpenFileName(this, tr("Open Pos File"), "/home/kimiwings/workspace/SafeDrive/test/video/pos.log", tr("log Files (*.log)"));
+    if(searchPath.empty()) {
+        return;
+    }
+
+    QString QPosFile = QFileDialog::getOpenFileName(this, tr("Open Pos File"), "/home/kimiwings/workspace/SafeDrive/test/pos.log", tr("log Files (*.log)"));
     string posFile = QPosFile.toStdString();
+
+    if(posFile.empty()) {
+        return;
+    }
+
     ifstream infile(posFile);
 
     for(size_t i=0;i<imgNames.size(); i++) {
@@ -102,7 +118,10 @@ void MainWindow::on_button_video_clicked()
         } else {
             manager->process();
         }
+
+        waitKey();
     }
+    destroyAllWindows();
 }
 
 void MainWindow::on_button_reset_clicked()
@@ -172,5 +191,12 @@ void MainWindow::on_slider_RTP_sliderReleased()
 
 void MainWindow::on_slider_MTG_sliderReleased()
 {
+    changeParamAndReprocess();
+}
+
+void MainWindow::on_check_DEBUG_clicked(bool checked)
+{
+    DEBUG = checked;
+    destroyAllWindows();
     changeParamAndReprocess();
 }

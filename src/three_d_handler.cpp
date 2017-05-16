@@ -38,7 +38,6 @@ void ThreeDHandler::findDisparity(vector<KeyPoint> &feature_disp, Mat& marker_di
 {
     vector<Point2f> left_kp, right_kp;
     matcher->match(left_img, left_kp, right_img, right_kp);
-    matcher->showMatches(left_img, left_kp, right_img, right_kp, "DEBUG: original matches");
 
     //find essential_mat based on matches using RANSAC
     Mat inliner_mask, essential_mat, R, t;
@@ -68,11 +67,12 @@ void ThreeDHandler::findDisparity(vector<KeyPoint> &feature_disp, Mat& marker_di
     Mat rot_vec;
     Rodrigues(R, rot_vec);
 
-#ifdef QT_DEBUG
+if(DEBUG) {
+    matcher->showMatches(left_img, left_kp, right_img, right_kp, "DEBUG: original matches");
 //    cout<<"R= "<<rot_vec<<endl;
 //    cout<<"t= "<<t<<endl;
     cout<<"Essential inliers: "<<sum(inliner_mask)[0]<<" / "<<left_kp.size()<<endl;
-#endif
+}
 
     Size frame_size = left_img.size();
     Mat R1, R2, P1, P2;
@@ -86,9 +86,9 @@ void ThreeDHandler::findDisparity(vector<KeyPoint> &feature_disp, Mat& marker_di
 
     matcher->rectified_match(left_img, left_kp, right_img, right_kp);
 
-#ifdef QT_DEBUG
+if(DEBUG) {
     matcher->showMatches(left_img, left_kp, right_img, right_kp, "DEBUG: undistorted matches");
-#endif
+}
 
     Mat img_rep;
     hconcat(left_img, right_img, img_rep);
@@ -113,16 +113,20 @@ void ThreeDHandler::findDisparity(vector<KeyPoint> &feature_disp, Mat& marker_di
         drawMarker(img_rep, Point2f(point_2d_tmp(0)+left_img.cols, point_2d_tmp(1)), Scalar(0,0,255), MARKER_CROSS, 5);
     }
 
+if(DEBUG) {
     namedWindow("DEBUG:Essential reprojection", WINDOW_NORMAL);
     imshow("DEBUG:Essential reprojection", img_rep);
     waitKey(1);
+}
 
     Mat left_mask, right_mask, left_lane_img, right_lane_img;
     lane_detector->detect(left_img, left_mask);
 
+if(DEBUG) {
     namedWindow("DEBUG:Land Marker", WINDOW_NORMAL);
     imshow("DEBUG:Land Marker", left_mask);
     waitKey(1);
+}
 
     left_img.copyTo(left_lane_img, left_mask);
     lane_detector->detect(right_img, right_mask);
@@ -155,11 +159,11 @@ void ThreeDHandler::findDisparity(vector<KeyPoint> &feature_disp, Mat& marker_di
     Mat disp_img;
     normalize(marker_disp, disp_img, 0, 255, CV_MINMAX, CV_8U);
 
+if(DEBUG) {
     namedWindow("DEBUG:Dense Disparity", WINDOW_NORMAL);
     imshow("DEBUG:Dense Disparity", disp_img);
-#ifdef QT_DEBUG
     matcher->denseMatchAndGeneratePCL(left_img, right_img, Q);
-#endif
+}
 }
 
 void ThreeDHandler::project(const Mat& obj_img, Mat& cur_img, vector<KeyPoint> &feature_disp, const Mat& marker_disp, const Mat &Q)
@@ -190,7 +194,7 @@ void ThreeDHandler::project(const Mat& obj_img, Mat& cur_img, vector<KeyPoint> &
     cv::Mat rvec, t, inliers;
     cv::solvePnPRansac( obj_pts, _img_kp, camera_K, camera_coeff, rvec, t, true, 500, ransac_thres_pnp, 0.99, inliers, cv::SOLVEPNP_ITERATIVE );
 
-#ifdef QT_DEBUG
+if(DEBUG) {
     cout<<"PnP inliers: "<<inliers.rows<<" / "<<_img_kp.size()<<endl;
     vector<Point3f> obj_pts_inlier;
     vector<Point2f> obj_kp_inlier, img_kp_inlier;
@@ -213,7 +217,7 @@ void ThreeDHandler::project(const Mat& obj_img, Mat& cur_img, vector<KeyPoint> &
     namedWindow("DEBUG:PnP reprojection", WINDOW_NORMAL);
     imshow("DEBUG:PnP reprojection", rep_img);
     waitKey(1);
-#endif
+}
 
     Mat R, P;
     Rodrigues(rvec, R);

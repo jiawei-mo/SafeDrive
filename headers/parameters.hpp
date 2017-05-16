@@ -23,6 +23,6 @@
 #define RTE 10        // /10
 #define RTP 15        // /10
 
-#define QT_DEBUG
+extern bool DEBUG;
 
-#endif // PARAMETERS_HPP
+#endif

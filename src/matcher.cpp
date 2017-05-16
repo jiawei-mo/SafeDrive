@@ -183,8 +183,10 @@ void Matcher::denseMatchAndGeneratePCL(Mat& left_img, const Mat& right_img, cons
     sbm->compute( left_img, right_img, imgDisparity );
     normalize(imgDisparity, disp_img, 0, 255, CV_MINMAX, CV_8U);
 
+if(DEBUG) {
 //    namedWindow("DEBUG:Dense Disparity", WINDOW_NORMAL);
 //    imshow("DEBUG:Dense Disparity", disp_img);
+}
 
     cv::Mat XYZ(disp_img.size(),CV_32FC3);
     reprojectImageTo3D(disp_img, XYZ, Q, false, CV_32F);

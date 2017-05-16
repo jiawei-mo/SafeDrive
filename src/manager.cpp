@@ -35,7 +35,11 @@ bool Manager::findBestMatch()
             return false;
         }
         curC = matcher->matchCounter(targetFrame, dbFrame);
+
+if(DEBUG) {
         cout<<imgNames[i]<<" "<<curC<<endl;
+}
+
         if(curC > firstC)
         {
             matchedFrameRight = matchedFrameLeft;

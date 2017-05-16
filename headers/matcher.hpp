@@ -26,7 +26,6 @@ class Matcher
 {
 private:
     int checkArea(Point2f p, int n_c, int n_r, int num_grid);
-protected:
     Ptr<ORB> detector;
     Ptr<DescriptorMatcher> matcher;
 

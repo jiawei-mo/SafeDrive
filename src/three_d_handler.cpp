@@ -192,7 +192,7 @@ void ThreeDHandler::project(const Mat& obj_img, Mat& cur_img, vector<KeyPoint> &
 
 
     cv::Mat rvec, t, inliers;
-    cv::solvePnPRansac( obj_pts, _img_kp, camera_K, camera_coeff, rvec, t, true, 500, ransac_thres_pnp, 0.99, inliers, cv::SOLVEPNP_ITERATIVE );
+    cv::solvePnPRansac( obj_pts, _img_kp, camera_K, camera_coeff, rvec, t, false, 500, ransac_thres_pnp, 0.99, inliers, cv::SOLVEPNP_ITERATIVE );
 
 if(DEBUG) {
     cout<<"PnP inliers: "<<inliers.rows<<" / "<<_img_kp.size()<<endl;

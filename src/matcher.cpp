@@ -1,13 +1,5 @@
 #include "headers/matcher.hpp"
 
-int Matcher::checkArea(Point2f p, int n_c, int n_r, int num_grid) {
-    int step_c = n_c / num_grid + 1;
-    int step_r = n_r / num_grid + 1;
-    int c = p.x / step_c;
-    int r = p.y / step_r;
-    return r * num_grid + c;
-}
-
 Matcher::Matcher()
 {
     max_num_features = MNF;

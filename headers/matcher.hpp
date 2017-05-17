@@ -16,16 +16,9 @@
 using namespace cv;
 using namespace std;
 
-struct matchComp {
-    bool operator()(DMatch a, DMatch b) {
-        return a.distance < b.distance;
-    }
-};
-
 class Matcher
 {
 private:
-    int checkArea(Point2f p, int n_c, int n_r, int num_grid);
     Ptr<ORB> detector;
     Ptr<DescriptorMatcher> matcher;
 

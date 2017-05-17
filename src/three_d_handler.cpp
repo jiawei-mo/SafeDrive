@@ -39,6 +39,10 @@ void ThreeDHandler::findDisparity(vector<KeyPoint> &feature_disp, Mat& marker_di
     vector<Point2f> left_kp, right_kp;
     matcher->match(left_img, left_kp, right_img, right_kp);
 
+    if(DEBUG) {
+        matcher->showMatches(left_img, left_kp, right_img, right_kp, "DEBUG: original matches");
+    }
+
     //find essential_mat based on matches using RANSAC
     Mat inliner_mask, essential_mat, R, t;
     essential_mat  = findEssentialMat(left_kp, right_kp, camera_K, RANSAC, 0.999, ransac_thres_essential, inliner_mask);
@@ -63,16 +67,10 @@ void ThreeDHandler::findDisparity(vector<KeyPoint> &feature_disp, Mat& marker_di
         recoverPose(essential_mat, left_kp, right_kp, camera_K, R, t, inliner_mask);
     }
 
+    cout<<"Essential inliers: "<<sum(inliner_mask)[0]<<" / "<<left_kp.size()<<endl;
 
     Mat rot_vec;
     Rodrigues(R, rot_vec);
-
-if(DEBUG) {
-    matcher->showMatches(left_img, left_kp, right_img, right_kp, "DEBUG: original matches");
-//    cout<<"R= "<<rot_vec<<endl;
-//    cout<<"t= "<<t<<endl;
-    cout<<"Essential inliers: "<<sum(inliner_mask)[0]<<" / "<<left_kp.size()<<endl;
-}
 
     Size frame_size = left_img.size();
     Mat R1, R2, P1, P2;
@@ -171,6 +169,11 @@ void ThreeDHandler::project(const Mat& obj_img, Mat& cur_img, vector<KeyPoint> &
     vector<Point2f> img_kp;
     matcher->match_given_kp(obj_img, feature_disp, cur_img, img_kp);
 
+    if(feature_disp.size()<3) {
+        cout<<"Not enough points for PnP, exiting..."<<endl;
+        return;
+    }
+
     //register camera frame
     vector<Point3f> obj_pts;
     vector<Point2f> _obj_kp, _img_kp;
@@ -192,10 +195,16 @@ void ThreeDHandler::project(const Mat& obj_img, Mat& cur_img, vector<KeyPoint> &
 
 
     cv::Mat rvec, t, inliers;
-    cv::solvePnPRansac( obj_pts, _img_kp, camera_K, camera_coeff, rvec, t, false, 500, ransac_thres_pnp, 0.99, inliers, cv::SOLVEPNP_ITERATIVE );
+    cv::solvePnPRansac( obj_pts, _img_kp, camera_K, camera_coeff, rvec, t, false, 100, ransac_thres_pnp, 0.999, inliers, cv::SOLVEPNP_ITERATIVE );
+
+    if(inliers.rows<3) {
+        cout<<"Not enough points for PnP, exiting..."<<endl;
+        return;
+    }
+
+    cout<<"PnP inliers: "<<inliers.rows<<" / "<<_img_kp.size()<<endl;
 
 if(DEBUG) {
-    cout<<"PnP inliers: "<<inliers.rows<<" / "<<_img_kp.size()<<endl;
     vector<Point3f> obj_pts_inlier;
     vector<Point2f> obj_kp_inlier, img_kp_inlier;
     for(int i=0; i<inliers.rows; i++)

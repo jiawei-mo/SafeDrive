@@ -198,7 +198,7 @@ void ThreeDHandler::project(const Mat& obj_img, Mat& cur_img, vector<KeyPoint> &
     cv::solvePnPRansac( obj_pts, _img_kp, camera_K, camera_coeff, rvec, t, false, 100, ransac_thres_pnp, 0.999, inliers, cv::SOLVEPNP_ITERATIVE );
 
     if(inliers.rows<3) {
-        cout<<"Not enough points for PnP, exiting..."<<endl;
+        cout<<"Not enough inlier for PnP, exiting..."<<endl;
         return;
     }
 

@@ -15,7 +15,7 @@
 #define BS 5        //2* + 1
 #define BV 0.4        // /10
 
-#define MNF 2000    //int
+#define MNF 5000    //int
 #define QL 10        //%
 #define MD 5        //int
 #define MTF 70      //%

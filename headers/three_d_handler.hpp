@@ -5,6 +5,7 @@
 #include "opencv2/features2d.hpp"
 #include "opencv2/calib3d/calib3d.hpp"
 
+#include "headers/polarcalibration.h"
 #include "headers/lane_detector.hpp"
 #include "headers/matcher.hpp"
 #include "headers/parameters.hpp"
@@ -14,6 +15,7 @@ using namespace std;
 class ThreeDHandler
 {
 private:
+    shared_ptr<PolarCalibration> calibrator;
     shared_ptr<Matcher> matcher;
     shared_ptr<LaneDetector> lane_detector;
     Mat camera_K;

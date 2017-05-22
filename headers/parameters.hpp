@@ -6,11 +6,13 @@
 #define FY 1129.9
 #define CX 677.1
 #define CY 507.5
-#define CO1 0.0995
-#define CO2 -0.2875
-#define CO3 0
-#define CO4 0
-#define CO5 0
+//#define CO1 0.0995
+//#define CO2 -0.2875
+#define CO1 0.0
+#define CO2 0.0
+#define CO3 0.0
+#define CO4 0.0
+#define CO5 0.0
 
 #define BS 5        //2* + 1
 #define BV 0.4        // /10

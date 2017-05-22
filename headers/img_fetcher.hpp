@@ -12,6 +12,8 @@ using namespace std;
 class IMGFetcher
 {
 public:
+    Mat camera_K;
+    Mat camera_coeff;
     IMGFetcher();
     IMGFetcher(string _key);
     bool get(Mat &output, Size size, float lan, float lon, float head, float pitch);

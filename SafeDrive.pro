@@ -18,14 +18,16 @@ SOURCES += src/main.cpp\
         src/img_fetcher.cpp \
         src/matcher.cpp \
     src/manager.cpp \
+    src/polarcalibration.cpp \
+    src/visualizePolarCalibration.cpp \
     src/three_d_handler.cpp
-
 HEADERS  += headers/mainwindow.h \
             headers/lane_detector.hpp \
             headers/parameters.hpp \
             headers/img_fetcher.hpp \
             headers/matcher.hpp \
             headers/manager.hpp \
+            headers/polarcalibration.h \
     headers/three_d_handler.hpp
 
 FORMS    += mainwindow.ui

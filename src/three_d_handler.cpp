@@ -101,15 +101,15 @@ void ThreeDHandler::findCorrespondence(const Mat& left_img, const Mat& right_img
     }
 
     vector<Point2d> left_corres_polar, right_corres_polar;
-    int batch_size = 10;
+    int batch_size = 50;
     for(unsigned int c=0; c<left_marker_polar.size(); c++) {
         int theta(left_marker_polar[c].x), rho(left_marker_polar[c].y);
-        if(theta<batch_size) continue;
+        if(theta<batch_size || theta>=left_rectified.cols-batch_size-1) continue;
 
         Mat left_batch = left_rectified(Rect(theta-batch_size, rho, batch_size*2, 1));
         double min_dist = -1;
         int min_theta = -1;
-        for(int i_theta=batch_size; i_theta<right_rectified.cols-batch_size; i_theta++) {
+        for(int i_theta=batch_size; i_theta<right_rectified.cols-batch_size-1; i_theta++) {
             if(right_marker_polar_mat.at<uchar>(rho,i_theta) == 0) continue;
             Mat right_batch = right_rectified(Rect(i_theta-batch_size, rho, batch_size*2, 1));
             Mat diff = right_batch - left_batch;

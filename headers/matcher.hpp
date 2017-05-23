@@ -34,7 +34,7 @@ public:
     Matcher();
     void changeParam(int mnf, float ql, int md, float mtf, float mtg);
     void match(const Mat& left_img, vector<Point2f> &left_matched_kp, const Mat &right_img, vector<Point2f>& right_matched_kp);
-    void match_given_kp(const Mat& template_img, vector<KeyPoint>& template_kp, const Mat& match_img, vector<Point2f>& matched_kp);
+    void match_given_kp(const Mat& template_img, const vector<Point2f> &template_kp, const Mat& match_img, vector<Point2f>& matched_kp, vector<int> &inliner);
     void rectified_match(const Mat& left_img, vector<Point2f> &left_matched_kp, const Mat &right_img, vector<Point2f>& right_matched_kp);
     size_t matchCounter(const Mat& left_img, const Mat& right_img);
     void showMatches(const Mat& left_img, const vector<Point2f> &left_p, const Mat& right_img, const vector<Point2f> &right_p, const string &windowName);

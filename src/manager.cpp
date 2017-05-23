@@ -63,11 +63,12 @@ void Manager::process()
         return;
     }
 
-    vector<pair<Point2f, Point2f> > marker_corres;
-    three_d_handler->findCorrespondence(matchedFrameLeft, matchedFrameRight, marker_corres);
+    vector<Point2f> features;
+    vector<Point3f> feature_pts, marker_pts;
+    three_d_handler->find3DPoints(matchedFrameLeft, matchedFrameRight, features, feature_pts, marker_pts);
 
     Mat result = targetFrame.clone();
-    three_d_handler->project(matchedFrameLeft, matchedFrameRight, result, marker_corres);
+    three_d_handler->project(matchedFrameLeft, result, features, feature_pts, marker_pts);
 
     namedWindow("Result", WINDOW_NORMAL);
     imshow("Result", result);

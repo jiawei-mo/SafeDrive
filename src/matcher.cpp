@@ -81,7 +81,7 @@ void Matcher::match(const Mat& left_img, vector<Point2f>& left_matched_kp, const
     return;
 }
 
-void Matcher::match_given_kp(const Mat& template_img, vector<KeyPoint>& template_kp, const Mat& match_img, vector<Point2f>& matched_kp)
+void Matcher::match_given_kp(const Mat& template_img, const vector<Point2f>& template_kp, const Mat& match_img, vector<Point2f>& matched_kp, vector<int>& inliner)
 {
     matched_kp.clear();
     if(template_img.empty() || match_img.empty()) {
@@ -92,9 +92,12 @@ void Matcher::match_given_kp(const Mat& template_img, vector<KeyPoint>& template
     Mat match_gray;
     vector<Point2f> match_corners;
     cvtColor(match_img, match_gray, CV_BGR2GRAY);
-    goodFeaturesToTrack(match_gray, match_corners, max_num_features, 2.0*quality_level, min_distance);
+    goodFeaturesToTrack(match_gray, match_corners, max_num_features, quality_level, min_distance);
 
-    vector<KeyPoint> _template_kp(template_kp), _matched_kp;
+    vector<KeyPoint> _template_kp, _matched_kp;
+    for( size_t i = 0; i < template_kp.size(); i++ ) {
+        _template_kp.push_back(KeyPoint(template_kp[i], 1.f));
+    }
     for( size_t i = 0; i < match_corners.size(); i++ ) {
         _matched_kp.push_back(KeyPoint(match_corners[i], 1.f));
     }
@@ -106,12 +109,11 @@ void Matcher::match_given_kp(const Mat& template_img, vector<KeyPoint>& template
     vector<vector<DMatch> > matches;
     matcher->knnMatch(template_desc, match_desc, matches, 2);
 
-    template_kp.clear();
     for(unsigned int i=0; i<matches.size(); i++) {
         if(float(matches[i][0].distance) < match_thres_given_kp*float(matches[i][1].distance))
         {
-            template_kp.push_back(_template_kp[matches[i][0].queryIdx]);
             matched_kp.push_back(_matched_kp[matches[i][0].trainIdx].pt);
+            inliner.push_back(matches[i][0].queryIdx);
         }
     }
 

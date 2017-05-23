@@ -232,19 +232,13 @@ if(DEBUG) {
     Rodrigues(rvec, R);
     hconcat(R, t, P);
 
-    Mat lane_mask;
-    lane_detector->detect(obj_img, lane_mask);
     //project road marker
     Mat canvas = Mat::zeros(cur_img.size(), CV_8UC3);
     cv::Mat_<double> p_homo(4,1);
     for(int x=0; x<obj_img.cols; x++) {
         for(int y=0; y<obj_img.rows; y++) {
-            if(lane_mask.at<uchar>(y,x) == 0) continue;
             float d = marker_disp.at<float>(y,x);
-            if(d == 0)
-            {
-                continue;
-            }
+            if(d == 0) continue;
 
             p_homo(0) = x; p_homo(1) = y; p_homo(2) = d; p_homo(3) = 1;
             p_homo = Q*p_homo;

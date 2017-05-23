@@ -63,12 +63,11 @@ void Manager::process()
         return;
     }
 
-    vector<KeyPoint> feature_disp;
-    Mat marker_disp, Q;
-    three_d_handler->findDisparity(feature_disp, marker_disp, Q, matchedFrameLeft, matchedFrameRight);
+    vector<pair<Point2f, Point2f> > marker_corres;
+    three_d_handler->findCorrespondence(matchedFrameLeft, matchedFrameRight, marker_corres);
 
     Mat result = targetFrame.clone();
-    three_d_handler->project(matchedFrameLeft, result, feature_disp, marker_disp, Q);
+    three_d_handler->project(matchedFrameLeft, matchedFrameRight, result, marker_corres);
 
     namedWindow("Result", WINDOW_NORMAL);
     imshow("Result", result);

@@ -37,9 +37,8 @@ void ThreeDHandler::changeParam(const shared_ptr<Matcher> _matcher, float rte, f
     ransac_thres_pnp = rtp;
 }
 
-void ThreeDHandler::findDisparity(vector<KeyPoint> &feature_disp, Mat& marker_disp, Mat &Q, Mat& left_img, Mat& right_img)
+void ThreeDHandler::findCorrespondence(const Mat& left_img, const Mat& right_img, vector<pair<Point2f, Point2f> >& marker_corres)
 {
-    marker_disp = Mat::zeros(left_img.size(), CV_32F);
     vector<Point2f> left_kp, right_kp;
     matcher->match(left_img, left_kp, right_img, right_kp);
 
@@ -54,13 +53,10 @@ void ThreeDHandler::findDisparity(vector<KeyPoint> &feature_disp, Mat& marker_di
     cout<<"Essential inliers: "<<sum(inliner_mask)[0]<<" / "<<left_kp.size()<<endl;
 
     vector<Point2f> left_kp_inliner, right_kp_inliner;
-    vector<Point2d> left_kp_cartesian, right_kp_cartesian;
     for(unsigned int i=0; i<left_kp.size(); i++) {
         if(inliner_mask.at<uchar>(i,0)>0) {
             left_kp_inliner.push_back(left_kp[i]);
             right_kp_inliner.push_back(right_kp[i]);
-            left_kp_cartesian.push_back(Point2d(left_kp[i].x, left_kp[i].y));
-            right_kp_cartesian.push_back(Point2d(right_kp[i].x, right_kp[i].y));
         }
     }
 
@@ -95,179 +91,87 @@ void ThreeDHandler::findDisparity(vector<KeyPoint> &feature_disp, Mat& marker_di
         }
     }
 
-    vector<Point2d> left_kp_polar, right_kp_polar, left_marker_polar, right_marker_polar;
-    calibrator->transformPointsToPolar(left_kp_cartesian, left_kp_polar, 1);
-    calibrator->transformPointsToPolar(right_kp_cartesian, right_kp_polar, 2);
+    vector<Point2d> left_marker_polar, right_marker_polar;
     calibrator->transformPointsToPolar(left_marker_cartesian, left_marker_polar, 1);
     calibrator->transformPointsToPolar(right_marker_cartesian, right_marker_polar, 2);
 
-    for(unsigned int c=0; c<left_kp_cartesian.size(); c++) {
-        float d = left_kp_polar[c].x - right_kp_polar[c].x;
-        feature_disp.push_back(KeyPoint(left_kp_cartesian[c], d));
-    }
-
-    Mat right_mask_polar = Mat::zeros(right_rectified.size(), CV_8U);
+    Mat right_marker_polar_mat = Mat::zeros(right_rectified.size(), CV_8U);
     for(unsigned int c=0; c<right_marker_polar.size(); c++) {
-        right_mask_polar.at<uchar>(right_marker_polar[c].y, right_marker_polar[c].x) = 1;
+        right_marker_polar_mat.at<uchar>(right_marker_polar[c].y, right_marker_polar[c].x) = 1;
     }
 
-    int batch_size = 30;
+    vector<Point2d> left_corres_polar, right_corres_polar;
+    int batch_size = 10;
     for(unsigned int c=0; c<left_marker_polar.size(); c++) {
-        int x(left_marker_polar[c].x), y(left_marker_polar[c].y);
-        if(x<batch_size) continue;
+        int theta(left_marker_polar[c].x), rho(left_marker_polar[c].y);
+        if(theta<batch_size) continue;
 
-        Mat left_batch = left_rectified(Rect(x-batch_size, y, batch_size*2, 1));
+        Mat left_batch = left_rectified(Rect(theta-batch_size, rho, batch_size*2, 1));
         double min_dist = -1;
-        int min_pos = -1;
-        for(int ix=batch_size; ix<right_rectified.cols-batch_size; ix++) {
-            if(right_mask_polar.at<uchar>(y,ix) == 0) continue;
-            Mat right_batch = right_rectified(Rect(ix-batch_size, y, batch_size*2, 1));
+        int min_theta = -1;
+        for(int i_theta=batch_size; i_theta<right_rectified.cols-batch_size; i_theta++) {
+            if(right_marker_polar_mat.at<uchar>(rho,i_theta) == 0) continue;
+            Mat right_batch = right_rectified(Rect(i_theta-batch_size, rho, batch_size*2, 1));
             Mat diff = right_batch - left_batch;
             double dist = norm(diff);
             if(min_dist < 0 || min_dist > dist){
                 min_dist = dist;
-                min_pos = ix;
+                min_theta = i_theta;
             }
         }
-        float d = float(x-min_pos);
-        int cx(left_marker_cartesian[c].x), cy(left_marker_cartesian[c].y);
-        marker_disp.at<float>(cy, cx) = d;
+        if(min_theta<0 || min_dist > 100) continue; //TODO
+        left_corres_polar.push_back(left_marker_polar[c]);
+        right_corres_polar.push_back(Point2d(min_theta, rho));
     }
-    Mat disp_img;
-    normalize(marker_disp, disp_img, 0, 255, CV_MINMAX, CV_8U);
 
-    namedWindow("DEBUG:Dense Disparity", WINDOW_NORMAL);
-    imshow("DEBUG:Dense Disparity", disp_img);
+    vector<Point2d> left_corres_cartesian, right_corres_cartesian;
+    calibrator->transformPointsFromPolar(left_corres_polar, left_corres_cartesian, 1);
+    calibrator->transformPointsFromPolar(right_corres_polar, right_corres_cartesian, 2);
 
-    waitKey();
+    Mat marker_match_img;
+    hconcat(left_img, right_img, marker_match_img);
+    for(unsigned int i=0; i<left_corres_cartesian.size(); i++) {
+        marker_corres.push_back(pair<Point2d, Point2d>(left_corres_cartesian[i], right_corres_cartesian[i]));
+        line(marker_match_img, left_corres_cartesian[i], Point(right_corres_cartesian[i].x+left_img.cols, right_corres_cartesian[i].y), Scalar(0, 255, 0));
+    }
+    namedWindow("Marker Match", WINDOW_NORMAL);
+    imshow("Marker Match", marker_match_img);
+
     return;
-
-
-//    Mat img_rep;
-//    hconcat(left_img, right_img, img_rep);
-//    Mat_<double> point_3d_tmp(4,1),point_2d_tmp(3,1);
-//    for(unsigned int i=0; i<left_kp.size(); i++) {
-//        float disp = left_kp[i].x  - right_kp[i].x;
-//        feature_disp.push_back(KeyPoint(left_kp[i], disp));
-
-//        //reprojection
-//        point_3d_tmp(0) = left_kp[i].x; point_3d_tmp(1) = left_kp[i].y; point_3d_tmp(2) = disp; point_3d_tmp(3) = 1;
-//        point_3d_tmp = Q*point_3d_tmp;
-//        point_3d_tmp /= point_3d_tmp(3);
-
-//        circle(img_rep, left_kp[i], 5, Scalar(255,0,0));
-//        point_2d_tmp = P1*point_3d_tmp;
-//        point_2d_tmp /= point_2d_tmp(2);
-//        drawMarker(img_rep, Point2f(point_2d_tmp(0), point_2d_tmp(1)), Scalar(0,0,255), MARKER_CROSS, 5);
-
-//        circle(img_rep, Point2f(right_kp[i].x+left_img.cols, right_kp[i].y), 5, Scalar(255,0,0));
-//        point_2d_tmp = P2*point_3d_tmp;
-//        point_2d_tmp /= point_2d_tmp(2);
-//        drawMarker(img_rep, Point2f(point_2d_tmp(0)+left_img.cols, point_2d_tmp(1)), Scalar(0,0,255), MARKER_CROSS, 5);
-//    }
-
-//if(DEBUG) {
-//    namedWindow("DEBUG:Essential reprojection", WINDOW_NORMAL);
-//    imshow("DEBUG:Essential reprojection", img_rep);
-//    waitKey(1);
-//}
-
 }
 
-void ThreeDHandler::project(const Mat& obj_img, Mat& cur_img, vector<KeyPoint> &feature_disp, const Mat& marker_disp, const Mat &Q)
+void ThreeDHandler::project(const Mat& left_img, const Mat& right_img, Mat& cur_img, const vector<pair<Point2f, Point2f> >& marker_corres)
 {
-    vector<Point2f> img_kp;
-    matcher->match_given_kp(obj_img, feature_disp, cur_img, img_kp);
+    vector<Point2f> kp_tmp1, kp_tmp2;
+    matcher->match(cur_img, kp_tmp1, left_img, kp_tmp2);
+    Mat cl_F = findFundamentalMat(kp_tmp1, kp_tmp2, RANSAC, ransac_thres_essential, 0.999, noArray());
 
-    if(feature_disp.size()<3) {
-        cout<<"Not enough points for PnP, exiting..."<<endl;
-        return;
-    }
+    matcher->match(cur_img, kp_tmp1, right_img, kp_tmp2);
+    Mat cr_F = findFundamentalMat(kp_tmp1, kp_tmp2, RANSAC, ransac_thres_essential, 0.999, noArray());
 
-    //register camera frame
-    vector<Point3f> obj_pts;
-    vector<Point2f> _obj_kp, _img_kp;
-    Mat rep_img = cur_img.clone();
-    cv::Mat_<double> point_3d_tmp(4,1);
-    for(unsigned int i=0; i<feature_disp.size(); i++)
-    {
-        float x = feature_disp[i].pt.x;
-        float y = feature_disp[i].pt.y;
-        float d = feature_disp[i].size;
-        point_3d_tmp(0) = x; point_3d_tmp(1) = y; point_3d_tmp(2) = d; point_3d_tmp(3) = 1;
-        point_3d_tmp = Q*point_3d_tmp;
-        point_3d_tmp /= point_3d_tmp(3);
+    Mat A;
+    Mat row_u = Mat::ones(1,3,CV_64F);
+    for(unsigned int i=0; i<marker_corres.size(); i++) {
+        row_u.at<double>(0,0) = marker_corres[i].first.x;
+        row_u.at<double>(0,1) = marker_corres[i].first.y;
+        Mat A_l = row_u*cl_F;
 
-        obj_pts.push_back(Point3f(point_3d_tmp(0), point_3d_tmp(1), point_3d_tmp(2)));
-        _obj_kp.push_back(feature_disp[i].pt);
-        _img_kp.push_back(img_kp[i]);
-    }
+        row_u.at<double>(0,0) = marker_corres[i].second.x;
+        row_u.at<double>(0,1) = marker_corres[i].second.y;
+        Mat A_r = row_u*cr_F;
 
+        vconcat(A_l, A_r, A);
 
-    cv::Mat rvec, t, inliers;
-    cv::solvePnPRansac( obj_pts, _img_kp, camera_K, camera_coeff, rvec, t, false, 100, ransac_thres_pnp, 0.999, inliers, cv::SOLVEPNP_ITERATIVE );
+        cout<<A<<endl;
+        Mat W, U, V;
+        SVDecomp(A, W, U, V, SVD::FULL_UV);
+        transpose(V,V);
 
-    if(inliers.rows<3) {
-        cout<<"Not enough inlier for PnP, exiting..."<<endl;
-        return;
-    }
+        int u = V.at<double>(0,2) / V.at<double>(2,2);
+        int v = V.at<double>(1,2) / V.at<double>(2,2);
 
-    cout<<"PnP inliers: "<<inliers.rows<<" / "<<_img_kp.size()<<endl;
-
-if(DEBUG) {
-    vector<Point3f> obj_pts_inlier;
-    vector<Point2f> obj_kp_inlier, img_kp_inlier;
-    for(int i=0; i<inliers.rows; i++)
-    {
-        obj_pts_inlier.push_back(obj_pts[inliers.at<int>(0,i)]);
-        obj_kp_inlier.push_back(_obj_kp[inliers.at<int>(0,i)]);
-        img_kp_inlier.push_back(_img_kp[inliers.at<int>(0,i)]);
-        circle(rep_img, img_kp[inliers.at<int>(0,i)], 5, Scalar(255,0,0));
-    }
-    matcher->showMatches(obj_img, obj_kp_inlier, cur_img, img_kp_inlier, "DEBUG:Project matches");
-
-//    cout<<"Proj rotation: "<<rvec<<endl;
-//    cout<<"Proj translation: "<<t<<endl;
-    vector<Point2f> points_2d;
-    projectPoints(obj_pts_inlier, rvec, t, camera_K, camera_coeff, points_2d);
-    for(unsigned int i=0; i<points_2d.size(); i++) {
-        drawMarker(rep_img, points_2d[i], Scalar(0,0,255), MARKER_CROSS, 5);
-    }
-    namedWindow("DEBUG:PnP reprojection", WINDOW_NORMAL);
-    imshow("DEBUG:PnP reprojection", rep_img);
-    waitKey(1);
-}
-
-    Mat R, P;
-    Rodrigues(rvec, R);
-    hconcat(R, t, P);
-
-    Mat lane_mask;
-    lane_detector->detect(obj_img, lane_mask);
-    //project road marker
-    Mat canvas = Mat::zeros(cur_img.size(), CV_8UC3);
-    cv::Mat_<double> p_homo(4,1);
-    for(int x=0; x<obj_img.cols; x++) {
-        for(int y=0; y<obj_img.rows; y++) {
-            if(lane_mask.at<uchar>(y,x) == 0) continue;
-            float d = marker_disp.at<float>(y,x);
-            if(d == 0)
-            {
-                continue;
-            }
-
-            p_homo(0) = x; p_homo(1) = y; p_homo(2) = d; p_homo(3) = 1;
-            p_homo = Q*p_homo;
-            p_homo /= p_homo(3);
-            Mat proj_p_homo = camera_K*P*p_homo;
-            Point2f proj_p(proj_p_homo.at<double>(0,0)/proj_p_homo.at<double>(2,0), proj_p_homo.at<double>(1,0)/proj_p_homo.at<double>(2,0));
-            if(imgBoundValid(cur_img, proj_p))
-            {
-                canvas.at<Vec3b>(proj_p.y, proj_p.x) += (obj_img.at<Vec3b>(y, x) / 2);
-            }
+        if(u>0 && u<cur_img.cols && v>0 && v<cur_img.rows) {
+            cur_img.at<Vec3b>(v,u) = Vec3b(255,0,0);
         }
     }
-    GaussianBlur(canvas, canvas, Size(BS, BS), BV);
-
-    cur_img += canvas;
 }

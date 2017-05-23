@@ -29,8 +29,8 @@ public:
     ThreeDHandler(const shared_ptr<Matcher> _matcher);
     ~ThreeDHandler();
     void changeParam(const shared_ptr<Matcher> matcher, float rte, float rtp);
-    void findDisparity(vector<KeyPoint> &feature_disp, Mat &marker_disp, Mat &Q, Mat &left_img, Mat &right_img);
-    void project(const Mat& obj_img, Mat& cur_img, vector<KeyPoint> &feature_disp, const Mat& marker_disp, const Mat &Q);
+    void findCorrespondence(const Mat &left_img, const Mat &right_img, vector<pair<Point2f, Point2f> > &marker_corres);
+    void project(const Mat& left_img, const Mat &right_img, Mat &cur_img, const vector<pair<Point2f, Point2f> >& marker_corres);
 };
 
 #endif // THREEDHANDLER_H

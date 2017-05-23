@@ -49,7 +49,6 @@ void ThreeDHandler::findCorrespondence(const Mat& left_img, const Mat& right_img
     //find fundamental based on matches using RANSAC
     Mat inliner_mask;
     Mat F = findFundamentalMat(left_kp, right_kp, RANSAC, ransac_thres_essential, 0.999, inliner_mask);
-
     cout<<"Essential inliers: "<<sum(inliner_mask)[0]<<" / "<<left_kp.size()<<endl;
 
     vector<Point2f> left_kp_inliner, right_kp_inliner;
@@ -66,7 +65,7 @@ void ThreeDHandler::findCorrespondence(const Mat& left_img, const Mat& right_img
 
     Mat polarRect;
     hconcat(left_rectified, right_rectified, polarRect);
-    for(int j = 0; j < polarRect.rows; j += (polarRect.rows / 20) )
+    for(int j = 0; j < polarRect.rows; j += (polarRect.rows / 50) )
         line(polarRect, Point(0, j), Point(polarRect.cols, j), Scalar(0, 255, 0), 1, 8);
     namedWindow("Polar Rectification", WINDOW_NORMAL);
     imshow("Polar Rectification", polarRect);
@@ -108,6 +107,7 @@ void ThreeDHandler::findCorrespondence(const Mat& left_img, const Mat& right_img
 
         Mat left_batch = left_rectified(Rect(theta-batch_size, rho, batch_size*2, 1));
         double min_dist = -1;
+        double second_dist = -1;
         int min_theta = -1;
         for(int i_theta=batch_size; i_theta<right_rectified.cols-batch_size-1; i_theta++) {
             if(right_marker_polar_mat.at<uchar>(rho,i_theta) == 0) continue;
@@ -115,11 +115,12 @@ void ThreeDHandler::findCorrespondence(const Mat& left_img, const Mat& right_img
             Mat diff = right_batch - left_batch;
             double dist = norm(diff);
             if(min_dist < 0 || min_dist > dist){
+                second_dist = min_dist;
                 min_dist = dist;
                 min_theta = i_theta;
             }
         }
-        if(min_theta<0 || min_dist > 100) continue; //TODO
+        if(min_theta<0 || min_dist/second_dist > ransac_thres_pnp) continue; //TODO
         left_corres_polar.push_back(left_marker_polar[c]);
         right_corres_polar.push_back(Point2d(min_theta, rho));
     }
@@ -129,10 +130,10 @@ void ThreeDHandler::findCorrespondence(const Mat& left_img, const Mat& right_img
     calibrator->transformPointsFromPolar(right_corres_polar, right_corres_cartesian, 2);
 
     Mat marker_match_img;
-    hconcat(left_img, right_img, marker_match_img);
+    vconcat(left_img, right_img, marker_match_img);
     for(unsigned int i=0; i<left_corres_cartesian.size(); i++) {
         marker_corres.push_back(pair<Point2d, Point2d>(left_corres_cartesian[i], right_corres_cartesian[i]));
-        line(marker_match_img, left_corres_cartesian[i], Point(right_corres_cartesian[i].x+left_img.cols, right_corres_cartesian[i].y), Scalar(0, 255, 0));
+        line(marker_match_img, left_corres_cartesian[i], Point(right_corres_cartesian[i].x, right_corres_cartesian[i].y+left_img.rows), Scalar(0, 255, 0));
     }
     namedWindow("Marker Match", WINDOW_NORMAL);
     imshow("Marker Match", marker_match_img);
@@ -144,11 +145,16 @@ void ThreeDHandler::project(const Mat& left_img, const Mat& right_img, Mat& cur_
 {
     vector<Point2f> kp_tmp1, kp_tmp2;
     matcher->match(cur_img, kp_tmp1, left_img, kp_tmp2);
-    Mat cl_F = findFundamentalMat(kp_tmp1, kp_tmp2, RANSAC, ransac_thres_essential, 0.999, noArray());
+    Mat inliner_mask;
+    Mat cl_F = findFundamentalMat(kp_tmp1, kp_tmp2, RANSAC, ransac_thres_essential, 0.999, inliner_mask);
+    cout<<"Essential inliers: "<<sum(inliner_mask)[0]<<" / "<<kp_tmp1.size()<<endl;
 
     matcher->match(cur_img, kp_tmp1, right_img, kp_tmp2);
-    Mat cr_F = findFundamentalMat(kp_tmp1, kp_tmp2, RANSAC, ransac_thres_essential, 0.999, noArray());
+    Mat cr_F = findFundamentalMat(kp_tmp1, kp_tmp2, RANSAC, ransac_thres_essential, 0.999, inliner_mask);
+    cout<<"Essential inliers: "<<sum(inliner_mask)[0]<<" / "<<kp_tmp1.size()<<endl;
 
+    Mat match_corres;
+    vconcat(cur_img, left_img, match_corres);
     Mat A;
     Mat row_u = Mat::ones(1,3,CV_64F);
     for(unsigned int i=0; i<marker_corres.size(); i++) {
@@ -162,7 +168,6 @@ void ThreeDHandler::project(const Mat& left_img, const Mat& right_img, Mat& cur_
 
         vconcat(A_l, A_r, A);
 
-        cout<<A<<endl;
         Mat W, U, V;
         SVDecomp(A, W, U, V, SVD::FULL_UV);
         transpose(V,V);
@@ -171,7 +176,12 @@ void ThreeDHandler::project(const Mat& left_img, const Mat& right_img, Mat& cur_
         int v = V.at<double>(1,2) / V.at<double>(2,2);
 
         if(u>0 && u<cur_img.cols && v>0 && v<cur_img.rows) {
-            cur_img.at<Vec3b>(v,u) = Vec3b(255,0,0);
+            line(match_corres, Point(u,v), Point(marker_corres[i].first.x, marker_corres[i].first.y+cur_img.rows), Scalar(0,0,255));
+            circle(cur_img, Point(u,v), 3, Scalar(255,0,0));
+//            cur_img.at<Vec3b>(v,u) = Vec3b(255,0,0);
         }
     }
+
+    namedWindow("Marker Match corres", WINDOW_NORMAL);
+    imshow("Marker Match corres", match_corres);
 }

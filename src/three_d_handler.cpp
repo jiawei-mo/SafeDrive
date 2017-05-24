@@ -82,6 +82,13 @@ void ThreeDHandler::find3DPoints(const Mat& left_img, const Mat& right_img, vect
     namedWindow("Polar Rectification", WINDOW_NORMAL);
     imshow("Polar Rectification", polarRect);
 
+//    Ptr<StereoSGBM> sbm = StereoSGBM::create( minDisparity, numberOfDisparities, SADWindowSize, SP1, SP2, disp12MaxDiff, preFilterCap, uniquenessRatio, speckleWindowSize, speckleRange);
+//    Mat imgDisparity, disp_img;
+//    sbm->compute( left_rectified, right_rectified, imgDisparity );
+//    normalize(imgDisparity, disp_img, 0, 255, CV_MINMAX, CV_8U);
+//    namedWindow("Polar Disparity", WINDOW_NORMAL);
+//    imshow("Polar Disparity", disp_img);
+
     Mat left_mask, right_mask;
     lane_detector->detect(left_img, left_mask);
     lane_detector->detect(right_img, right_mask);
@@ -107,54 +114,59 @@ void ThreeDHandler::find3DPoints(const Mat& left_img, const Mat& right_img, vect
     calibrator->transformPointsToPolar(right_marker_detected_cartesian, right_marker_detected_polar, 2);
 
     Mat right_marker_detected_polar_mat = Mat::zeros(right_rectified.size(), CV_8U);
+    Mat left_marker_detected_polar_mat = Mat::zeros(right_rectified.size(), CV_8U);
     for(unsigned int c=0; c<right_marker_detected_polar.size(); c++) {
         right_marker_detected_polar_mat.at<uchar>(right_marker_detected_polar[c].y, right_marker_detected_polar[c].x) = 1;
+    }
+    for(unsigned int c=0; c<left_marker_detected_polar.size(); c++) {
+        left_marker_detected_polar_mat.at<uchar>(left_marker_detected_polar[c].y, left_marker_detected_polar[c].x) = 1;
     }
 
     vector<Point2d> left_marker_polar, right_marker_polar;
     int batch_size = 50;
     Mat left_batch, right_batch, diff;
     for(unsigned int c=0; c<left_marker_detected_polar.size(); c++) {
-        int theta(left_marker_detected_polar[c].x), rho(left_marker_detected_polar[c].y);
-        if(theta<batch_size || theta>=left_rectified.cols-batch_size-1) continue;
+        int rho(left_marker_detected_polar[c].x), theta(left_marker_detected_polar[c].y);
+        if(rho<batch_size || rho>=left_rectified.cols-batch_size-1) continue;
 
-        left_batch = left_rectified(Rect(theta-batch_size, rho, batch_size*2, 1));
+        left_batch = left_rectified(Rect(rho-batch_size, theta, batch_size*2, 1));
         double min_dist = -1;
         double second_dist = -1;
-        int min_theta = -1;
-        for(int i_theta=batch_size; i_theta<right_rectified.cols-batch_size-1; i_theta++) {
-            if(right_marker_detected_polar_mat.at<uchar>(rho,i_theta) == 0) continue;
-            right_batch = right_rectified(Rect(i_theta-batch_size, rho, batch_size*2, 1));
+        int min_rho = -1;
+        for(int i_rho=batch_size; i_rho<right_rectified.cols-batch_size-1; i_rho++) {
+            if(right_marker_detected_polar_mat.at<uchar>(theta,i_rho) == 0) continue;
+            right_batch = right_rectified(Rect(i_rho-batch_size, theta, batch_size*2, 1));
             diff = right_batch - left_batch;
             double dist = norm(diff);
             if(min_dist < 0 || min_dist > dist){
                 second_dist = min_dist;
                 min_dist = dist;
-                min_theta = i_theta;
+                min_rho = i_rho;
             }
         }
-        if(min_theta<0 || min_dist/second_dist > 0.7) continue; //TODO
+        if(min_rho<0 || min_dist/second_dist > 1) continue; //TODO
 
         //bi-directional
-        right_batch = right_rectified(Rect(min_theta-batch_size, rho, batch_size*2, 1));
+        right_batch = right_rectified(Rect(min_rho-batch_size, theta, batch_size*2, 1));
         min_dist = -1;
         second_dist = -1;
-        int min_theta_rev = -1;
-        for(int i_theta=batch_size; i_theta<left_rectified.cols-batch_size-1; i_theta++) {
-            if(right_marker_detected_polar_mat.at<uchar>(rho,i_theta) == 0) continue;
-            left_batch = left_rectified(Rect(i_theta-batch_size, rho, batch_size*2, 1));
+        int min_rho_rev = -1;
+        for(int i_rho=batch_size; i_rho<left_rectified.cols-batch_size-1; i_rho++) {
+            if(left_marker_detected_polar_mat.at<uchar>(theta,i_rho) == 0) continue;
+            left_batch = left_rectified(Rect(i_rho-batch_size, theta, batch_size*2, 1));
             diff = right_batch - left_batch;
             double dist = norm(diff);
             if(min_dist < 0 || min_dist > dist){
                 second_dist = min_dist;
                 min_dist = dist;
-                min_theta_rev = i_theta;
+                min_rho_rev = i_rho;
             }
         }
 
-        if(abs(min_theta_rev-theta)<15) {
+        if(abs(min_rho_rev-rho)<5)
+        {
             left_marker_polar.push_back(left_marker_detected_polar[c]);
-            right_marker_polar.push_back(Point2d(min_theta, rho));
+            right_marker_polar.push_back(Point2d(min_rho, theta));
         }
     }
 
@@ -170,6 +182,7 @@ void ThreeDHandler::find3DPoints(const Mat& left_img, const Mat& right_img, vect
     namedWindow("Marker Match", WINDOW_NORMAL);
     imshow("Marker Match", marker_match_img);
 
+    pcl::PointCloud<pcl::PointXYZ>::Ptr point_cloud (new pcl::PointCloud<pcl::PointXYZ>);
     Mat img_rep;
     Mat_<double> point_3d_tmp(4,1),point_2d_tmp(3,1);
     hconcat(left_img, right_img, img_rep);
@@ -188,6 +201,12 @@ void ThreeDHandler::find3DPoints(const Mat& left_img, const Mat& right_img, vect
         double y = V.at<double>(1,3) / V.at<double>(3,3);
         double z = V.at<double>(2,3) / V.at<double>(3,3);
         feature_pts.push_back(Point3f(x,y,z));
+
+        pcl::PointXYZ p;
+        p.x = x;
+        p.y = y;
+        p.z = z;
+        point_cloud->push_back(p);
 
         point_3d_tmp(0)=x; point_3d_tmp(1)=y; point_3d_tmp(2)=z; point_3d_tmp(3) = 1;
         circle(img_rep, left_kp_inliner[i], 5, Scalar(255,0,0));
@@ -217,13 +236,25 @@ void ThreeDHandler::find3DPoints(const Mat& left_img, const Mat& right_img, vect
         double z = V.at<double>(2,3) / V.at<double>(3,3);
         marker_pts.push_back(Point3f(x,y,z));
 
-        point_3d_tmp(0)=x; point_3d_tmp(1)=y; point_3d_tmp(2)=z; point_3d_tmp(3) = 1;
-        circle(img_rep, left_marker_cartesian[i], 5, Scalar(255,0,0));
+        pcl::PointXYZ p;
+        p.x = x;
+        p.y = y;
+        p.z = z;
+        point_cloud->push_back(p);
+
+        circle(img_rep, left_marker_cartesian[i], 5, Scalar(0,255,0));
+        circle(img_rep, Point2f(right_marker_cartesian[i].x+left_img.cols, right_marker_cartesian[i].y), 5, Scalar(0,255,0));
+    }
+
+    assert(point_cloud->size()>0);
+    pcl::io::savePCDFile("test_pcd.pcd", *point_cloud);
+
+    for(unsigned int i=0; i<marker_pts.size(); i++) {
+        point_3d_tmp(0)=marker_pts[i].x; point_3d_tmp(1)=marker_pts[i].y; point_3d_tmp(2)=marker_pts[i].z; point_3d_tmp(3) = 1;
         point_2d_tmp = Pl*point_3d_tmp;
         point_2d_tmp /= point_2d_tmp(2);
         drawMarker(img_rep, Point2f(point_2d_tmp(0), point_2d_tmp(1)), Scalar(0,0,255), MARKER_CROSS, 5);
 
-        circle(img_rep, Point2f(right_marker_cartesian[i].x+left_img.cols, right_marker_cartesian[i].y), 5, Scalar(255,0,0));
         point_2d_tmp = Pr*point_3d_tmp;
         point_2d_tmp /= point_2d_tmp(2);
         drawMarker(img_rep, Point2f(point_2d_tmp(0)+left_img.cols, point_2d_tmp(1)), Scalar(0,0,255), MARKER_CROSS, 5);
@@ -305,8 +336,8 @@ if(DEBUG) {
         Point2f proj_p(proj_p_homo.at<double>(0,0)/proj_p_homo.at<double>(2,0), proj_p_homo.at<double>(1,0)/proj_p_homo.at<double>(2,0));
         if(imgBoundValid(cur_img, proj_p))
         {
-//            circle(canvas, proj_p, 2, Scalar(0,0,255));
-            canvas.at<Vec3b>(proj_p.y, proj_p.x) += Vec3b(0,0,255);
+            circle(canvas, proj_p, 2, Scalar(0,0,255));
+//            canvas.at<Vec3b>(proj_p.y, proj_p.x) += Vec3b(0,0,255);
         }
     }
     GaussianBlur(canvas, canvas, Size(BS, BS), BV);

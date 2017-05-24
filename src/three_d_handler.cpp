@@ -49,7 +49,13 @@ void ThreeDHandler::find3DPoints(const Mat& left_img, const Mat& right_img, vect
     //find fundamental based on matches using RANSAC
     Mat inliner_mask;
     Mat F = findFundamentalMat(left_kp, right_kp, RANSAC, ransac_thres_essential, 0.999, inliner_mask);
-    cout<<"Original matching inliners: "<<sum(inliner_mask)[0]<<" / "<<left_kp.size()<<endl;
+    Mat K_T;
+    transpose(K, K_T);
+    Mat E, R, t;
+    E = K_T*F*K;
+    recoverPose(E, left_kp, right_kp, K, R, t, inliner_mask);
+
+    cout<<"Fundamental matching inliners: "<<sum(inliner_mask)[0]<<" / "<<left_kp.size()<<endl;
 
     vector<Point2f> left_kp_inliner, right_kp_inliner;
     for(unsigned int i=0; i<left_kp.size(); i++) {
@@ -60,10 +66,8 @@ void ThreeDHandler::find3DPoints(const Mat& left_img, const Mat& right_img, vect
         }
     }
 
-    Mat E, R, t, Pl, Pr;
+    Mat Pl, Pr;
     Pl = K*(Mat_<double>(3,4) <<1,0,0,0,0,1,0,0,0,0,1,0);
-    E = findEssentialMat(left_kp_inliner, right_kp_inliner, K, RANSAC, 0.999, ransac_thres_essential, inliner_mask);
-    recoverPose(E, left_kp_inliner, right_kp_inliner, K, R, t, inliner_mask);
     hconcat(R, t, Pr);
     Pr = K*Pr;
 
@@ -180,12 +184,12 @@ void ThreeDHandler::find3DPoints(const Mat& left_img, const Mat& right_img, vect
         SVDecomp(A, W, U, V, SVD::FULL_UV);
         transpose(V,V);
 
-        float x = V.at<double>(0,3) / V.at<double>(3,3);
-        float y = V.at<double>(1,3) / V.at<double>(3,3);
-        float z = V.at<double>(2,3) / V.at<double>(3,3);
+        double x = V.at<double>(0,3) / V.at<double>(3,3);
+        double y = V.at<double>(1,3) / V.at<double>(3,3);
+        double z = V.at<double>(2,3) / V.at<double>(3,3);
         feature_pts.push_back(Point3f(x,y,z));
 
-        point_3d_tmp(0)=x; point_3d_tmp(1)=y; point_3d_tmp(2)=z;
+        point_3d_tmp(0)=x; point_3d_tmp(1)=y; point_3d_tmp(2)=z; point_3d_tmp(3) = 1;
         circle(img_rep, left_kp_inliner[i], 5, Scalar(255,0,0));
         point_2d_tmp = Pl*point_3d_tmp;
         point_2d_tmp /= point_2d_tmp(2);
@@ -208,12 +212,12 @@ void ThreeDHandler::find3DPoints(const Mat& left_img, const Mat& right_img, vect
         SVDecomp(A, W, U, V, SVD::FULL_UV);
         transpose(V,V);
 
-        float x = V.at<double>(0,3) / V.at<double>(3,3);
-        float y = V.at<double>(1,3) / V.at<double>(3,3);
-        float z = V.at<double>(2,3) / V.at<double>(3,3);
+        double x = V.at<double>(0,3) / V.at<double>(3,3);
+        double y = V.at<double>(1,3) / V.at<double>(3,3);
+        double z = V.at<double>(2,3) / V.at<double>(3,3);
         marker_pts.push_back(Point3f(x,y,z));
 
-        point_3d_tmp(0)=x; point_3d_tmp(1)=y; point_3d_tmp(2)=z;
+        point_3d_tmp(0)=x; point_3d_tmp(1)=y; point_3d_tmp(2)=z; point_3d_tmp(3) = 1;
         circle(img_rep, left_marker_cartesian[i], 5, Scalar(255,0,0));
         point_2d_tmp = Pl*point_3d_tmp;
         point_2d_tmp /= point_2d_tmp(2);
@@ -301,8 +305,8 @@ if(DEBUG) {
         Point2f proj_p(proj_p_homo.at<double>(0,0)/proj_p_homo.at<double>(2,0), proj_p_homo.at<double>(1,0)/proj_p_homo.at<double>(2,0));
         if(imgBoundValid(cur_img, proj_p))
         {
-            circle(canvas, proj_p, 2, Scalar(0,0,255));
-//            canvas.at<Vec3b>(proj_p.y, proj_p.x) += Vec3b(0,0,255);
+//            circle(canvas, proj_p, 2, Scalar(0,0,255));
+            canvas.at<Vec3b>(proj_p.y, proj_p.x) += Vec3b(0,0,255);
         }
     }
     GaussianBlur(canvas, canvas, Size(BS, BS), BV);

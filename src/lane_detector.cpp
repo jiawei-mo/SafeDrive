@@ -13,6 +13,6 @@ void LaneDetector::detect(const Mat& img, Mat& mask)
     inRange(roi_hsv, Scalar(25/2, 0.35*255, 0.5*255), Scalar(55/2, 0.7*255, 255), yellowHist);
     Mat yellowAndWhite = yellowHist + whiteHist;
     medianBlur(yellowAndWhite, yellowAndWhite, 5);
-    Canny(yellowAndWhite, yellowAndWhite, 40, 100);
+//    Canny(yellowAndWhite, yellowAndWhite, 40, 100);
     vconcat(empty_top, yellowAndWhite, mask);
 }

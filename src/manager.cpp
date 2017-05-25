@@ -27,7 +27,7 @@ void Manager::changeParam(int mnf, float ql, int md, float mtf, float mtg, float
 bool Manager::findBestMatch()
 {
     Mat dbFrame;
-    size_t firstC(0), secondC(0), curC;
+    size_t firstIdx(-1), secondIdx(-1), firstC(0), secondC(0), curC;
     vector<String> imgNames;
     glob(searchPath, imgNames);
     for(size_t i=0;i<imgNames.size(); i++) {
@@ -44,16 +44,21 @@ if(DEBUG) {
         {
             matchedFrameRight = matchedFrameLeft;
             matchedFrameLeft = dbFrame;
+            secondIdx = firstIdx;
             secondC = firstC;
+            firstIdx = i;
             firstC = curC;
         }
         else if(curC > secondC)
         {
             matchedFrameRight = dbFrame;
+            secondIdx = firstIdx;
             secondC = curC;
         }
     }
 
+    cout<<"First best image: "<<imgNames[firstIdx]<<endl;
+    cout<<"Second best image: "<<imgNames[secondIdx]<<endl;
     return true;
 }
 
@@ -65,13 +70,13 @@ void Manager::process()
 
     vector<Point2f> features;
     vector<Point3f> feature_pts, marker_pts;
-    three_d_handler->find3DPoints(matchedFrameLeft, matchedFrameRight, features, feature_pts, marker_pts);
+    vector<Vec3b> marker_color;
+    three_d_handler->find3DPoints(matchedFrameLeft, matchedFrameRight, features, feature_pts, marker_pts, marker_color);
 
     Mat result = targetFrame.clone();
-    three_d_handler->project(matchedFrameLeft, result, features, feature_pts, marker_pts);
+    if(!three_d_handler->project(matchedFrameLeft, result, features, feature_pts, marker_pts, marker_color)) return;
 
     namedWindow("Result", WINDOW_NORMAL);
     imshow("Result", result);
-    waitKey(1);
 
 }

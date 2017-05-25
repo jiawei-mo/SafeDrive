@@ -46,16 +46,6 @@ private slots:
     void on_slider_RTE_sliderReleased();
     void on_slider_RTP_sliderReleased();
     void on_slider_MTG_sliderReleased();
-    void on_slider_SWS_sliderReleased();
-    void on_slider_ND_sliderReleased();
-    void on_slider_PFC_sliderReleased();
-    void on_slider_MOD_sliderReleased();
-    void on_slider_UR_sliderReleased();
-    void on_slider_SW_sliderReleased();
-    void on_slider_SR_sliderReleased();
-    void on_slider_DMD_sliderReleased();
-    void on_slider_S1_sliderReleased();
-    void on_slider_S2_sliderReleased();
     void on_check_DEBUG_clicked(bool checked);
 };
 

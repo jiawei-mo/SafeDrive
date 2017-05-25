@@ -37,7 +37,7 @@ void ThreeDHandler::changeParam(const shared_ptr<Matcher> _matcher, float rte, f
     ransac_thres_pnp = rtp;
 }
 
-void ThreeDHandler::find3DPoints(const Mat& left_img, const Mat& right_img, vector<Point2f> &features, vector<Point3f> &feature_pts, vector<Point3f> &marker_pts)
+void ThreeDHandler::find3DPoints(const Mat& left_img, const Mat& right_img, vector<Point2f> &features, vector<Point3f> &feature_pts, vector<Point3f> &marker_pts, vector<Vec3b>& marker_color)
 {
     vector<Point2f> left_kp, right_kp;
     matcher->match(left_img, left_kp, right_img, right_kp);
@@ -48,14 +48,13 @@ void ThreeDHandler::find3DPoints(const Mat& left_img, const Mat& right_img, vect
 
     //find fundamental based on matches using RANSAC
     Mat inliner_mask;
-    Mat F = findFundamentalMat(left_kp, right_kp, RANSAC, ransac_thres_essential, 0.999, inliner_mask);
     Mat K_T;
     transpose(K, K_T);
     Mat E, R, t;
-    E = K_T*F*K;
+    E  = findEssentialMat(left_kp, right_kp, K, RANSAC, 0.999, ransac_thres_essential, inliner_mask);
     recoverPose(E, left_kp, right_kp, K, R, t, inliner_mask);
 
-    cout<<"Fundamental matching inliners: "<<sum(inliner_mask)[0]<<" / "<<left_kp.size()<<endl;
+    cout<<"Stereo matching inliners: "<<sum(inliner_mask)[0]<<" / "<<left_kp.size()<<endl;
 
     vector<Point2f> left_kp_inliner, right_kp_inliner;
     for(unsigned int i=0; i<left_kp.size(); i++) {
@@ -71,16 +70,21 @@ void ThreeDHandler::find3DPoints(const Mat& left_img, const Mat& right_img, vect
     hconcat(R, t, Pr);
     Pr = K*Pr;
 
+    Mat F = findFundamentalMat(left_kp_inliner, right_kp_inliner, RANSAC, ransac_thres_essential, 0.999);
     cv::Mat left_rectified, right_rectified;
     calibrator->compute(left_img, right_img, F, left_kp_inliner, right_kp_inliner);
     calibrator->getRectifiedImages(left_img, right_img, left_rectified, right_rectified);
 
     Mat polarRect;
     hconcat(left_rectified, right_rectified, polarRect);
-    for(int j = 0; j < polarRect.rows; j += (polarRect.rows / 50) )
+    for(int j = 0; j < polarRect.rows; j += (polarRect.rows / 50) ) {
         line(polarRect, Point(0, j), Point(polarRect.cols, j), Scalar(0, 255, 0), 1, 8);
+    }
+
+if(DEBUG) {
     namedWindow("Polar Rectification", WINDOW_NORMAL);
     imshow("Polar Rectification", polarRect);
+}
 
 //    Ptr<StereoSGBM> sbm = StereoSGBM::create( minDisparity, numberOfDisparities, SADWindowSize, SP1, SP2, disp12MaxDiff, preFilterCap, uniquenessRatio, speckleWindowSize, speckleRange);
 //    Mat imgDisparity, disp_img;
@@ -93,9 +97,10 @@ void ThreeDHandler::find3DPoints(const Mat& left_img, const Mat& right_img, vect
     lane_detector->detect(left_img, left_mask);
     lane_detector->detect(right_img, right_mask);
 
+if(DEBUG) {
     namedWindow("DEBUG:Land Marker", WINDOW_NORMAL);
     imshow("DEBUG:Land Marker", left_mask);
-    waitKey(1);
+}
 
     vector<Point2d> left_marker_detected_cartesian, right_marker_detected_cartesian;
     for(int i=0; i<left_img.rows; i++) {
@@ -179,8 +184,11 @@ void ThreeDHandler::find3DPoints(const Mat& left_img, const Mat& right_img, vect
     for(unsigned int i=0; i<left_marker_cartesian.size(); i++) {
         line(marker_match_img, left_marker_cartesian[i], Point(right_marker_cartesian[i].x, right_marker_cartesian[i].y+left_img.rows), Scalar(0, 255, 0));
     }
+
+if(DEBUG) {
     namedWindow("Marker Match", WINDOW_NORMAL);
     imshow("Marker Match", marker_match_img);
+}
 
     pcl::PointCloud<pcl::PointXYZ>::Ptr point_cloud (new pcl::PointCloud<pcl::PointXYZ>);
     Mat img_rep;
@@ -200,6 +208,7 @@ void ThreeDHandler::find3DPoints(const Mat& left_img, const Mat& right_img, vect
         double x = V.at<double>(0,3) / V.at<double>(3,3);
         double y = V.at<double>(1,3) / V.at<double>(3,3);
         double z = V.at<double>(2,3) / V.at<double>(3,3);
+        if(z<0) continue;
         feature_pts.push_back(Point3f(x,y,z));
 
         pcl::PointXYZ p;
@@ -234,6 +243,8 @@ void ThreeDHandler::find3DPoints(const Mat& left_img, const Mat& right_img, vect
         double x = V.at<double>(0,3) / V.at<double>(3,3);
         double y = V.at<double>(1,3) / V.at<double>(3,3);
         double z = V.at<double>(2,3) / V.at<double>(3,3);
+        if(z<0) continue;
+        marker_color.push_back(left_img.at<Vec3b>(left_marker_cartesian[i].y, left_marker_cartesian[i].x));
         marker_pts.push_back(Point3f(x,y,z));
 
         pcl::PointXYZ p;
@@ -260,13 +271,15 @@ void ThreeDHandler::find3DPoints(const Mat& left_img, const Mat& right_img, vect
         drawMarker(img_rep, Point2f(point_2d_tmp(0)+left_img.cols, point_2d_tmp(1)), Scalar(0,0,255), MARKER_CROSS, 5);
     }
 
+if(DEBUG) {
     namedWindow("DEBUG:Essential reprojection", WINDOW_NORMAL);
     imshow("DEBUG:Essential reprojection", img_rep);
+}
 
     return;
 }
 
-void ThreeDHandler::project(const Mat& obj_img, Mat &cur_img, const vector<Point2f>& features, const vector<Point3f>& feature_pts, const vector<Point3f>& marker_pts)
+bool ThreeDHandler::project(const Mat& obj_img, Mat &cur_img, const vector<Point2f>& features, const vector<Point3f>& feature_pts, const vector<Point3f>& marker_pts, const vector<Vec3b>& marker_color)
 {
     vector<int> inliners_features;
     vector<Point2f> img_kp;
@@ -274,7 +287,7 @@ void ThreeDHandler::project(const Mat& obj_img, Mat &cur_img, const vector<Point
 
     if(inliners_features.size()<3) {
         cout<<"Not enough points for PnP, exiting..."<<endl;
-        return;
+        return false;
     }
 
     //register camera frame
@@ -290,11 +303,11 @@ void ThreeDHandler::project(const Mat& obj_img, Mat &cur_img, const vector<Point
 
 
     cv::Mat rvec, t, inliners;
-    cv::solvePnPRansac( obj_pts, _img_kp, K, camera_coeff, rvec, t, false, 100, ransac_thres_pnp, 0.999, inliners, cv::SOLVEPNP_ITERATIVE );
+    cv::solvePnPRansac( obj_pts, _img_kp, K, camera_coeff, rvec, t, false, 500, ransac_thres_pnp, 0.999, inliners, cv::SOLVEPNP_ITERATIVE );
 
     if(inliners.rows<3) {
         cout<<"Not enough inlier for PnP, exiting..."<<endl;
-        return;
+        return false;
     }
 
     cout<<"PnP inliners: "<<inliners.rows<<" / "<<_img_kp.size()<<endl;
@@ -336,11 +349,12 @@ if(DEBUG) {
         Point2f proj_p(proj_p_homo.at<double>(0,0)/proj_p_homo.at<double>(2,0), proj_p_homo.at<double>(1,0)/proj_p_homo.at<double>(2,0));
         if(imgBoundValid(cur_img, proj_p))
         {
-            circle(canvas, proj_p, 2, Scalar(0,0,255));
-//            canvas.at<Vec3b>(proj_p.y, proj_p.x) += Vec3b(0,0,255);
+//            circle(canvas, proj_p, 2, Scalar(0,0,255));
+            canvas.at<Vec3b>(proj_p.y, proj_p.x) += marker_color[i];
         }
     }
     GaussianBlur(canvas, canvas, Size(BS, BS), BV);
 
     cur_img += canvas;
+    return true;
 }

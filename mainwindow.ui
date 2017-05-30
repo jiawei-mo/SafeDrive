@@ -346,6 +346,9 @@
     <property name="text">
      <string>DEBUG</string>
     </property>
+    <property name="checked">
+     <bool>false</bool>
+    </property>
    </widget>
   </widget>
   <widget class="QToolBar" name="mainToolBar">

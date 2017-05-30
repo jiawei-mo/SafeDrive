@@ -306,7 +306,7 @@ bool ThreeDHandler::project(const Mat& obj_img, Mat &cur_img, const vector<Point
     cv::solvePnPRansac( obj_pts, _img_kp, K, camera_coeff, rvec, t, false, 500, ransac_thres_pnp, 0.999, inliners, cv::SOLVEPNP_ITERATIVE );
 
     if(inliners.rows<3) {
-        cout<<"Not enough inlier for PnP, exiting..."<<endl;
+        cout<<"Not enough inlier "<<inliners.rows<<"/"<<inliners_features.size()<<" for PnP, exiting..."<<endl;
         return false;
     }
 

@@ -97,12 +97,12 @@ if(DEBUG) {
     lane_detector->detect(left_img, left_mask);
     lane_detector->detect(right_img, right_mask);
 
-//if(DEBUG) {
-//    namedWindow("DEBUG:Land Marker Left", WINDOW_NORMAL);
-//    imshow("DEBUG:Land Marker Left", left_mask);
-//    namedWindow("DEBUG:Land Marker Right", WINDOW_NORMAL);
-//    imshow("DEBUG:Land Marker Right", right_mask);
-//}
+if(DEBUG) {
+    Mat lane_corres;
+    hconcat(left_mask, right_mask, lane_corres);
+    namedWindow("DEBUG:Land Marker", WINDOW_NORMAL);
+    imshow("DEBUG:Land Marker", lane_corres);
+}
 
     vector<Point2d> left_marker_detected_cartesian, right_marker_detected_cartesian;
     for(int i=0; i<left_img.rows; i++) {
@@ -130,7 +130,7 @@ if(DEBUG) {
     }
 
     vector<Point2d> left_marker_polar, right_marker_polar;
-    int batch_size = 50;
+    int batch_size = 15;
     Mat left_batch, right_batch, diff;
     for(unsigned int c=0; c<left_marker_detected_polar.size(); c++) {
         int rho(left_marker_detected_polar[c].x), theta(left_marker_detected_polar[c].y);

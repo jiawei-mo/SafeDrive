@@ -52,7 +52,7 @@ if(DEBUG) {
         else if(curC > secondC)
         {
             matchedFrameRight = dbFrame;
-            secondIdx = firstIdx;
+            secondIdx = i;
             secondC = curC;
         }
     }

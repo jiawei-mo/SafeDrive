@@ -4,6 +4,8 @@
 #include "opencv2/opencv.hpp"
 #include "opencv2/videoio.hpp"
 #include "opencv2/features2d.hpp"
+#include "headers/parameters.hpp"
+
 using namespace cv;
 using namespace std;
 

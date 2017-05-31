@@ -122,15 +122,6 @@ protected:
     // Visualization functions
     cv::Point2d image2World(const cv::Point2d & point, const cv::Size & imgDimensions);
     cv::Point2d getPointFromLineAndX(const double & x, const cv::Vec3f line);
-    void showCommonRegion(const cv::Point2d epipole, const cv::Vec3f & line11, const cv::Vec3f & line12,
-                          const cv::Vec3f & line13, const cv::Vec3f & line14, 
-                          const cv::Vec3f & lineB, const cv::Vec3f & lineE, 
-                          const cv::Point2d & b, const cv::Point2d & e, const cv::Size & imgDimensions, 
-                          const vector<cv::Point2f> & externalPoints, std::string windowName);
-    void showNewEpiline(const cv::Point2d epipole, const cv::Vec3f & lineB, const cv::Vec3f & lineE, 
-                        const cv::Vec3f & newLine, const cv::Point2d & pOld, const cv::Point2d & pNew, 
-                        const cv::Size & imgDimensions, std::string windowName);
-    
     uint32_t m_hessianThresh;
     
     cv::Vec3f m_line1B, m_line1E, m_line2B, m_line2E;

@@ -19,7 +19,6 @@ SOURCES += src/main.cpp\
         src/matcher.cpp \
     src/manager.cpp \
     src/polarcalibration.cpp \
-    src/visualizePolarCalibration.cpp \
     src/three_d_handler.cpp
 HEADERS  += headers/mainwindow.h \
             headers/lane_detector.hpp \

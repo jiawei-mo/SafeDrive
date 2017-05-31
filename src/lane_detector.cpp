@@ -61,6 +61,7 @@ void LaneDetector::detect(const Mat& img, Mat& mask)
     blur(contours, contours, Size(3,3));
     threshold(contours, contours, 0, 255, THRESH_BINARY);
 
+if(DEBUG) {
     static bool oppo_direct=false;
     Mat tmp = hough/2 + contours/2;
     string windowname;
@@ -73,6 +74,7 @@ void LaneDetector::detect(const Mat& img, Mat& mask)
     }
     oppo_direct = !oppo_direct;
     imshow(windowname, tmp);
+}
 
     bitwise_and(hough, contours, lanes);
     threshold(lanes, lanes, 0, 255, THRESH_BINARY);

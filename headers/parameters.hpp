@@ -14,8 +14,8 @@
 #define CO4 0.0
 #define CO5 0.0
 
-#define BS 5        //2* + 1
-#define BV 0.4        // /10
+#define BS 3
+#define BV 1
 
 #define MNF 5000    //int
 #define QL 5        //%
@@ -23,7 +23,7 @@
 #define MTF 70      //%
 #define MTG 70      //%
 #define RTE 10        // /10
-#define RTP 10        // /10
+#define RTP 20        // /10
 
 extern bool DEBUG;
 

@@ -1,10 +1,10 @@
 #include "headers/three_d_handler.hpp"
 
 bool imgBoundValid(const Mat& img, Point2f pt) {
-    bool a = pt.x >= 0;
-    bool b = pt.x < img.cols;
-    bool c = pt.y >=0;
-    bool d = pt.y < img.rows;
+    bool a = pt.x >= 3;
+    bool b = pt.x < img.cols-2;
+    bool c = pt.y >=3;
+    bool d = pt.y < img.rows-2;
     return a && b && c && d;
 }
 
@@ -42,9 +42,9 @@ void ThreeDHandler::find3DPoints(const Mat& left_img, const Mat& right_img, vect
     vector<Point2f> left_kp, right_kp;
     matcher->match(left_img, left_kp, right_img, right_kp);
 
-    if(DEBUG) {
-        matcher->showMatches(left_img, left_kp, right_img, right_kp, "DEBUG: original matches");
-    }
+//    if(DEBUG) {
+//        matcher->showMatches(left_img, left_kp, right_img, right_kp, "DEBUG: original matches");
+//    }
 
     //find fundamental based on matches using RANSAC
     Mat inliner_mask;
@@ -97,10 +97,12 @@ if(DEBUG) {
     lane_detector->detect(left_img, left_mask);
     lane_detector->detect(right_img, right_mask);
 
-if(DEBUG) {
-    namedWindow("DEBUG:Land Marker", WINDOW_NORMAL);
-    imshow("DEBUG:Land Marker", left_mask);
-}
+//if(DEBUG) {
+//    namedWindow("DEBUG:Land Marker Left", WINDOW_NORMAL);
+//    imshow("DEBUG:Land Marker Left", left_mask);
+//    namedWindow("DEBUG:Land Marker Right", WINDOW_NORMAL);
+//    imshow("DEBUG:Land Marker Right", right_mask);
+//}
 
     vector<Point2d> left_marker_detected_cartesian, right_marker_detected_cartesian;
     for(int i=0; i<left_img.rows; i++) {
@@ -322,7 +324,7 @@ if(DEBUG) {
         img_kp_inlier.push_back(_img_kp[inliners.at<int>(0,i)]);
         circle(rep_img, img_kp[inliners.at<int>(0,i)], 5, Scalar(255,0,0));
     }
-    matcher->showMatches(obj_img, obj_kp_inlier, cur_img, img_kp_inlier, "DEBUG:Project matches");
+//    matcher->showMatches(obj_img, obj_kp_inlier, cur_img, img_kp_inlier, "DEBUG:Project matches");
 
 //    cout<<"Proj rotation: "<<rvec<<endl;
 //    cout<<"Proj translation: "<<t<<endl;
@@ -333,7 +335,6 @@ if(DEBUG) {
     }
     namedWindow("DEBUG:PnP reprojection", WINDOW_NORMAL);
     imshow("DEBUG:PnP reprojection", rep_img);
-    waitKey(1);
 }
 
     Mat R, P;
@@ -349,11 +350,9 @@ if(DEBUG) {
         Point2f proj_p(proj_p_homo.at<double>(0,0)/proj_p_homo.at<double>(2,0), proj_p_homo.at<double>(1,0)/proj_p_homo.at<double>(2,0));
         if(imgBoundValid(cur_img, proj_p))
         {
-//            circle(canvas, proj_p, 2, Scalar(0,0,255));
-            canvas.at<Vec3b>(proj_p.y, proj_p.x) += marker_color[i];
+            rectangle(canvas, Point2f(proj_p.x-1, proj_p.y-1), Point2f(proj_p.x+1, proj_p.y+1), CvScalar(marker_color[i]));
         }
     }
-    GaussianBlur(canvas, canvas, Size(BS, BS), BV);
 
     cur_img += canvas;
     return true;

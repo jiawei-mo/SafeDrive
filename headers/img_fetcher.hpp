@@ -15,8 +15,7 @@ public:
     Mat camera_K;
     Mat camera_coeff;
     IMGFetcher();
-    IMGFetcher(string _key);
-    bool get(Mat &output, Size size, float lan, float lon, float head, float pitch);
+    void setCam(const vector<float>& _K, const vector<float>& _D);
     bool get_local(Mat& output, string filename);
 private:
     string key;

@@ -8,7 +8,7 @@ Manager::Manager()
     fetcher = shared_ptr<IMGFetcher>(new IMGFetcher());
 }
 
-void Manager::initialize(string targetName, float lt, float ln, float hd, float ph, string sp)
+void Manager::initialize(string targetName, const vector<float>& K, const vector<float>& D, float lt, float ln, float hd, float ph, string sp)
 {
     targetFrame = imread(targetName);
     lat = lt;
@@ -16,6 +16,8 @@ void Manager::initialize(string targetName, float lt, float ln, float hd, float 
     head = hd;
     pitch = ph;
     searchPath = sp;
+    fetcher->setCam(K,D);
+    three_d_handler->setCamK(K);
 }
 
 void Manager::changeParam(int mnf, float ql, int md, float mtf, float mtg, float rte, float rtp)

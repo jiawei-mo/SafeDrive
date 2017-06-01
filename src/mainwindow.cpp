@@ -22,41 +22,64 @@ MainWindow::~MainWindow()
 void MainWindow::on_button_img_clicked()
 {
     destroyAllWindows();
-    QString Qfile1Name = QFileDialog::getOpenFileName(this, tr("Target image"), "/home/kimiwings/workspace/SafeDrive/test/imgs/3.jpg", tr("Img File (*.jpg)"));
+    QString QFolderName = QFileDialog::getExistingDirectory(this, tr("Test folder"), "/home/kimiwings/workspace/SafeDrive/test", QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
+    string folderName = QFolderName.toStdString();
+
+    if(folderName.empty()) {
+        return;
+    }
+
+    string defaultFileName = folderName+"/imgs/01.jpg";
+    QString Qfile1Name = QFileDialog::getOpenFileName(this, tr("Target image"), tr(defaultFileName.c_str()), tr("Img File (*.*)"));
     string targetString = Qfile1Name.toStdString();
 
     if(targetString.empty()) {
         return;
     }
 
-    QString QlocalSearchFolderName = QFileDialog::getExistingDirectory(this, tr("Open Database Directory"), "/home/kimiwings/workspace/SafeDrive/test/database", QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
-    string searchPath = QlocalSearchFolderName.toStdString();
+    string searchPath = folderName+"/database";
 
-    if(searchPath.empty()) {
-        return;
-    }
+    string camFile = folderName+"/cam.log";
+    ifstream camParams(camFile);
 
-    QString QPosFile = QFileDialog::getOpenFileName(this, tr("Open position File"), "/home/kimiwings/workspace/SafeDrive/test/pos.log", tr("log Files (*.log)"));
-    string posFile = QPosFile.toStdString();
+    string camParam;
+    camParams >> camParam;
+    float kx = stof(camParam);
+    camParams >> camParam;
+    float ky = stof(camParam);
+    camParams >> camParam;
+    float cx = stof(camParam);
+    camParams >> camParam;
+    float cy = stof(camParam);
+    camParams >> camParam;
+    float d1 = stof(camParam);
+    camParams >> camParam;
+    float d2 = stof(camParam);
+    camParams >> camParam;
+    float d3 = stof(camParam);
+    camParams >> camParam;
+    float d4 = stof(camParam);
+    camParams >> camParam;
+    float d5 = stof(camParam);
+    vector<float> K={kx,ky,cx,cy};
+    vector<float> D={d1,d2,d3,d4,d5};
+    camParams.close();
 
-    if(posFile.empty()) {
-        return;
-    }
+    string posFile = folderName+"/pos.log";
+    ifstream posParams(posFile);
 
-    ifstream params(posFile);
+    string posParam;
+    posParams >> posParam;
+    float lat = stof(posParam);
+    posParams >> posParam;
+    float lon = stof(posParam);
+    posParams >> posParam;
+    float head = stof(posParam);
+    posParams >> posParam;
+    float pitch = stof(posParam);
+    posParams.close();
 
-    string param;
-    params >> param;
-    float lat = stof(param);
-    params >> param;
-    float lon = stof(param);
-    params >> param;
-    float head = stof(param);
-    params >> param;
-    float pitch = stof(param);
-    params.close();
-
-    manager->initialize(targetString, lat, lon, head, pitch, searchPath);
+    manager->initialize(targetString, K, D, lat, lon, head, pitch, searchPath);
 
     if(!initialied) {
         on_button_reset_clicked();
@@ -68,7 +91,15 @@ void MainWindow::on_button_img_clicked()
 void MainWindow::on_button_video_clicked()
 {
     destroyAllWindows();
-    QString QImgFolderName = QFileDialog::getExistingDirectory(this, tr("Open target Directory"), "/home/kimiwings/workspace/SafeDrive/test/imgs", QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
+    QString QFolderName = QFileDialog::getExistingDirectory(this, tr("Test folder"), "/home/kimiwings/workspace/SafeDrive/test", QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
+    string folderName = QFolderName.toStdString();
+
+    if(folderName.empty()) {
+        return;
+    }
+
+    string defaultImgFolderName = folderName+"/imgs";
+    QString QImgFolderName = QFileDialog::getExistingDirectory(this, tr("Open target Directory"), tr(defaultImgFolderName.c_str()), QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
     string imgFolderName = QImgFolderName.toStdString();
 
     if(imgFolderName.empty()) {
@@ -78,20 +109,35 @@ void MainWindow::on_button_video_clicked()
     vector<String> imgNames;
     glob(imgFolderName, imgNames);
 
-    QString QlocalSearchFolderName = QFileDialog::getExistingDirectory(this, tr("Open Database Directory"), "/home/kimiwings/workspace/SafeDrive/test/database", QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
-    string searchPath = QlocalSearchFolderName.toStdString();
+    string searchPath = folderName+"/database";
 
-    if(searchPath.empty()) {
-        return;
-    }
+    string camFile = folderName+"/cam.log";
+    ifstream camParams(camFile);
 
-    QString QPosFile = QFileDialog::getOpenFileName(this, tr("Open Pos File"), "/home/kimiwings/workspace/SafeDrive/test/pos.log", tr("log Files (*.log)"));
-    string posFile = QPosFile.toStdString();
+    string camParam;
+    camParams >> camParam;
+    float kx = stof(camParam);
+    camParams >> camParam;
+    float ky = stof(camParam);
+    camParams >> camParam;
+    float cx = stof(camParam);
+    camParams >> camParam;
+    float cy = stof(camParam);
+    camParams >> camParam;
+    float d1 = stof(camParam);
+    camParams >> camParam;
+    float d2 = stof(camParam);
+    camParams >> camParam;
+    float d3 = stof(camParam);
+    camParams >> camParam;
+    float d4 = stof(camParam);
+    camParams >> camParam;
+    float d5 = stof(camParam);
+    vector<float> K={kx,ky,cx,cy};
+    vector<float> D={d1,d2,d3,d4,d5};
+    camParams.close();
 
-    if(posFile.empty()) {
-        return;
-    }
-
+    string posFile = folderName+"/pos.log";
     ifstream infile(posFile);
 
     for(size_t i=0;i<imgNames.size(); i++) {
@@ -111,7 +157,7 @@ void MainWindow::on_button_video_clicked()
         params >> param;
         float pitch = stof(param);
 
-        manager->initialize(imgNames[i], lat, lon, head, pitch, searchPath);
+        manager->initialize(imgNames[i], K, D, lat, lon, head, pitch, searchPath);
 
         if(!initialied) {
             on_button_reset_clicked();

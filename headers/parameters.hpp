@@ -1,19 +1,6 @@
 #ifndef PARAMETERS_HPP
 #define PARAMETERS_HPP
 
-//camera paramaters
-#define FX 1130.2
-#define FY 1129.9
-#define CX 677.1
-#define CY 507.5
-//#define CO1 0.0995
-//#define CO2 -0.2875
-#define CO1 0.0
-#define CO2 0.0
-#define CO3 0.0
-#define CO4 0.0
-#define CO5 0.0
-
 #define BS 3
 #define BV 1
 

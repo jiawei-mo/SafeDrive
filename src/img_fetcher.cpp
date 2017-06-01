@@ -3,41 +3,16 @@
 IMGFetcher::IMGFetcher()
 {
     IMGFetcher::key = "AIzaSyBAVmBgHM26Lxosh60k9wtrUb1gNZBIorw";
-    camera_K = (cv::Mat_<double>(3,3) << FX, 0, CX,
-                                     0, FY, CY,
-                                     0, 0, 1);
-
-    camera_coeff = (cv::Mat_<double>(1,5) << CO1, CO2, CO3, CO4, CO5);
 }
 
-IMGFetcher::IMGFetcher(string _key)
+void IMGFetcher::setCam(const vector<float>& _K, const vector<float>& _D)
 {
-    IMGFetcher::key = _key;
-    camera_K = (cv::Mat_<double>(3,3) << FX, 0, CX,
-                                     0, FY, CY,
-                                     0, 0, 1);
+    camera_K = (cv::Mat_<double>(3,3) << _K[0], 0, _K[2],
+                                         0, _K[1], _K[3],
+                                         0, 0, 1);
 
-    camera_coeff = (cv::Mat_<double>(1,5) << CO1, CO2, CO3, CO4, CO5);
-}
+    camera_coeff = (cv::Mat_<double>(1,5) << _D[0], _D[1], _D[2], _D[3], _D[4]);
 
-bool IMGFetcher::get(Mat& output, Size size, float lan, float lon, float head, float pitch)
-{
-    double width = size.width;
-    double height = size.height;
-    ostringstream s;
-    s<<"https://maps.googleapis.com/maps/api/streetview?size="<<width<<"x"<<height<<"&location="<<lan<<","<<lon
-    <<"&heading="<<head<<"&pitch="<<pitch<<"&key="<<IMGFetcher::key;
-    //        cout<<s.str()<<endl;
-    VideoCapture cap(s.str());
-    if(!cap.isOpened())
-    {
-        return false;
-    }
-    cap >> output;
-    if(output.empty()) {
-        return false;
-    }
-    return true;
 }
 
 bool IMGFetcher::get_local(Mat& output, string filename)

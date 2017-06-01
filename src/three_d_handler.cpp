@@ -24,12 +24,16 @@ ThreeDHandler::ThreeDHandler(const shared_ptr<Matcher> _matcher)
     ransac_thres_essential = RTE / 1.0f;
     ransac_thres_pnp = RTP / 1.0f;
 
-    K = (cv::Mat_<double>(3,3) << FX, 0, CX,
-                                     0, FY, CY,
-                                     0, 0, 1);
-
     camera_coeff = cv::Mat_<double>::zeros(1,5);
 }
+
+void ThreeDHandler::setCamK(const vector<float>& _K)
+{
+    K = (cv::Mat_<double>(3,3) << _K[0], 0, _K[2],
+                                  0, _K[1], _K[3],
+                                  0, 0, 1);
+}
+
 void ThreeDHandler::changeParam(const shared_ptr<Matcher> _matcher, float rte, float rtp)
 {
     matcher = _matcher;
@@ -151,7 +155,7 @@ if(DEBUG) {
                 min_rho = i_rho;
             }
         }
-        if(min_rho<0 || min_dist/second_dist > 1) continue; //TODO
+        if(min_rho<0 || min_dist/second_dist > 0.7) continue; //TODO
 
         //bi-directional
         right_batch = right_rectified(Rect(min_rho-batch_size, theta, batch_size*2, 1));
@@ -305,10 +309,10 @@ bool ThreeDHandler::project(const Mat& obj_img, Mat &cur_img, const vector<Point
 
 
     cv::Mat rvec, t, inliners;
-    cv::solvePnPRansac( obj_pts, _img_kp, K, camera_coeff, rvec, t, false, 500, ransac_thres_pnp, 0.999, inliners, cv::SOLVEPNP_ITERATIVE );
+    cv::solvePnPRansac( obj_pts, _img_kp, K, camera_coeff, rvec, t, false, 1000, ransac_thres_pnp, 0.99, inliners, cv::SOLVEPNP_ITERATIVE );
 
     if(inliners.rows<3) {
-        cout<<"Not enough inlier "<<inliners.rows<<"/"<<inliners_features.size()<<" for PnP, exiting..."<<endl;
+        cout<<"Not enough inlier ("<<inliners.rows<<"/"<<inliners_features.size()<<") for PnP, exiting..."<<endl;
         return false;
     }
 
@@ -350,7 +354,8 @@ if(DEBUG) {
         Point2f proj_p(proj_p_homo.at<double>(0,0)/proj_p_homo.at<double>(2,0), proj_p_homo.at<double>(1,0)/proj_p_homo.at<double>(2,0));
         if(imgBoundValid(cur_img, proj_p))
         {
-            rectangle(canvas, Point2f(proj_p.x-1, proj_p.y-1), Point2f(proj_p.x+1, proj_p.y+1), CvScalar(marker_color[i]));
+//            rectangle(canvas, Point2f(proj_p.x-1, proj_p.y-1), Point2f(proj_p.x+1, proj_p.y+1), CvScalar(marker_color[i]));
+            rectangle(cur_img, Point2f(proj_p.x-1, proj_p.y-1), Point2f(proj_p.x+1, proj_p.y+1), Scalar(0,0,255));
         }
     }
 

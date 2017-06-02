@@ -41,7 +41,7 @@ void ThreeDHandler::changeParam(const shared_ptr<Matcher> _matcher, float rte, f
     ransac_thres_pnp = rtp;
 }
 
-void ThreeDHandler::find3DPoints(const Mat& left_img, const Mat& right_img, vector<Point2f> &features, vector<Point3f> &feature_pts, vector<Point3f> &marker_pts, vector<Vec3b>& marker_color)
+bool ThreeDHandler::find3DPoints(const Mat& left_img, const Mat& right_img, vector<Point2f> &features, vector<Point3f> &feature_pts, vector<Point3f> &marker_pts, vector<Vec3b>& marker_color)
 {
     vector<Point2f> left_kp, right_kp;
     matcher->match(left_img, left_kp, right_img, right_kp);
@@ -59,6 +59,12 @@ void ThreeDHandler::find3DPoints(const Mat& left_img, const Mat& right_img, vect
     recoverPose(E, left_kp, right_kp, K, R, t, inliner_mask);
 
     cout<<"Stereo matching inliners: "<<sum(inliner_mask)[0]<<" / "<<left_kp.size()<<endl;
+
+    if(sum(inliner_mask)[0]<8)
+    {
+        cout<<"Not enough points for Stereo, exiting..."<<endl;
+        return false;
+    }
 
     vector<Point2f> left_kp_inliner, right_kp_inliner;
     for(unsigned int i=0; i<left_kp.size(); i++) {
@@ -282,7 +288,7 @@ if(DEBUG) {
     imshow("DEBUG:Essential reprojection", img_rep);
 }
 
-    return;
+    return true;
 }
 
 bool ThreeDHandler::project(const Mat& obj_img, Mat &cur_img, const vector<Point2f>& features, const vector<Point3f>& feature_pts, const vector<Point3f>& marker_pts, const vector<Vec3b>& marker_color)

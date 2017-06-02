@@ -35,7 +35,7 @@ void Matcher::match(const Mat& left_img, vector<Point2f>& left_matched_kp, const
     cvtColor(right_img, right_gray, CV_BGR2GRAY);
     goodFeaturesToTrack(left_gray, left_corners, max_num_features, quality_level, min_distance);
     goodFeaturesToTrack(right_gray, right_corners, max_num_features, quality_level, min_distance);
-
+cout<<left_corners.size()<<endl;
     vector<KeyPoint> left_kp, right_kp;
     for( size_t i = 0; i < left_corners.size(); i++ ) {
         left_kp.push_back(KeyPoint(left_corners[i], 1.f));

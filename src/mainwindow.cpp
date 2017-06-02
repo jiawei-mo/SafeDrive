@@ -37,8 +37,6 @@ void MainWindow::on_button_img_clicked()
         return;
     }
 
-    string searchPath = folderName+"/database";
-
     string camFile = folderName+"/cam.log";
     ifstream camParams(camFile);
 
@@ -65,7 +63,12 @@ void MainWindow::on_button_img_clicked()
     vector<float> D={d1,d2,d3,d4,d5};
     camParams.close();
 
-    string posFile = folderName+"/pos.log";
+    string posFile = targetString;
+    int dotP = posFile.size()-1;
+    while(posFile[dotP]!='.') dotP--;
+    int slashP = dotP;
+    while(posFile[slashP]!='/') slashP--;
+    posFile = folderName+"/pos"+posFile.substr(slashP, dotP-slashP)+".log";
     ifstream posParams(posFile);
 
     string posParam;
@@ -79,6 +82,14 @@ void MainWindow::on_button_img_clicked()
     float pitch = stof(posParam);
     posParams.close();
 
+
+    cout<<"Img name: "<<targetString<<endl;
+    cout<<"Pos name: "<<posFile<<endl;
+
+    string searchPath = folderName+"/database/";
+    searchPath += (to_string(int(round(lat)))+"_"+to_string(int(round(lon)))+"_"+to_string(int(round(head)))+"_"+to_string(int(round(pitch))));
+cout<<searchPath<<endl;
+//return;
     manager->initialize(targetString, K, D, lat, lon, head, pitch, searchPath);
 
     if(!initialied) {
@@ -109,8 +120,6 @@ void MainWindow::on_button_video_clicked()
     vector<String> imgNames;
     glob(imgFolderName, imgNames);
 
-    string searchPath = folderName+"/database";
-
     string camFile = folderName+"/cam.log";
     ifstream camParams(camFile);
 
@@ -137,25 +146,32 @@ void MainWindow::on_button_video_clicked()
     vector<float> D={d1,d2,d3,d4,d5};
     camParams.close();
 
-    string posFile = folderName+"/pos.log";
-    ifstream infile(posFile);
-
     for(size_t i=0;i<imgNames.size(); i++) {
-        string posName;
-        getline(infile, posName);
+        string posName = imgNames[i];
+        int dotP = posName.size()-1;
+        while(posName[dotP]!='.') dotP--;
+        int slashP = dotP;
+        while(posName[slashP]!='/') slashP--;
+        posName = folderName+"/pos"+posName.substr(slashP, dotP-slashP)+".log";
+        ifstream posParams(posName);
+
+        string posParam;
+        posParams >> posParam;
+        float lat = stof(posParam);
+        posParams >> posParam;
+        float lon = stof(posParam);
+        posParams >> posParam;
+        float head = stof(posParam);
+        posParams >> posParam;
+        float pitch = stof(posParam);
+        posParams.close();
+
+
         cout<<"Img name: "<<imgNames[i]<<endl;
         cout<<"Pos name: "<<posName<<endl;
 
-        istringstream params(posName);
-        string param;
-        params >> param;
-        float lat = stof(param);
-        params >> param;
-        float lon = stof(param);
-        params >> param;
-        float head = stof(param);
-        params >> param;
-        float pitch = stof(param);
+        string searchPath = folderName+"/database/";
+        searchPath += (to_string(int(round(lat)))+"_"+to_string(int(round(lon)))+"_"+to_string(int(round(head)))+"_"+to_string(int(round(pitch))));
 
         manager->initialize(imgNames[i], K, D, lat, lon, head, pitch, searchPath);
 

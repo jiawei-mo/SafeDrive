@@ -28,7 +28,7 @@ void LaneDetector::detect(const Mat& img, Mat& mask)
         line_counter=0;
         while (it!=lines.end()) {
             float theta= (*it)[1]; // second element is angle theta
-            if ( !(theta > 1.55 && theta < 1.85))
+            if ( !(theta > 1.25 && theta < 2.05))
             {
                 line_counter++;
             }

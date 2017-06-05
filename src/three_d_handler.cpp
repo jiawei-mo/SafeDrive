@@ -256,6 +256,26 @@ if(DEBUG) {
         double y = V.at<double>(1,3) / V.at<double>(3,3);
         double z = V.at<double>(2,3) / V.at<double>(3,3);
         if(z<0) continue;
+
+        //remove outlier by reporjection dist
+        point_3d_tmp(0)=x; point_3d_tmp(1)=y; point_3d_tmp(2)=z; point_3d_tmp(3) = 1;
+        point_2d_tmp = Pl*point_3d_tmp;
+        point_2d_tmp /= point_2d_tmp(2);
+        double dist = (left_marker_cartesian[i].x-point_2d_tmp(0))*(left_marker_cartesian[i].x-point_2d_tmp(0));
+        dist += (left_marker_cartesian[i].y-point_2d_tmp(1))*(left_marker_cartesian[i].y-point_2d_tmp(1));
+
+        point_2d_tmp = Pr*point_3d_tmp;
+        point_2d_tmp /= point_2d_tmp(2);
+        dist += (right_marker_cartesian[i].x-point_2d_tmp(0))*(right_marker_cartesian[i].x-point_2d_tmp(0));
+        dist += (right_marker_cartesian[i].y-point_2d_tmp(1))*(right_marker_cartesian[i].y-point_2d_tmp(1));
+        if(dist > 200)
+        {
+
+            circle(img_rep, left_marker_cartesian[i], 3, Scalar(0,255,255));
+            circle(img_rep, Point2f(right_marker_cartesian[i].x+left_img.cols, right_marker_cartesian[i].y), 3, Scalar(0,255,255));
+            continue;
+        }
+
         marker_color.push_back(left_img.at<Vec3b>(left_marker_cartesian[i].y, left_marker_cartesian[i].x));
         marker_pts.push_back(Point3f(x,y,z));
 
@@ -315,9 +335,17 @@ bool ThreeDHandler::project(const Mat& obj_img, Mat &cur_img, const vector<Point
 
 
     cv::Mat rvec, t, inliners;
-    cv::solvePnPRansac( obj_pts, _img_kp, K, camera_coeff, rvec, t, false, 1000, ransac_thres_pnp, 0.99, inliners, cv::SOLVEPNP_ITERATIVE );
+    double inlier_ratio = 0.0;
+    float thres = 1.0;
+    while(inlier_ratio < 0.7 && thres < ransac_thres_pnp) {
+        cv::solvePnPRansac( obj_pts, _img_kp, K, camera_coeff, rvec, t, false, 100, thres, 0.999, inliners, cv::SOLVEPNP_ITERATIVE );
+        inlier_ratio = float(inliners.rows) / float(inliners_features.size());
+        thres *= 1.2;
+    }
+cout<<thres<<endl;
 
-    if(inliners.rows<3) {
+    if(inliners.rows < 3) {
+        matcher->showMatches(obj_img, _obj_kp, cur_img, _img_kp, "Fail:Project matches");
         cout<<"Not enough inlier ("<<inliners.rows<<"/"<<inliners_features.size()<<") for PnP, exiting..."<<endl;
         return false;
     }
@@ -334,7 +362,7 @@ if(DEBUG) {
         img_kp_inlier.push_back(_img_kp[inliners.at<int>(0,i)]);
         circle(rep_img, img_kp[inliners.at<int>(0,i)], 5, Scalar(255,0,0));
     }
-//    matcher->showMatches(obj_img, obj_kp_inlier, cur_img, img_kp_inlier, "DEBUG:Project matches");
+    matcher->showMatches(obj_img, obj_kp_inlier, cur_img, img_kp_inlier, "DEBUG:Project matches");
 
 //    cout<<"Proj rotation: "<<rvec<<endl;
 //    cout<<"Proj translation: "<<t<<endl;

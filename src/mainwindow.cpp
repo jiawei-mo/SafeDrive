@@ -109,13 +109,7 @@ void MainWindow::on_button_video_clicked()
         return;
     }
 
-    string defaultImgFolderName = folderName+"/imgs";
-    QString QImgFolderName = QFileDialog::getExistingDirectory(this, tr("Open target Directory"), tr(defaultImgFolderName.c_str()), QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
-    string imgFolderName = QImgFolderName.toStdString();
-
-    if(imgFolderName.empty()) {
-        return;
-    }
+    string imgFolderName = folderName+"/imgs";
 
     vector<String> imgNames;
     glob(imgFolderName, imgNames);

@@ -108,10 +108,14 @@ if(DEBUG) {
     lane_detector->detect(right_img, right_mask);
 
 if(DEBUG) {
-    Mat lane_corres;
+    Mat lane_corres, lane_show, _tmp;
+    hconcat(left_img, right_img, lane_show);
+    cvtColor(lane_show, _tmp, CV_BGR2GRAY);
+    cvtColor(_tmp, lane_show, CV_GRAY2BGR);
     hconcat(left_mask, right_mask, lane_corres);
+    lane_show.setTo(Scalar(0,255,0), lane_corres);
     namedWindow("DEBUG:Land Marker", WINDOW_NORMAL);
-    imshow("DEBUG:Land Marker", lane_corres);
+    imshow("DEBUG:Land Marker", lane_show);
 }
 
     vector<Point2d> left_marker_detected_cartesian, right_marker_detected_cartesian;

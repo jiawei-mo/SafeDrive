@@ -1,8 +1,10 @@
 #include "headers/lane_detector.hpp"
 
+double REMOVE_TOP_RATIO = 1/3;
+
 void LaneDetector::detect(const Mat& img, Mat& mask)
 {
-    Mat imgROI = img(Rect(0,img.rows/2,img.cols,img.rows/2)).clone();
+    Mat imgROI = img(Rect(0,REMOVE_TOP_RATIO*img.rows,img.cols,img.rows-REMOVE_TOP_RATIO*img.rows)).clone();
     GaussianBlur(imgROI, imgROI, Size(3,3), 2, 2);
 
     // Canny algorithm
@@ -42,6 +44,6 @@ void LaneDetector::detect(const Mat& img, Mat& mask)
     Mat lanes;
     threshold(hough, lanes, 0, 255, THRESH_BINARY);
 
-    Mat empty_top = Mat::zeros(img.rows/2, img.cols, CV_8U);
+    Mat empty_top = Mat::zeros(REMOVE_TOP_RATIO*img.rows, img.cols, CV_8U);
     vconcat(empty_top, lanes, mask);
 }

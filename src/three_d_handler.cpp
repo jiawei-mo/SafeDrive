@@ -1,4 +1,5 @@
 #include "headers/three_d_handler.hpp"
+#define MAX_THETA_OFFSET 2
 
 bool imgBoundValid(const Mat& img, Point2f pt) {
     bool a = pt.x >= 3;
@@ -136,39 +137,42 @@ if(DEBUG) {
 
     Mat right_marker_detected_polar_mat = Mat::zeros(right_rectified.size(), CV_8U);
     Mat left_marker_detected_polar_mat = Mat::zeros(right_rectified.size(), CV_8U);
-    for(unsigned int c=0; c<right_marker_detected_polar.size(); c++) {
-        right_marker_detected_polar_mat.at<uchar>(right_marker_detected_polar[c].y, right_marker_detected_polar[c].x) = 1;
-    }
     for(unsigned int c=0; c<left_marker_detected_polar.size(); c++) {
         left_marker_detected_polar_mat.at<uchar>(left_marker_detected_polar[c].y, left_marker_detected_polar[c].x) = 1;
     }
+    for(unsigned int c=0; c<right_marker_detected_polar.size(); c++) {
+        right_marker_detected_polar_mat.at<uchar>(right_marker_detected_polar[c].y, right_marker_detected_polar[c].x) = 1;
+    }
 
     vector<Point2d> left_marker_polar, right_marker_polar;
-    int batch_size = 15;
+    int batch_size = 20;
     Mat left_batch, right_batch, diff;
     for(unsigned int c=0; c<left_marker_detected_polar.size(); c++) {
         int rho(left_marker_detected_polar[c].x), theta(left_marker_detected_polar[c].y);
-        if(rho<batch_size || rho>=left_rectified.cols-batch_size-1) continue;
-
+        if(theta<2 || theta+2>=left_rectified.rows || rho<batch_size || rho>=left_rectified.cols-batch_size-1) continue;
         left_batch = left_rectified(Rect(rho-batch_size, theta, batch_size*2, 1));
         double min_dist = -1;
         double second_dist = -1;
         int min_rho = -1;
-        for(int i_rho=batch_size; i_rho<right_rectified.cols-batch_size-1; i_rho++) {
-            if(right_marker_detected_polar_mat.at<uchar>(theta,i_rho) == 0) continue;
-            right_batch = right_rectified(Rect(i_rho-batch_size, theta, batch_size*2, 1));
-            diff = right_batch - left_batch;
-            double dist = norm(diff);
-            if(min_dist < 0 || min_dist > dist){
-                second_dist = min_dist;
-                min_dist = dist;
-                min_rho = i_rho;
+        int min_theta_offset = 0;
+        for(int theta_offset=-MAX_THETA_OFFSET; theta_offset<=MAX_THETA_OFFSET; theta_offset++) {
+            for(int i_rho=batch_size; i_rho<right_rectified.cols-batch_size-1; i_rho++) {
+                if(right_marker_detected_polar_mat.at<uchar>(theta+theta_offset,i_rho) == 0) continue;
+                right_batch = right_rectified(Rect(i_rho-batch_size, theta+theta_offset, batch_size*2, 1));
+                diff = right_batch - left_batch;
+                double dist = norm(diff);
+                if(min_dist < 0 || min_dist > dist){
+                    second_dist = min_dist;
+                    min_dist = dist;
+                    min_rho = i_rho;
+                    min_theta_offset = theta_offset;
+                }
             }
         }
-        if(min_rho<0 || min_dist/second_dist > 0.7) continue; //TODO
+        if(min_rho<0) continue;
 
         //bi-directional
-        right_batch = right_rectified(Rect(min_rho-batch_size, theta, batch_size*2, 1));
+        right_batch = right_rectified(Rect(min_rho-batch_size, theta+min_theta_offset, batch_size*2, 1));
         min_dist = -1;
         second_dist = -1;
         int min_rho_rev = -1;
@@ -184,10 +188,10 @@ if(DEBUG) {
             }
         }
 
-        if(abs(min_rho_rev-rho)<5)
+        if(abs(min_rho_rev-rho)<15)
         {
             left_marker_polar.push_back(left_marker_detected_polar[c]);
-            right_marker_polar.push_back(Point2d(min_rho, theta));
+            right_marker_polar.push_back(Point2d(min_rho, theta+min_theta_offset));
         }
     }
 
@@ -259,7 +263,13 @@ if(DEBUG) {
         double x = V.at<double>(0,3) / V.at<double>(3,3);
         double y = V.at<double>(1,3) / V.at<double>(3,3);
         double z = V.at<double>(2,3) / V.at<double>(3,3);
-        if(z<0) continue;
+        if(z<0)
+        {
+
+            circle(img_rep, left_marker_cartesian[i], 3, Scalar(255,0,255));
+            circle(img_rep, Point2f(right_marker_cartesian[i].x+left_img.cols, right_marker_cartesian[i].y), 3, Scalar(255,0,255));
+            continue;
+        }
 
         //remove outlier by reporjection dist
         point_3d_tmp(0)=x; point_3d_tmp(1)=y; point_3d_tmp(2)=z; point_3d_tmp(3) = 1;
@@ -272,7 +282,7 @@ if(DEBUG) {
         point_2d_tmp /= point_2d_tmp(2);
         dist += (right_marker_cartesian[i].x-point_2d_tmp(0))*(right_marker_cartesian[i].x-point_2d_tmp(0));
         dist += (right_marker_cartesian[i].y-point_2d_tmp(1))*(right_marker_cartesian[i].y-point_2d_tmp(1));
-        if(dist > 200)
+        if(dist > 100)
         {
 
             circle(img_rep, left_marker_cartesian[i], 3, Scalar(0,255,255));
@@ -320,7 +330,7 @@ bool ThreeDHandler::project(const Mat& obj_img, Mat &cur_img, const vector<Point
     vector<int> inliners_features;
     vector<Point2f> img_kp;
     matcher->match_given_kp(obj_img, features, cur_img, img_kp, inliners_features);
-
+    matcher->showMatches(obj_img, features, cur_img, img_kp, "DEBUG:Current matches");
     if(inliners_features.size()<3) {
         cout<<"Not enough points for PnP, exiting..."<<endl;
         return false;
@@ -341,12 +351,12 @@ bool ThreeDHandler::project(const Mat& obj_img, Mat &cur_img, const vector<Point
     cv::Mat rvec, t, inliners;
     double inlier_ratio = 0.0;
     float thres = 1.0;
-    while(inlier_ratio < 0.7 && thres < ransac_thres_pnp) {
+    while(inlier_ratio < 0.5 && thres < ransac_thres_pnp) {
         cv::solvePnPRansac( obj_pts, _img_kp, K, camera_coeff, rvec, t, false, 100, thres, 0.999, inliners, cv::SOLVEPNP_ITERATIVE );
         inlier_ratio = float(inliners.rows) / float(inliners_features.size());
         thres *= 1.2;
     }
-cout<<thres<<endl;
+cout<<"PnP Thres: "<<thres<<endl;
 
     if(inliners.rows < 3) {
         matcher->showMatches(obj_img, _obj_kp, cur_img, _img_kp, "Fail:Project matches");

@@ -9,8 +9,8 @@
 #define MD 5        //int
 #define MTF 70      //%
 #define MTG 70      //%
-#define RTE 10        // /10
-#define RTP 200        // /10
+#define RTE 7        // /10
+#define RTP 100        // /10
 
 extern bool DEBUG;
 

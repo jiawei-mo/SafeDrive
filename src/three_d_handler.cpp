@@ -145,7 +145,7 @@ if(DEBUG) {
     }
 
     vector<Point2d> left_marker_polar, right_marker_polar;
-    int batch_size = 20;
+    int batch_size = 5;
     Mat left_batch, right_batch, diff;
     for(unsigned int c=0; c<left_marker_detected_polar.size(); c++) {
         int rho(left_marker_detected_polar[c].x), theta(left_marker_detected_polar[c].y);
@@ -330,7 +330,6 @@ bool ThreeDHandler::project(const Mat& obj_img, Mat &cur_img, const vector<Point
     vector<int> inliners_features;
     vector<Point2f> img_kp;
     matcher->match_given_kp(obj_img, features, cur_img, img_kp, inliners_features);
-    matcher->showMatches(obj_img, features, cur_img, img_kp, "DEBUG:Current matches");
     if(inliners_features.size()<3) {
         cout<<"Not enough points for PnP, exiting..."<<endl;
         return false;
@@ -347,6 +346,7 @@ bool ThreeDHandler::project(const Mat& obj_img, Mat &cur_img, const vector<Point
         _img_kp.push_back(img_kp[i]);
     }
 
+    matcher->showMatches(obj_img, _obj_kp, cur_img, _img_kp, "DEBUG:Current matches");
 
     cv::Mat rvec, t, inliners;
     double inlier_ratio = 0.0;
@@ -394,7 +394,8 @@ if(DEBUG) {
     hconcat(R, t, P);
 
     //project road marker
-    Mat canvas = Mat::zeros(cur_img.size(), CV_8UC3);
+//    Mat canvas = Mat::zeros(cur_img.size(), CV_8U);
+//    Mat cur_img_dup = cur_img.clone();
     cv::Mat_<double> p_homo(4,1);
     for(unsigned int i=0; i<marker_pts.size(); i++) {
         p_homo(0) = marker_pts[i].x; p_homo(1) = marker_pts[i].y; p_homo(2) = marker_pts[i].z; p_homo(3) = 1;
@@ -402,11 +403,13 @@ if(DEBUG) {
         Point2f proj_p(proj_p_homo.at<double>(0,0)/proj_p_homo.at<double>(2,0), proj_p_homo.at<double>(1,0)/proj_p_homo.at<double>(2,0));
         if(imgBoundValid(cur_img, proj_p))
         {
-//            rectangle(canvas, Point2f(proj_p.x-1, proj_p.y-1), Point2f(proj_p.x+1, proj_p.y+1), CvScalar(marker_color[i]));
-            rectangle(cur_img, Point2f(proj_p.x-1, proj_p.y-1), Point2f(proj_p.x+1, proj_p.y+1), Scalar(0,0,255));
+//            canvas.at<uchar>(proj_p.y, proj_p.x) = 255;
+            circle(cur_img, proj_p, 2, Scalar(0,0,255));
         }
     }
-
-    cur_img += canvas;
+//    lane_detector->houghDetect(canvas, canvas);
+//    imshow("sdasdsada", cur_img_dup);
+//    imshow("tetete", canvas);
+//    cur_img.setTo(Scalar(0,0,255), canvas);
     return true;
 }

@@ -19,31 +19,87 @@ void LaneDetector::detect(const Mat& img, Mat& mask)
     blur(yellowAndWhite, yellowAndWhite, Size(3,3));
     contours = yellowAndWhite.mul(contours);
 
-    int houghVote = 80;
+    Mat lanes;
+    threshold(contours, lanes, 0, 255, THRESH_BINARY);
+
+    Mat empty_top = Mat::zeros(REMOVE_TOP_RATIO*img.rows, img.cols, CV_8U);
+    vconcat(empty_top, lanes, mask);
+}
+
+void LaneDetector::houghDetect(const Mat& img, Mat& mask) {
+    int houghVote = 200;
     std::vector<Vec4i> lines;
-    int line_counter = 0;
+    int line_counter=0;
     while(line_counter < 30 && houghVote > 0)
     {
-        HoughLinesP(contours,lines,1,CV_PI/180, houghVote, 30, 10);
+        HoughLinesP(img,lines,5,3*CV_PI/180, houghVote, 20, 10);
         houghVote -= 5;
 
-        line_counter = lines.size();
+        std::vector<Vec4i>::const_iterator it= lines.begin();
+        line_counter=0;
+        while (it!=lines.end()) {
+            float theta = atan2(fabs((*it)[1]-(*it)[3]) , fabs((*it)[0]-(*it)[2]));
+            if ( (theta > 0.2 && theta < 2.9))
+            {
+                line_counter++;
+            }
+            ++it;
+        }
     }
-
+cout<<line_counter<<"  "<<houghVote<<endl;
     // Draw the lines
     std::vector<Vec4i>::const_iterator it= lines.begin();
-    Mat hough(imgROI.size(),CV_8U,Scalar(0));
+    Mat hough(img.size(),CV_8U,Scalar(0));
     while (it!=lines.end()) {
+        float theta = atan2(fabs((*it)[1]-(*it)[3]) , fabs((*it)[0]-(*it)[2]));
+        if ( (theta > 0.2 && theta < 2.9))
         {
             line( hough, Point((*it)[0], (*it)[1]),
                     Point((*it)[2], (*it)[3]), Scalar(255,255,255), 1);
         }
         it++;
     }
-
-    Mat lanes;
-    threshold(hough, lanes, 0, 255, THRESH_BINARY);
-
-    Mat empty_top = Mat::zeros(REMOVE_TOP_RATIO*img.rows, img.cols, CV_8U);
-    vconcat(empty_top, lanes, mask);
+    mask = hough;
 }
+
+
+
+
+//int houghVote = 200;
+//std::vector<Vec2f> lines;
+//int line_counter=0;
+//while(line_counter < 30 && houghVote > 0)
+//{
+//    HoughLines(img,lines,10,CV_PI/180, houghVote);
+//    houghVote -= 5;
+
+//    std::vector<Vec2f>::const_iterator it= lines.begin();
+//    line_counter=0;
+//    while (it!=lines.end()) {
+//        float theta= (*it)[1];
+//        if ( !(theta > 1.45 && theta < 1.65))
+//        {
+//            line_counter++;
+//        }
+//        ++it;
+//    }
+//}
+//cout<<line_counter<<"  "<<houghVote<<endl;
+//// Draw the lines
+//std::vector<Vec2f>::const_iterator it= lines.begin();
+//Mat hough(img.size(),CV_8U,Scalar(0));
+//while (it!=lines.end()) {
+//    float rho= (*it)[0];   // first element is distance rho
+//    float theta= (*it)[1]; // second element is angle theta
+//    if ( !(theta > 1.45 && theta < 1.65))
+//    {
+//        // point of intersection of the line with first row
+//        Point pt1(rho/cos(theta),0);
+//        // point of intersection of the line with last row
+//        Point pt2((rho-img.rows*sin(theta))/cos(theta),img.rows);
+//        line( hough, pt1, pt2, Scalar(255,255,255), 1);
+//    }
+//    it++;
+//}
+//mask = hough;
+//}

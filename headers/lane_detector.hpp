@@ -13,6 +13,7 @@ class LaneDetector
 {
 public:
     void detect(const Mat& img, Mat &mask);
+    void houghDetect(const Mat& img, Mat& mask);
 };
 
 #endif // LANE_DETECTOR_HPP

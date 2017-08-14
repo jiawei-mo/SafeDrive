@@ -109,14 +109,27 @@ if(DEBUG) {
     lane_detector->detect(right_img, right_mask);
 
 if(DEBUG) {
-    Mat lane_corres, lane_show, _tmp;
-    hconcat(left_img, right_img, lane_show);
-    cvtColor(lane_show, _tmp, CV_BGR2GRAY);
-    cvtColor(_tmp, lane_show, CV_GRAY2BGR);
-    hconcat(left_mask, right_mask, lane_corres);
-    lane_show.setTo(Scalar(0,255,0), lane_corres);
+    Mat left_lane = left_img.clone();
+    cvtColor(left_lane, left_lane, CV_BGR2GRAY);
+    cvtColor(left_lane, left_lane, CV_GRAY2BGR);
+    left_lane.setTo(Scalar(0,255,0), left_mask);
+    Mat right_lane = right_img.clone();
+    cvtColor(right_lane, right_lane, CV_BGR2GRAY);
+    cvtColor(right_lane, right_lane, CV_GRAY2BGR);
+    right_lane.setTo(Scalar(0,255,0), right_mask);
+    Mat lane_concat;
+    hconcat(left_lane, right_lane, lane_concat);
     namedWindow("DEBUG:Land Marker", WINDOW_NORMAL);
-    imshow("DEBUG:Land Marker", lane_show);
+    imshow("DEBUG:Land Marker", lane_concat);
+
+
+    Mat left_rectified_lane, right_rectified_lane;
+    calibrator->getRectifiedImages(left_lane, right_lane, left_rectified_lane, right_rectified_lane);
+    Mat lane_rectified_concat;
+    hconcat(left_rectified_lane, right_rectified_lane, lane_rectified_concat);
+    namedWindow("DEBUG:Rectified Land Marker", WINDOW_NORMAL);
+    imshow("DEBUG:Rectified Land Marker", lane_rectified_concat);
+
 }
 
     vector<Point2d> left_marker_detected_cartesian, right_marker_detected_cartesian;

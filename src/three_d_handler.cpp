@@ -42,24 +42,21 @@ void ThreeDHandler::changeParam(const shared_ptr<Matcher> _matcher, float rte, f
     ransac_thres_pnp = rtp;
 }
 
-bool ThreeDHandler::find3DPoints(const Mat& left_img, const Mat& right_img, vector<Point2f> &features, vector<Point3f> &feature_pts, vector<Point3f> &marker_pts, vector<Vec3b>& marker_color)
+bool ThreeDHandler::getPose(const Mat& left_img, const Mat& right_img, Mat& R, Mat& t, vector<Point2f>& left_kp_inliner, vector<Point2f>& right_kp_inliner, const string& window_name)
 {
     vector<Point2f> left_kp, right_kp;
     matcher->match(left_img, left_kp, right_img, right_kp);
 
-//    if(DEBUG) {
-//        matcher->showMatches(left_img, left_kp, right_img, right_kp, "DEBUG: original matches");
-//    }
+    if(DEBUG) {
+        matcher->showMatches(left_img, left_kp, right_img, right_kp, window_name);
+    }
 
     //find fundamental based on matches using RANSAC
-    Mat inliner_mask;
-    Mat K_T;
-    transpose(K, K_T);
-    Mat E, R, t;
+    Mat inliner_mask, E;
     E  = findEssentialMat(left_kp, right_kp, K, RANSAC, 0.999, ransac_thres_essential, inliner_mask);
     recoverPose(E, left_kp, right_kp, K, R, t, inliner_mask);
 
-    cout<<"Stereo matching inliners: "<<sum(inliner_mask)[0]<<" / "<<left_kp.size()<<endl;
+    cout<<"Stereo matching inliers: "<<sum(inliner_mask)[0]<<" / "<<left_kp.size()<<endl;
 
     if(sum(inliner_mask)[0]<8)
     {
@@ -67,83 +64,19 @@ bool ThreeDHandler::find3DPoints(const Mat& left_img, const Mat& right_img, vect
         return false;
     }
 
-    vector<Point2f> left_kp_inliner, right_kp_inliner;
     for(unsigned int i=0; i<left_kp.size(); i++) {
         if(inliner_mask.at<uchar>(i,0)>0) {
-            features.push_back(left_kp[i]);
             left_kp_inliner.push_back(left_kp[i]);
             right_kp_inliner.push_back(right_kp[i]);
         }
     }
-
-    Mat Pl, Pr;
-    Pl = K*(Mat_<double>(3,4) <<1,0,0,0,0,1,0,0,0,0,1,0);
-    hconcat(R, t, Pr);
-    Pr = K*Pr;
-
-    Mat F = findFundamentalMat(left_kp_inliner, right_kp_inliner, RANSAC, ransac_thres_essential, 0.999);
-    cv::Mat left_rectified, right_rectified;
-    calibrator->compute(left_img, right_img, F, left_kp_inliner, right_kp_inliner);
-    calibrator->getRectifiedImages(left_img, right_img, left_rectified, right_rectified);
-
-    Mat polarRect;
-    hconcat(left_rectified, right_rectified, polarRect);
-    for(int j = 0; j < polarRect.rows; j += (polarRect.rows / 50) ) {
-        line(polarRect, Point(0, j), Point(polarRect.cols, j), Scalar(0, 255, 0), 1, 8);
-    }
-
-if(DEBUG) {
-    namedWindow("Polar Rectification", WINDOW_NORMAL);
-    imshow("Polar Rectification", polarRect);
+    return true;
 }
 
-//    Ptr<StereoSGBM> sbm = StereoSGBM::create( minDisparity, numberOfDisparities, SADWindowSize, SP1, SP2, disp12MaxDiff, preFilterCap, uniquenessRatio, speckleWindowSize, speckleRange);
-//    Mat imgDisparity, disp_img;
-//    sbm->compute( left_rectified, right_rectified, imgDisparity );
-//    normalize(imgDisparity, disp_img, 0, 255, CV_MINMAX, CV_8U);
-//    namedWindow("Polar Disparity", WINDOW_NORMAL);
-//    imshow("Polar Disparity", disp_img);
-
-    Mat left_mask, right_mask;
-    lane_detector->detect(left_img, left_mask);
-    lane_detector->detect(right_img, right_mask);
-
-if(DEBUG) {
-    Mat left_lane = left_img.clone();
-    cvtColor(left_lane, left_lane, CV_BGR2GRAY);
-    cvtColor(left_lane, left_lane, CV_GRAY2BGR);
-    left_lane.setTo(Scalar(0,255,0), left_mask);
-    Mat right_lane = right_img.clone();
-    cvtColor(right_lane, right_lane, CV_BGR2GRAY);
-    cvtColor(right_lane, right_lane, CV_GRAY2BGR);
-    right_lane.setTo(Scalar(0,255,0), right_mask);
-    Mat lane_concat;
-    hconcat(left_lane, right_lane, lane_concat);
-    namedWindow("DEBUG:Land Marker", WINDOW_NORMAL);
-    imshow("DEBUG:Land Marker", lane_concat);
-
-
-    Mat left_rectified_lane, right_rectified_lane;
-    calibrator->getRectifiedImages(left_lane, right_lane, left_rectified_lane, right_rectified_lane);
-    Mat lane_rectified_concat;
-    hconcat(left_rectified_lane, right_rectified_lane, lane_rectified_concat);
-    namedWindow("DEBUG:Rectified Land Marker", WINDOW_NORMAL);
-    imshow("DEBUG:Rectified Land Marker", lane_rectified_concat);
-
-}
-
-    vector<Point2d> left_marker_detected_cartesian, right_marker_detected_cartesian;
-    for(int i=0; i<left_img.rows; i++) {
-        for(int j=0; j<left_img.cols; j++) {
-            if(left_mask.at<uchar>(i,j) > 0) {
-                left_marker_detected_cartesian.push_back(Point2d(j,i));
-            }
-            if(right_mask.at<uchar>(i,j) > 0) {
-                right_marker_detected_cartesian.push_back(Point2d(j,i));
-            }
-        }
-    }
-
+void ThreeDHandler::matchRoadMarkers(const Mat& left_rectified, const Mat& right_rectified,
+                                     const vector<Point2d>& left_marker_detected_cartesian, const vector<Point2d>& right_marker_detected_cartesian,
+                                     vector<Point2d>& left_marker_cartesian, vector<Point2d>& right_marker_cartesian)
+{
     vector<Point2d> left_marker_detected_polar, right_marker_detected_polar;
     calibrator->transformPointsToPolar(left_marker_detected_cartesian, left_marker_detected_polar, 1);
     calibrator->transformPointsToPolar(right_marker_detected_cartesian, right_marker_detected_polar, 2);
@@ -162,10 +95,9 @@ if(DEBUG) {
     Mat left_batch, right_batch, diff;
     for(unsigned int c=0; c<left_marker_detected_polar.size(); c++) {
         int rho(left_marker_detected_polar[c].x), theta(left_marker_detected_polar[c].y);
-        if(theta<2 || theta+2>=left_rectified.rows || rho<batch_size || rho>=left_rectified.cols-batch_size-1) continue;
+        if(theta<MAX_THETA_OFFSET || (theta+MAX_THETA_OFFSET)>=left_rectified.rows || rho<batch_size || rho>=left_rectified.cols-batch_size-1) continue;
         left_batch = left_rectified(Rect(rho-batch_size, theta, batch_size*2, 1));
         double min_dist = -1;
-        double second_dist = -1;
         int min_rho = -1;
         int min_theta_offset = 0;
         for(int theta_offset=-MAX_THETA_OFFSET; theta_offset<=MAX_THETA_OFFSET; theta_offset++) {
@@ -175,7 +107,6 @@ if(DEBUG) {
                 diff = right_batch - left_batch;
                 double dist = norm(diff);
                 if(min_dist < 0 || min_dist > dist){
-                    second_dist = min_dist;
                     min_dist = dist;
                     min_rho = i_rho;
                     min_theta_offset = theta_offset;
@@ -185,48 +116,80 @@ if(DEBUG) {
         if(min_rho<0) continue;
 
         //bi-directional
-        right_batch = right_rectified(Rect(min_rho-batch_size, theta+min_theta_offset, batch_size*2, 1));
-        min_dist = -1;
-        second_dist = -1;
-        int min_rho_rev = -1;
-        for(int i_rho=batch_size; i_rho<left_rectified.cols-batch_size-1; i_rho++) {
-            if(left_marker_detected_polar_mat.at<uchar>(theta,i_rho) == 0) continue;
-            left_batch = left_rectified(Rect(i_rho-batch_size, theta, batch_size*2, 1));
-            diff = right_batch - left_batch;
-            double dist = norm(diff);
-            if(min_dist < 0 || min_dist > dist){
-                second_dist = min_dist;
-                min_dist = dist;
-                min_rho_rev = i_rho;
-            }
-        }
+//        right_batch = right_rectified(Rect(min_rho-batch_size, theta+min_theta_offset, batch_size*2, 1));
+//        min_dist = -1;
+//        second_dist = -1;
+//        int min_rho_rev = -1;
+//        for(int i_rho=batch_size; i_rho<left_rectified.cols-batch_size-1; i_rho++) {
+//            if(left_marker_detected_polar_mat.at<uchar>(theta,i_rho) == 0) continue;
+//            left_batch = left_rectified(Rect(i_rho-batch_size, theta, batch_size*2, 1));
+//            diff = right_batch - left_batch;
+//            double dist = norm(diff);
+//            if(min_dist < 0 || min_dist > dist){
+//                second_dist = min_dist;
+//                min_dist = dist;
+//                min_rho_rev = i_rho;
+//            }
+//        }
 
-        if(abs(min_rho_rev-rho)<15)
+//        if(abs(min_rho_rev-rho)<15)
         {
             left_marker_polar.push_back(left_marker_detected_polar[c]);
             right_marker_polar.push_back(Point2d(min_rho, theta+min_theta_offset));
         }
     }
 
-    vector<Point2d> left_marker_cartesian, right_marker_cartesian;
     calibrator->transformPointsFromPolar(left_marker_polar, left_marker_cartesian, 1);
     calibrator->transformPointsFromPolar(right_marker_polar, right_marker_cartesian, 2);
-
-    Mat marker_match_img;
-    vconcat(left_img, right_img, marker_match_img);
-    for(unsigned int i=0; i<left_marker_cartesian.size(); i++) {
-        line(marker_match_img, left_marker_cartesian[i], Point(right_marker_cartesian[i].x, right_marker_cartesian[i].y+left_img.rows), Scalar(0, 255, 0));
-    }
-
-if(DEBUG) {
-    namedWindow("Marker Match", WINDOW_NORMAL);
-    imshow("Marker Match", marker_match_img);
 }
 
-    pcl::PointCloud<pcl::PointXYZ>::Ptr point_cloud (new pcl::PointCloud<pcl::PointXYZ>);
+bool ThreeDHandler::find3DPoints(const Mat& left_img, const Mat& right_img, vector<Point2f> &features, Mat& additional_desc, vector<Point3f> &feature_pts, vector<Point3f> &marker_pts, vector<Vec3b>& marker_color)
+{
+    // find pose between left img and right img
+    Mat R, t;
+    vector<Point2f> left_kp_inliner, right_kp_inliner;
+    if(!getPose(left_img, right_img, R, t, left_kp_inliner, right_kp_inliner, "Original match")) return false;
+
+    features = left_kp_inliner;
+    matcher->get_desc(right_img, right_kp_inliner, additional_desc);
+
+    //get perspective projection matrix
+    Mat Pl, Pr;
+    Pl = K*(Mat_<double>(3,4) <<1,0,0,0,0,1,0,0,0,0,1,0);
+    hconcat(R, t, Pr);
+    Pr = K*Pr;
+
+    //rectify imgs
+    Mat F = findFundamentalMat(left_kp_inliner, right_kp_inliner, RANSAC, ransac_thres_essential, 0.999);
+    cv::Mat left_rectified, right_rectified;
+    calibrator->compute(left_img, right_img, F, left_kp_inliner, right_kp_inliner);
+    calibrator->getRectifiedImages(left_img, right_img, left_rectified, right_rectified);
+
+    //detect road markers
+    Mat left_mask, right_mask;
+    lane_detector->detect(left_img, left_mask);
+    lane_detector->detect(right_img, right_mask);
+
+    vector<Point2d> left_marker_detected, right_marker_detected;
+    for(int i=0; i<left_img.rows; i++) {
+        for(int j=0; j<left_img.cols; j++) {
+          if(left_mask.at<uchar>(i,j) > 0) {
+                left_marker_detected.push_back(Point2d(j,i));
+            }
+            if(right_mask.at<uchar>(i,j) > 0) {
+                right_marker_detected.push_back(Point2d(j,i));
+            }
+        }
+    }
+
+    //match them between left img and right img based on rectified imgs
+    vector<Point2d> left_marker_matched, right_marker_matched;
+    matchRoadMarkers(left_rectified, right_rectified, left_marker_detected, right_marker_detected, left_marker_matched, right_marker_matched);
+
     Mat img_rep;
-    Mat_<double> point_3d_tmp(4,1),point_2d_tmp(3,1);
     hconcat(left_img, right_img, img_rep);
+    Mat_<double> point_3d_tmp(4,1),point_2d_tmp(3,1);
+
     //reconstruct 3d feature points
     for(unsigned int i=0; i<left_kp_inliner.size(); i++) {
         Mat ul_skew = (Mat_<double>(3,3) << 0, -1, left_kp_inliner[i].y, 1, 0, -left_kp_inliner[i].x, -left_kp_inliner[i].y, left_kp_inliner[i].x, 0);
@@ -244,12 +207,6 @@ if(DEBUG) {
         if(z<0) continue;
         feature_pts.push_back(Point3f(x,y,z));
 
-        pcl::PointXYZ p;
-        p.x = x;
-        p.y = y;
-        p.z = z;
-        point_cloud->push_back(p);
-
         point_3d_tmp(0)=x; point_3d_tmp(1)=y; point_3d_tmp(2)=z; point_3d_tmp(3) = 1;
         circle(img_rep, left_kp_inliner[i], 5, Scalar(255,0,0));
         point_2d_tmp = Pl*point_3d_tmp;
@@ -263,9 +220,9 @@ if(DEBUG) {
     }
 
     //reconstruct 3d marker points
-    for(unsigned int i=0; i<left_marker_cartesian.size(); i++) {
-        Mat ul_skew = (Mat_<double>(3,3) << 0, -1, left_marker_cartesian[i].y, 1, 0, -left_marker_cartesian[i].x, -left_marker_cartesian[i].y, left_marker_cartesian[i].x, 0);
-        Mat ur_skew = (Mat_<double>(3,3) << 0, -1, right_marker_cartesian[i].y, 1, 0, -right_marker_cartesian[i].x, -right_marker_cartesian[i].y, right_marker_cartesian[i].x, 0);
+    for(unsigned int i=0; i<left_marker_matched.size(); i++) {
+        Mat ul_skew = (Mat_<double>(3,3) << 0, -1, left_marker_matched[i].y, 1, 0, -left_marker_matched[i].x, -left_marker_matched[i].y, left_marker_matched[i].x, 0);
+        Mat ur_skew = (Mat_<double>(3,3) << 0, -1, right_marker_matched[i].y, 1, 0, -right_marker_matched[i].x, -right_marker_matched[i].y, right_marker_matched[i].x, 0);
         Mat uPl = ul_skew*Pl;
         Mat uPr = ur_skew*Pr;
         Mat A, W, U, V;
@@ -276,11 +233,10 @@ if(DEBUG) {
         double x = V.at<double>(0,3) / V.at<double>(3,3);
         double y = V.at<double>(1,3) / V.at<double>(3,3);
         double z = V.at<double>(2,3) / V.at<double>(3,3);
-        if(z<0)
+        if(z<0)     //mark z<0 as purple
         {
-
-            circle(img_rep, left_marker_cartesian[i], 3, Scalar(255,0,255));
-            circle(img_rep, Point2f(right_marker_cartesian[i].x+left_img.cols, right_marker_cartesian[i].y), 3, Scalar(255,0,255));
+            circle(img_rep, left_marker_matched[i], 3, Scalar(255,0,255));
+            circle(img_rep, Point2f(right_marker_matched[i].x+left_img.cols, right_marker_matched[i].y), 3, Scalar(255,0,255));
             continue;
         }
 
@@ -288,36 +244,61 @@ if(DEBUG) {
         point_3d_tmp(0)=x; point_3d_tmp(1)=y; point_3d_tmp(2)=z; point_3d_tmp(3) = 1;
         point_2d_tmp = Pl*point_3d_tmp;
         point_2d_tmp /= point_2d_tmp(2);
-        double dist = (left_marker_cartesian[i].x-point_2d_tmp(0))*(left_marker_cartesian[i].x-point_2d_tmp(0));
-        dist += (left_marker_cartesian[i].y-point_2d_tmp(1))*(left_marker_cartesian[i].y-point_2d_tmp(1));
+        double dist = (left_marker_matched[i].x-point_2d_tmp(0))*(left_marker_matched[i].x-point_2d_tmp(0));
+        dist += (left_marker_matched[i].y-point_2d_tmp(1))*(left_marker_matched[i].y-point_2d_tmp(1));
 
         point_2d_tmp = Pr*point_3d_tmp;
         point_2d_tmp /= point_2d_tmp(2);
-        dist += (right_marker_cartesian[i].x-point_2d_tmp(0))*(right_marker_cartesian[i].x-point_2d_tmp(0));
-        dist += (right_marker_cartesian[i].y-point_2d_tmp(1))*(right_marker_cartesian[i].y-point_2d_tmp(1));
-        if(dist > 100)
+        dist += (right_marker_matched[i].x-point_2d_tmp(0))*(right_marker_matched[i].x-point_2d_tmp(0));
+        dist += (right_marker_matched[i].y-point_2d_tmp(1))*(right_marker_matched[i].y-point_2d_tmp(1));
+        if(dist > 36)      //mark large dist as yellow
         {
 
-            circle(img_rep, left_marker_cartesian[i], 3, Scalar(0,255,255));
-            circle(img_rep, Point2f(right_marker_cartesian[i].x+left_img.cols, right_marker_cartesian[i].y), 3, Scalar(0,255,255));
+            circle(img_rep, left_marker_matched[i], 3, Scalar(0,255,255));
+            circle(img_rep, Point2f(right_marker_matched[i].x+left_img.cols, right_marker_matched[i].y), 3, Scalar(0,255,255));
             continue;
         }
 
-        marker_color.push_back(left_img.at<Vec3b>(left_marker_cartesian[i].y, left_marker_cartesian[i].x));
+        marker_color.push_back(left_img.at<Vec3b>(left_marker_matched[i].y, left_marker_matched[i].x));
         marker_pts.push_back(Point3f(x,y,z));
 
-        pcl::PointXYZ p;
-        p.x = x;
-        p.y = y;
-        p.z = z;
-        point_cloud->push_back(p);
-
-        circle(img_rep, left_marker_cartesian[i], 5, Scalar(0,255,0));
-        circle(img_rep, Point2f(right_marker_cartesian[i].x+left_img.cols, right_marker_cartesian[i].y), 5, Scalar(0,255,0));
+        circle(img_rep, left_marker_matched[i], 5, Scalar(0,255,0));
+        circle(img_rep, Point2f(right_marker_matched[i].x+left_img.cols, right_marker_matched[i].y), 5, Scalar(0,255,0));
     }
 
-    assert(point_cloud->size()>0);
-    pcl::io::savePCDFile("test_pcd.pcd", *point_cloud);
+
+if(DEBUG) {
+    Mat left_lane = left_img.clone();
+    cvtColor(left_lane, left_lane, CV_BGR2GRAY);
+    cvtColor(left_lane, left_lane, CV_GRAY2BGR);
+    left_lane.setTo(Scalar(0,255,0), left_mask);
+    Mat right_lane = right_img.clone();
+    cvtColor(right_lane, right_lane, CV_BGR2GRAY);
+    cvtColor(right_lane, right_lane, CV_GRAY2BGR);
+    right_lane.setTo(Scalar(0,255,0), right_mask);
+    Mat lane_concat;
+    hconcat(left_lane, right_lane, lane_concat);
+    namedWindow("DEBUG:Road Marker", WINDOW_NORMAL);
+    imshow("DEBUG:Road Marker", lane_concat);
+
+
+    Mat left_rectified_lane, right_rectified_lane;
+    calibrator->getRectifiedImages(left_lane, right_lane, left_rectified_lane, right_rectified_lane);
+    Mat lane_rectified_concat;
+    hconcat(left_rectified_lane, right_rectified_lane, lane_rectified_concat);
+    for(int j = 0; j < lane_rectified_concat.rows; j += (lane_rectified_concat.rows / 50) ) {
+        line(lane_rectified_concat, Point(0, j), Point(lane_rectified_concat.cols, j), Scalar(0, 255, 0), 1, 8);
+    }
+    namedWindow("DEBUG:Rectified Road Marker", WINDOW_NORMAL);
+    imshow("DEBUG:Rectified Road Marker", lane_rectified_concat);
+
+    Mat marker_match_img;
+    vconcat(left_img, right_img, marker_match_img);
+    for(unsigned int i=0; i<left_marker_matched.size(); i++) {
+        line(marker_match_img, left_marker_matched[i], Point(right_marker_matched[i].x, right_marker_matched[i].y+left_img.rows), Scalar(0, 255, 0));
+    }
+    namedWindow("Marker Match", WINDOW_NORMAL);
+    imshow("Marker Match", marker_match_img);
 
     for(unsigned int i=0; i<marker_pts.size(); i++) {
         point_3d_tmp(0)=marker_pts[i].x; point_3d_tmp(1)=marker_pts[i].y; point_3d_tmp(2)=marker_pts[i].z; point_3d_tmp(3) = 1;
@@ -329,8 +310,6 @@ if(DEBUG) {
         point_2d_tmp /= point_2d_tmp(2);
         drawMarker(img_rep, Point2f(point_2d_tmp(0)+left_img.cols, point_2d_tmp(1)), Scalar(0,0,255), MARKER_CROSS, 5);
     }
-
-if(DEBUG) {
     namedWindow("DEBUG:Essential reprojection", WINDOW_NORMAL);
     imshow("DEBUG:Essential reprojection", img_rep);
 }
@@ -338,12 +317,16 @@ if(DEBUG) {
     return true;
 }
 
-bool ThreeDHandler::project(const Mat& obj_img, Mat &cur_img, const vector<Point2f>& features, const vector<Point3f>& feature_pts, const vector<Point3f>& marker_pts, const vector<Vec3b>& marker_color)
+bool ThreeDHandler::project(const Mat& obj_img, Mat &cur_img, const vector<Point2f>& features, const Mat& additional_desc, const vector<Point3f>& feature_pts, const vector<Point3f>& marker_pts, const vector<Vec3b>& marker_color)
 {
-    vector<int> inliners_features;
-    vector<Point2f> img_kp;
-    matcher->match_given_kp(obj_img, features, cur_img, img_kp, inliners_features);
-    if(inliners_features.size()<3) {
+    vector<int> inliers_features, inliers_features_addition;
+    vector<Point2f> img_kp, img_kp_addition;
+    matcher->match_given_kp(obj_img, features, cur_img, img_kp, inliers_features);
+    matcher->match_given_desc(additional_desc, cur_img, img_kp_addition, inliers_features_addition);
+    img_kp.insert(img_kp.end(), img_kp_addition.begin(), img_kp_addition.end());
+    inliers_features.insert(inliers_features.end(), inliers_features_addition.begin(), inliers_features_addition.end());
+    if(inliers_features.size()<3)
+    {
         cout<<"Not enough points for PnP, exiting..."<<endl;
         return false;
     }
@@ -352,55 +335,31 @@ bool ThreeDHandler::project(const Mat& obj_img, Mat &cur_img, const vector<Point
     vector<Point3f> obj_pts;
     vector<Point2f> _obj_kp, _img_kp;
     Mat rep_img = cur_img.clone();
-    for(unsigned int i=0; i<inliners_features.size(); i++)
+    for(unsigned int i=0; i<inliers_features.size(); i++)
     {
-        obj_pts.push_back(feature_pts[inliners_features[i]]);
-        _obj_kp.push_back(features[inliners_features[i]]);
+        obj_pts.push_back(feature_pts[inliers_features[i]]);
+        _obj_kp.push_back(features[inliers_features[i]]);
         _img_kp.push_back(img_kp[i]);
     }
-
     matcher->showMatches(obj_img, _obj_kp, cur_img, _img_kp, "DEBUG:Current matches");
 
-    cv::Mat rvec, t, inliners;
+    cv::Mat rvec, t, inliers;
     double inlier_ratio = 0.0;
     float thres = 1.0;
     while(inlier_ratio < 0.5 && thres < ransac_thres_pnp) {
-        cv::solvePnPRansac( obj_pts, _img_kp, K, camera_coeff, rvec, t, false, 100, thres, 0.999, inliners, cv::SOLVEPNP_ITERATIVE );
-        inlier_ratio = float(inliners.rows) / float(inliners_features.size());
+        cv::solvePnPRansac( obj_pts, _img_kp, K, camera_coeff, rvec, t, false, 100, thres, 0.999, inliers, cv::SOLVEPNP_ITERATIVE );
+        inlier_ratio = float(inliers.rows) / float(inliers_features.size());
         thres *= 1.2;
     }
-cout<<"PnP Thres: "<<thres<<endl;
+    cout<<"PnP Thres: "<<thres<<endl;
 
-    if(inliners.rows < 3) {
+    if(inliers.rows < 3) {
         matcher->showMatches(obj_img, _obj_kp, cur_img, _img_kp, "Fail:Project matches");
-        cout<<"Not enough inlier ("<<inliners.rows<<"/"<<inliners_features.size()<<") for PnP, exiting..."<<endl;
+        cout<<"Not enough inlier ("<<inliers.rows<<"/"<<inliers_features.size()<<") for PnP, exiting..."<<endl;
         return false;
     }
 
-    cout<<"PnP inliners: "<<inliners.rows<<" / "<<_img_kp.size()<<endl;
-
-if(DEBUG) {
-    vector<Point3f> obj_pts_inlier;
-    vector<Point2f> obj_kp_inlier, img_kp_inlier;
-    for(int i=0; i<inliners.rows; i++)
-    {
-        obj_pts_inlier.push_back(obj_pts[inliners.at<int>(0,i)]);
-        obj_kp_inlier.push_back(_obj_kp[inliners.at<int>(0,i)]);
-        img_kp_inlier.push_back(_img_kp[inliners.at<int>(0,i)]);
-        circle(rep_img, img_kp[inliners.at<int>(0,i)], 5, Scalar(255,0,0));
-    }
-    matcher->showMatches(obj_img, obj_kp_inlier, cur_img, img_kp_inlier, "DEBUG:Project matches");
-
-//    cout<<"Proj rotation: "<<rvec<<endl;
-//    cout<<"Proj translation: "<<t<<endl;
-    vector<Point2f> points_2d;
-    projectPoints(obj_pts_inlier, rvec, t, K, camera_coeff, points_2d);
-    for(unsigned int i=0; i<points_2d.size(); i++) {
-        drawMarker(rep_img, points_2d[i], Scalar(0,0,255), MARKER_CROSS, 5);
-    }
-    namedWindow("DEBUG:PnP reprojection", WINDOW_NORMAL);
-    imshow("DEBUG:PnP reprojection", rep_img);
-}
+    cout<<"PnP inliers: "<<inliers.rows<<" / "<<_img_kp.size()<<endl;
 
     Mat R, P;
     Rodrigues(rvec, R);
@@ -424,5 +383,32 @@ if(DEBUG) {
 //    imshow("sdasdsada", cur_img_dup);
 //    imshow("tetete", canvas);
 //    cur_img.setTo(Scalar(0,0,255), canvas);
+
+if(DEBUG)
+{
+    vector<Point3f> obj_pts_inlier;
+    vector<Point2f> obj_kp_inlier, img_kp_inlier;
+
+    for(int i=0; i<inliers.rows; i++)
+    {
+        obj_pts_inlier.push_back(obj_pts[inliers.at<int>(0,i)]);
+        obj_kp_inlier.push_back(_obj_kp[inliers.at<int>(0,i)]);
+        img_kp_inlier.push_back(_img_kp[inliers.at<int>(0,i)]);
+        circle(rep_img, img_kp[inliers.at<int>(0,i)], 5, Scalar(255,0,0));
+    }
+
+    matcher->showMatches(obj_img, obj_kp_inlier, cur_img, img_kp_inlier, "DEBUG:PnP inlier matches");
+
+//    cout<<"Proj rotation: "<<rvec<<endl;
+//    cout<<"Proj translation: "<<t<<endl;
+    vector<Point2f> points_2d;
+    projectPoints(obj_pts_inlier, rvec, t, K, camera_coeff, points_2d);
+    for(unsigned int i=0; i<points_2d.size(); i++) {
+        drawMarker(rep_img, points_2d[i], Scalar(0,0,255), MARKER_CROSS, 5);
+    }
+    namedWindow("DEBUG:PnP reprojection", WINDOW_NORMAL);
+    imshow("DEBUG:PnP reprojection", rep_img);
+}
+
     return true;
 }

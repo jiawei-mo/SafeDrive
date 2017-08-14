@@ -10,7 +10,7 @@
 #define MTF 70      //%
 #define MTG 70      //%
 #define RTE 7        // /10
-#define RTP 100        // /10
+#define RTP 50        // /10
 
 extern bool DEBUG;
 

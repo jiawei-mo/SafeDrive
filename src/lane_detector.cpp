@@ -1,6 +1,6 @@
 #include "headers/lane_detector.hpp"
 
-double REMOVE_TOP_RATIO = 1.0/2.0;
+double REMOVE_TOP_RATIO = 53.0/72.0;
 
 void LaneDetector::detect(const Mat& img, Mat& mask)
 {

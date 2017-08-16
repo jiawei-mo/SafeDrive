@@ -189,6 +189,8 @@ void MainWindow::on_button_reset_clicked()
     ui->slider_MTG->setValue(MTG);
     ui->slider_RTE->setValue(RTE);
     ui->slider_RTP->setValue(RTP);
+    ui->slider_MLRD->setValue(MLRD);
+    ui->slider_MTO->setValue(MTO);
     initialied = true;
     changeParamAndReprocess();
 }
@@ -202,6 +204,8 @@ void MainWindow::changeParamAndReprocess()
     ui->label_MTG->setText(QString("Match Thres KP: ") + QString::number(ui->slider_MTG->value() / 100.0f));
     ui->label_RTE->setText(QString("RANSAC Essential: ") + QString::number(ui->slider_RTE->value() / 10.0f));
     ui->label_RTP->setText(QString("RANSAC PnP: ") + QString::number(ui->slider_RTP->value() / 10.0f));
+    ui->label_MLRD->setText(QString("Max Lan Reproj Dist: ") + QString::number(ui->slider_MLRD->value()));
+    ui->label_MTO->setText(QString("Max Theta Offset: ") + QString::number(ui->slider_MTO->value()));
 
     int mnf = ui->slider_MNF->value();
     float ql = ui->slider_QL->value() / 100.0f;
@@ -210,7 +214,9 @@ void MainWindow::changeParamAndReprocess()
     float mtg = ui->slider_MTG->value() / 100.0f;
     float rte = ui->slider_RTE->value() / 10.0f;
     float rtp = ui->slider_RTP->value() / 10.0f;
-    manager->changeParam(mnf, ql, md, mtf, mtg, rte, rtp);
+    int mlrd = ui->slider_MLRD->value();
+    int mto = ui->slider_MTO->value();
+    manager->changeParam(mnf, ql, md, mtf, mtg, rte, rtp, mlrd, mto);
 
     manager->process();
 }
@@ -254,5 +260,15 @@ void MainWindow::on_check_DEBUG_clicked(bool checked)
 {
     DEBUG = checked;
     destroyAllWindows();
+    changeParamAndReprocess();
+}
+
+void MainWindow::on_slider_MLRD_sliderReleased()
+{
+    changeParamAndReprocess();
+}
+
+void MainWindow::on_slider_MTO_sliderReleased()
+{
     changeParamAndReprocess();
 }

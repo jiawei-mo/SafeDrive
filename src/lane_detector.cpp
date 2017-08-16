@@ -13,10 +13,10 @@ void LaneDetector::detect(const Mat& img, Mat& mask)
 
     Mat roi_hsv, whiteHist, yellowHist;
     cvtColor(imgROI, roi_hsv, COLOR_BGR2HSV);
-    inRange(roi_hsv, Scalar(-1, -1, 0.7*255), Scalar(180, 0.5*255, 256), whiteHist);
+    inRange(roi_hsv, Scalar(-1, -1, 0.6*255), Scalar(180, 0.5*255, 256), whiteHist);
     inRange(roi_hsv, Scalar(25/2, 0.2*255, 0.35*255), Scalar(55/2, 0.7*255, 256), yellowHist);
     Mat yellowAndWhite = yellowHist + whiteHist;
-    blur(yellowAndWhite, yellowAndWhite, Size(3,3));
+    blur(yellowAndWhite, yellowAndWhite, Size(7,7));
     contours = yellowAndWhite.mul(contours);
 
     Mat lanes;

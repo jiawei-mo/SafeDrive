@@ -20,10 +20,10 @@ void Manager::initialize(string targetName, const vector<float>& K, const vector
     three_d_handler->setCamK(K);
 }
 
-void Manager::changeParam(int mnf, float ql, int md, float mtf, float mtg, float rte, float rtp)
+void Manager::changeParam(int mnf, float ql, int md, float mtf, float mtg, float rte, float rtp, int mlrd, int mto)
 {
     matcher->changeParam(mnf, ql, md, mtf, mtg);
-    three_d_handler->changeParam(matcher, rte, rtp);
+    three_d_handler->changeParam(matcher, rte, rtp, mlrd, mto);
 }
 
 bool Manager::findBestMatch()
@@ -76,8 +76,8 @@ void Manager::process()
     Mat additional_desc;
     if(!three_d_handler->find3DPoints(matchedFrameLeft, matchedFrameRight, features, additional_desc, feature_pts, marker_pts, marker_color)) return;
 
-    Mat result = targetFrame.clone();
-    if(!three_d_handler->project(matchedFrameLeft, result, features, additional_desc, feature_pts, marker_pts, marker_color)) return;
+    Mat result;
+    if(!three_d_handler->project(matchedFrameLeft, targetFrame, features, additional_desc, feature_pts, marker_pts, marker_color, result)) return;
 
     namedWindow("Result", WINDOW_NORMAL);
     imshow("Result", result);

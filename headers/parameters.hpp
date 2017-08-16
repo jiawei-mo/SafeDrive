@@ -11,6 +11,8 @@
 #define MTG 70      //%
 #define RTE 7        // /10
 #define RTP 50        // /10
+#define MLRD 36
+#define MTO 5
 
 extern bool DEBUG;
 

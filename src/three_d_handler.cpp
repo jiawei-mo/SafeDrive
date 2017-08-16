@@ -1,5 +1,4 @@
 #include "headers/three_d_handler.hpp"
-#define MAX_THETA_OFFSET 2
 
 bool imgBoundValid(const Mat& img, Point2f pt) {
     bool a = pt.x >= 3;
@@ -35,11 +34,13 @@ void ThreeDHandler::setCamK(const vector<float>& _K)
                                   0, 0, 1);
 }
 
-void ThreeDHandler::changeParam(const shared_ptr<Matcher> _matcher, float rte, float rtp)
+void ThreeDHandler::changeParam(const shared_ptr<Matcher> _matcher, float rte, float rtp, int mlrd, int mto)
 {
     matcher = _matcher;
     ransac_thres_essential = rte;
     ransac_thres_pnp = rtp;
+    max_lane_reproj_dist = mlrd;
+    max_theta_offset = mto;
 }
 
 bool ThreeDHandler::getPose(const Mat& left_img, const Mat& right_img, Mat& R, Mat& t, vector<Point2f>& left_kp_inliner, vector<Point2f>& right_kp_inliner, const string& window_name)
@@ -95,12 +96,12 @@ void ThreeDHandler::matchRoadMarkers(const Mat& left_rectified, const Mat& right
     Mat left_batch, right_batch, diff;
     for(unsigned int c=0; c<left_marker_detected_polar.size(); c++) {
         int rho(left_marker_detected_polar[c].x), theta(left_marker_detected_polar[c].y);
-        if(theta<MAX_THETA_OFFSET || (theta+MAX_THETA_OFFSET)>=left_rectified.rows || rho<batch_size || rho>=left_rectified.cols-batch_size-1) continue;
+        if(theta<max_theta_offset || (theta+max_theta_offset)>=left_rectified.rows || rho<batch_size || rho>=left_rectified.cols-batch_size-1) continue;
         left_batch = left_rectified(Rect(rho-batch_size, theta, batch_size*2, 1));
         double min_dist = -1;
         int min_rho = -1;
         int min_theta_offset = 0;
-        for(int theta_offset=-MAX_THETA_OFFSET; theta_offset<=MAX_THETA_OFFSET; theta_offset++) {
+        for(int theta_offset=-max_theta_offset; theta_offset<=max_theta_offset; theta_offset++) {
             for(int i_rho=batch_size; i_rho<right_rectified.cols-batch_size-1; i_rho++) {
                 if(right_marker_detected_polar_mat.at<uchar>(theta+theta_offset,i_rho) == 0) continue;
                 right_batch = right_rectified(Rect(i_rho-batch_size, theta+theta_offset, batch_size*2, 1));
@@ -233,12 +234,12 @@ bool ThreeDHandler::find3DPoints(const Mat& left_img, const Mat& right_img, vect
         double x = V.at<double>(0,3) / V.at<double>(3,3);
         double y = V.at<double>(1,3) / V.at<double>(3,3);
         double z = V.at<double>(2,3) / V.at<double>(3,3);
-        if(z<0)     //mark z<0 as purple
-        {
-            circle(img_rep, left_marker_matched[i], 3, Scalar(255,0,255));
-            circle(img_rep, Point2f(right_marker_matched[i].x+left_img.cols, right_marker_matched[i].y), 3, Scalar(255,0,255));
-            continue;
-        }
+//        if(z<0)     //mark z<0 as purple
+//        {
+//            circle(img_rep, left_marker_matched[i], 3, Scalar(255,0,255));
+//            circle(img_rep, Point2f(right_marker_matched[i].x+left_img.cols, right_marker_matched[i].y), 3, Scalar(255,0,255));
+//            continue;
+//        }
 
         //remove outlier by reporjection dist
         point_3d_tmp(0)=x; point_3d_tmp(1)=y; point_3d_tmp(2)=z; point_3d_tmp(3) = 1;
@@ -251,7 +252,7 @@ bool ThreeDHandler::find3DPoints(const Mat& left_img, const Mat& right_img, vect
         point_2d_tmp /= point_2d_tmp(2);
         dist += (right_marker_matched[i].x-point_2d_tmp(0))*(right_marker_matched[i].x-point_2d_tmp(0));
         dist += (right_marker_matched[i].y-point_2d_tmp(1))*(right_marker_matched[i].y-point_2d_tmp(1));
-        if(dist > 36)      //mark large dist as yellow
+        if(dist > max_lane_reproj_dist)      //mark large dist as yellow
         {
 
             circle(img_rep, left_marker_matched[i], 3, Scalar(0,255,255));
@@ -317,7 +318,10 @@ if(DEBUG) {
     return true;
 }
 
-bool ThreeDHandler::project(const Mat& obj_img, Mat &cur_img, const vector<Point2f>& features, const Mat& additional_desc, const vector<Point3f>& feature_pts, const vector<Point3f>& marker_pts, const vector<Vec3b>& marker_color)
+bool ThreeDHandler::project(const Mat& obj_img, const Mat &cur_img,
+                            const vector<Point2f>& features, const Mat& additional_desc,
+                            const vector<Point3f>& feature_pts, const vector<Point3f>& marker_pts, const vector<Vec3b>& marker_color,
+                            Mat& output)
 {
     vector<int> inliers_features, inliers_features_addition;
     vector<Point2f> img_kp, img_kp_addition;
@@ -341,13 +345,12 @@ bool ThreeDHandler::project(const Mat& obj_img, Mat &cur_img, const vector<Point
         _obj_kp.push_back(features[inliers_features[i]]);
         _img_kp.push_back(img_kp[i]);
     }
-    matcher->showMatches(obj_img, _obj_kp, cur_img, _img_kp, "DEBUG:Current matches");
 
     cv::Mat rvec, t, inliers;
     double inlier_ratio = 0.0;
     float thres = 1.0;
     while(inlier_ratio < 0.5 && thres < ransac_thres_pnp) {
-        cv::solvePnPRansac( obj_pts, _img_kp, K, camera_coeff, rvec, t, false, 100, thres, 0.999, inliers, cv::SOLVEPNP_ITERATIVE );
+        cv::solvePnPRansac( obj_pts, _img_kp, K, camera_coeff, rvec, t, false, 1000, thres, 0.99, inliers, cv::SOLVEPNP_ITERATIVE );
         inlier_ratio = float(inliers.rows) / float(inliers_features.size());
         thres *= 1.2;
     }
@@ -367,7 +370,7 @@ bool ThreeDHandler::project(const Mat& obj_img, Mat &cur_img, const vector<Point
 
     //project road marker
 //    Mat canvas = Mat::zeros(cur_img.size(), CV_8U);
-//    Mat cur_img_dup = cur_img.clone();
+    output = cur_img.clone();
     cv::Mat_<double> p_homo(4,1);
     for(unsigned int i=0; i<marker_pts.size(); i++) {
         p_homo(0) = marker_pts[i].x; p_homo(1) = marker_pts[i].y; p_homo(2) = marker_pts[i].z; p_homo(3) = 1;
@@ -376,7 +379,8 @@ bool ThreeDHandler::project(const Mat& obj_img, Mat &cur_img, const vector<Point
         if(imgBoundValid(cur_img, proj_p))
         {
 //            canvas.at<uchar>(proj_p.y, proj_p.x) = 255;
-            circle(cur_img, proj_p, 2, Scalar(0,0,255));
+            circle(output, proj_p, 2, Scalar(0,0,255));
+//            output.at<Vec3b>(proj_p.y, proj_p.x) = marker_color[i];
         }
     }
 //    lane_detector->houghDetect(canvas, canvas);
@@ -386,6 +390,8 @@ bool ThreeDHandler::project(const Mat& obj_img, Mat &cur_img, const vector<Point
 
 if(DEBUG)
 {
+    matcher->showMatches(obj_img, _obj_kp, cur_img, _img_kp, "DEBUG:Current matches");
+
     vector<Point3f> obj_pts_inlier;
     vector<Point2f> obj_kp_inlier, img_kp_inlier;
 

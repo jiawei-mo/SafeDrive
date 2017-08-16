@@ -47,6 +47,8 @@ private slots:
     void on_slider_RTP_sliderReleased();
     void on_slider_MTG_sliderReleased();
     void on_check_DEBUG_clicked(bool checked);
+    void on_slider_MLRD_sliderReleased();
+    void on_slider_MTO_sliderReleased();
 };
 
 #endif // MAINWINDOW_H

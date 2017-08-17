@@ -321,10 +321,6 @@ bool ThreeDHandler::project(const Mat& obj_img, const Mat &cur_img,
                             const vector<Point3f>& feature_pts, const vector<Point3f>& marker_pts, const vector<Vec3b>& marker_color,
                             Mat& output)
 {
-    Mat K_fake = (cv::Mat_<double>(3,3) << 1260, 0, 640,
-                                  0, 1260, 360,
-                                  0, 0, 1);
-
     vector<int> inliers_features, inliers_features_addition;
     vector<Point2f> img_kp, img_kp_addition;
     matcher->match_given_kp(obj_img, features, cur_img, img_kp, inliers_features);
@@ -352,7 +348,7 @@ bool ThreeDHandler::project(const Mat& obj_img, const Mat &cur_img,
     double inlier_ratio = 0.0;
     float thres = 1.0;
     while(inlier_ratio < 0.5 && thres < ransac_thres_pnp) {
-        cv::solvePnPRansac( obj_pts, _img_kp, K_fake, camera_coeff, rvec, t, false, 1000, thres, 0.99, inliers, cv::SOLVEPNP_ITERATIVE );
+        cv::solvePnPRansac( obj_pts, _img_kp, K, camera_coeff, rvec, t, false, 1000, thres, 0.99, inliers, cv::SOLVEPNP_ITERATIVE );
         inlier_ratio = float(inliers.rows) / float(inliers_features.size());
         thres *= 1.2;
     }
@@ -376,7 +372,7 @@ bool ThreeDHandler::project(const Mat& obj_img, const Mat &cur_img,
     cv::Mat_<double> p_homo(4,1);
     for(unsigned int i=0; i<marker_pts.size(); i++) {
         p_homo(0) = marker_pts[i].x; p_homo(1) = marker_pts[i].y; p_homo(2) = marker_pts[i].z; p_homo(3) = 1;
-        Mat proj_p_homo = K_fake*P*p_homo;
+        Mat proj_p_homo = K*P*p_homo;
         Point2f proj_p(proj_p_homo.at<double>(0,0)/proj_p_homo.at<double>(2,0), proj_p_homo.at<double>(1,0)/proj_p_homo.at<double>(2,0));
         if(imgBoundValid(cur_img, proj_p))
         {

@@ -92,19 +92,21 @@ void ThreeDHandler::matchRoadMarkers(const Mat& left_rectified, const Mat& right
     }
 
     vector<Point2d> left_marker_polar, right_marker_polar;
-    int batch_size = 5;
+    int batch_size_h = 5;
+    int batch_size_v = 5;
     Mat left_batch, right_batch, diff;
     for(unsigned int c=0; c<left_marker_detected_polar.size(); c++) {
         int rho(left_marker_detected_polar[c].x), theta(left_marker_detected_polar[c].y);
-        if(theta<max_theta_offset || (theta+max_theta_offset)>=left_rectified.rows || rho<batch_size || rho>=left_rectified.cols-batch_size-1) continue;
-        left_batch = left_rectified(Rect(rho-batch_size, theta, batch_size*2, 1));
+        if(theta<(max_theta_offset+batch_size_v) || (theta+max_theta_offset+batch_size_v)>=left_rectified.rows ||
+           rho<batch_size_h || rho>=left_rectified.cols-batch_size_h-1) continue;
+        left_batch = left_rectified(Rect(rho-batch_size_h, theta-batch_size_v, batch_size_h*2+1, 2*batch_size_v+1));
         double min_dist = -1;
         int min_rho = -1;
         int min_theta_offset = 0;
         for(int theta_offset=-max_theta_offset; theta_offset<=max_theta_offset; theta_offset++) {
-            for(int i_rho=batch_size; i_rho<right_rectified.cols-batch_size-1; i_rho++) {
+            for(int i_rho=batch_size_h; i_rho<right_rectified.cols-batch_size_h-1; i_rho++) {
                 if(right_marker_detected_polar_mat.at<uchar>(theta+theta_offset,i_rho) == 0) continue;
-                right_batch = right_rectified(Rect(i_rho-batch_size, theta+theta_offset, batch_size*2, 1));
+                right_batch = right_rectified(Rect(i_rho-batch_size_h, theta+theta_offset-batch_size_v, batch_size_h*2+1, 2*batch_size_v+1));
                 diff = right_batch - left_batch;
                 double dist = norm(diff);
                 if(min_dist < 0 || min_dist > dist){
@@ -117,12 +119,12 @@ void ThreeDHandler::matchRoadMarkers(const Mat& left_rectified, const Mat& right
         if(min_rho<0) continue;
 
         //bi-directional
-//        right_batch = right_rectified(Rect(min_rho-batch_size, theta+min_theta_offset, batch_size*2, 1));
+//        right_batch = right_rectified(Rect(min_rho-batch_size_h, theta+min_theta_offset, batch_size_h*2, 1));
 //        min_dist = -1;
 //        int min_rho_rev = -1;
-//        for(int i_rho=batch_size; i_rho<left_rectified.cols-batch_size-1; i_rho++) {
+//        for(int i_rho=batch_size_h; i_rho<left_rectified.cols-batch_size_h-1; i_rho++) {
 //            if(left_marker_detected_polar_mat.at<uchar>(theta,i_rho) == 0) continue;
-//            left_batch = left_rectified(Rect(i_rho-batch_size, theta, batch_size*2, 1));
+//            left_batch = left_rectified(Rect(i_rho-batch_size_h, theta, batch_size_h*2, 1));
 //            diff = right_batch - left_batch;
 //            double dist = norm(diff);
 //            if(min_dist < 0 || min_dist > dist){
@@ -347,7 +349,7 @@ bool ThreeDHandler::project(const Mat& obj_img, const Mat &cur_img,
     cv::Mat rvec, t, inliers;
     double inlier_ratio = 0.0;
     float thres = 1.0;
-    while(inlier_ratio < 0.5 && thres < ransac_thres_pnp) {
+    while(inlier_ratio < 0.7 && thres < ransac_thres_pnp) {
         cv::solvePnPRansac( obj_pts, _img_kp, K, camera_coeff, rvec, t, false, 1000, thres, 0.99, inliers, cv::SOLVEPNP_ITERATIVE );
         inlier_ratio = float(inliers.rows) / float(inliers_features.size());
         thres *= 1.2;
@@ -361,6 +363,9 @@ bool ThreeDHandler::project(const Mat& obj_img, const Mat &cur_img,
     }
 
     cout<<"PnP inliers: "<<inliers.rows<<" / "<<_img_kp.size()<<endl;
+
+    cout<<"Rotation:"<<endl<<rvec<<endl;
+    cout<<"Translation:"<<endl<<t<<endl;
 
     Mat R, P;
     Rodrigues(rvec, R);

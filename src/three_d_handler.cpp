@@ -296,13 +296,13 @@ if(DEBUG) {
     Mat left_lane = left_img.clone();
     cvtColor(left_lane, left_lane, CV_BGR2GRAY);
     cvtColor(left_lane, left_lane, CV_GRAY2BGR);
-    left_lane.setTo(Scalar(0,255,255), left_mask[0]);
-    left_lane.setTo(Scalar(255,255,255), left_mask[1]);
+    left_lane.setTo(Scalar(255,255,255), left_mask[0]);
+    left_lane.setTo(Scalar(0,255,255), left_mask[1]);
     Mat right_lane = right_img.clone();
     cvtColor(right_lane, right_lane, CV_BGR2GRAY);
     cvtColor(right_lane, right_lane, CV_GRAY2BGR);
-    right_lane.setTo(Scalar(0,255,255), right_mask[0]);
-    right_lane.setTo(Scalar(255,255,255), right_mask[1]);
+    right_lane.setTo(Scalar(255,255,255), right_mask[0]);
+    right_lane.setTo(Scalar(0,255,255), right_mask[1]);
     Mat lane_concat;
     hconcat(left_lane, right_lane, lane_concat);
     namedWindow("DEBUG:Road Marker", WINDOW_NORMAL);

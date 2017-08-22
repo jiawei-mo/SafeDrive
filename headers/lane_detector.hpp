@@ -12,7 +12,7 @@ using namespace std;
 class LaneDetector
 {
 public:
-    void detect(const Mat& img, Mat &mask);
+    void detect(const Mat& img, vector<Mat> &white_yellow_mask);
     void houghDetect(const Mat& img, Mat& mask);
 };
 

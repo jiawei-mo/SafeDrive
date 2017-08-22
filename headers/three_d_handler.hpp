@@ -27,9 +27,9 @@ private:
     int max_theta_offset;
 
     bool getPose(const Mat& left_img, const Mat& right_img, Mat& R, Mat& t, vector<Point2f>& left_kp_inliner, vector<Point2f>& right_kp_inliner, const string& window_name);
-    void matchRoadMarkers(const Mat &left_rectified, const Mat &right_rectified,
-                          const vector<Point2d>& left_marker_detected_cartesian, const vector<Point2d>& right_marker_detected_cartesian,
-                          vector<Point2d>& left_marker_cartesian, vector<Point2d>& right_marker_cartesian);
+    void matchRoadMarkers(const Mat& left_rectified, const Mat& right_rectified,
+                          const vector<vector<Point2d> >& left_marker_detected_cartesian, const vector<vector<Point2d> >& right_marker_detected_cartesian,
+                          vector<vector<Point2d> >& left_marker_cartesian, vector<vector<Point2d> >& right_marker_cartesian);
 
 public:
     ThreeDHandler();
@@ -37,8 +37,8 @@ public:
     ~ThreeDHandler();
     void setCamK(const vector<float>& _K);
     void changeParam(const shared_ptr<Matcher> matcher, float rte, float rtp, int mlrd, int mto);
-    bool find3DPoints(const Mat& left_img, const Mat& right_img, vector<Point2f> &features, Mat& additional_desc, vector<Point3f> &feature_pts, vector<Point3f> &marker_pts, vector<Vec3b> &marker_color);
-    bool project(const Mat& obj_img, const Mat &cur_img, const vector<Point2f> &features, const Mat& additional_desc, const vector<Point3f>& feature_pts, const vector<Point3f>& marker_pts, const vector<Vec3b> &marker_color, Mat &output);
+    bool find3DPoints(const Mat& left_img, const Mat& right_img, vector<Point2f> &features, Mat& additional_desc, vector<Point3f> &feature_pts, vector<vector<Point3f> > &marker_pts);
+    bool project(const Mat& obj_img, const Mat &cur_img, const vector<Point2f> &features, const Mat& additional_desc, const vector<Point3f>& feature_pts, const vector<vector<Point3f> > &marker_pts, Mat &output);
 };
 
 #endif // THREEDHANDLER_H

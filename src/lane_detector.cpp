@@ -2,7 +2,7 @@
 
 double REMOVE_TOP_RATIO = 53.0/72.0;
 
-void LaneDetector::detect(const Mat& img, Mat& mask)
+void LaneDetector::detect(const Mat& img, vector<Mat>& white_yellow_mask)
 {
     Mat imgROI = img(Rect(0,REMOVE_TOP_RATIO*img.rows,img.cols,img.rows-REMOVE_TOP_RATIO*img.rows)).clone();
     GaussianBlur(imgROI, imgROI, Size(3,3), 2, 2);
@@ -13,17 +13,24 @@ void LaneDetector::detect(const Mat& img, Mat& mask)
 
     Mat roi_hsv, whiteHist, yellowHist;
     cvtColor(imgROI, roi_hsv, COLOR_BGR2HSV);
-    inRange(roi_hsv, Scalar(-1, -1, 0.6*255), Scalar(180, 0.5*255, 256), whiteHist);
+    inRange(roi_hsv, Scalar(20/2, 0, 0.7*255), Scalar(280/2, 0.2*256, 256), whiteHist);
     inRange(roi_hsv, Scalar(25/2, 0.2*255, 0.35*255), Scalar(55/2, 0.7*255, 256), yellowHist);
-    Mat yellowAndWhite = yellowHist + whiteHist;
-    blur(yellowAndWhite, yellowAndWhite, Size(7,7));
-    contours = yellowAndWhite.mul(contours);
 
-    Mat lanes;
-    threshold(contours, lanes, 0, 255, THRESH_BINARY);
+    blur(yellowHist, yellowHist, Size(7,7));
+    blur(whiteHist, whiteHist, Size(7,7));
+    Mat yellowContours = yellowHist.mul(contours);
+    Mat whiteContours = whiteHist.mul(contours);
+
+    Mat yellowLanes, whiteLanes;
+    threshold(yellowContours, yellowLanes, 0, 255, THRESH_BINARY);
+    threshold(whiteContours, whiteLanes, 0, 255, THRESH_BINARY);
 
     Mat empty_top = Mat::zeros(REMOVE_TOP_RATIO*img.rows, img.cols, CV_8U);
-    vconcat(empty_top, lanes, mask);
+    Mat yellow_mask, white_mask;
+    vconcat(empty_top, whiteLanes, white_mask);
+    white_yellow_mask.push_back(white_mask);
+    vconcat(empty_top, yellowLanes, yellow_mask);
+    white_yellow_mask.push_back(yellow_mask);
 }
 
 void LaneDetector::houghDetect(const Mat& img, Mat& mask) {

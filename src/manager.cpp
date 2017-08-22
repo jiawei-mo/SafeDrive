@@ -71,13 +71,13 @@ void Manager::process()
     }
 
     vector<Point2f> features;
-    vector<Point3f> feature_pts, marker_pts;
-    vector<Vec3b> marker_color;
+    vector<Point3f> feature_pts;
+    vector<vector<Point3f> > marker_pts;
     Mat additional_desc;
-    if(!three_d_handler->find3DPoints(matchedFrameLeft, matchedFrameRight, features, additional_desc, feature_pts, marker_pts, marker_color)) return;
+    if(!three_d_handler->find3DPoints(matchedFrameLeft, matchedFrameRight, features, additional_desc, feature_pts, marker_pts)) return;
 
     Mat result;
-    if(!three_d_handler->project(matchedFrameLeft, targetFrame, features, additional_desc, feature_pts, marker_pts, marker_color, result)) return;
+    if(!three_d_handler->project(matchedFrameLeft, targetFrame, features, additional_desc, feature_pts, marker_pts, result)) return;
 
     namedWindow("Result", WINDOW_NORMAL);
     imshow("Result", result);

@@ -160,33 +160,6 @@ bool ThreeDHandler::find3DPoints(const Mat& left_img, const Mat& right_img, vect
     hconcat(R, t, Pr);
     Pr = K*Pr;
 
-    //rectify imgs
-    Mat F = findFundamentalMat(left_kp_inliner, right_kp_inliner, RANSAC, ransac_thres_essential, 0.999);
-    cv::Mat left_rectified, right_rectified;
-    calibrator->compute(left_img, right_img, F, left_kp_inliner, right_kp_inliner);
-    calibrator->getRectifiedImages(left_img, right_img, left_rectified, right_rectified);
-
-    //detect road markers
-    Mat left_mask, right_mask;
-    lane_detector->detect(left_img, left_mask);
-    lane_detector->detect(right_img, right_mask);
-
-    vector<Point2d> left_marker_detected, right_marker_detected;
-    for(int i=0; i<left_img.rows; i++) {
-        for(int j=0; j<left_img.cols; j++) {
-          if(left_mask.at<uchar>(i,j) > 0) {
-                left_marker_detected.push_back(Point2d(j,i));
-            }
-            if(right_mask.at<uchar>(i,j) > 0) {
-                right_marker_detected.push_back(Point2d(j,i));
-            }
-        }
-    }
-
-    //match them between left img and right img based on rectified imgs
-    vector<Point2d> left_marker_matched, right_marker_matched;
-    matchRoadMarkers(left_rectified, right_rectified, left_marker_detected, right_marker_detected, left_marker_matched, right_marker_matched);
-
     Mat img_rep;
     hconcat(left_img, right_img, img_rep);
     Mat_<double> point_3d_tmp(4,1),point_2d_tmp(3,1);
@@ -219,6 +192,33 @@ bool ThreeDHandler::find3DPoints(const Mat& left_img, const Mat& right_img, vect
         point_2d_tmp /= point_2d_tmp(2);
         drawMarker(img_rep, Point2f(point_2d_tmp(0)+left_img.cols, point_2d_tmp(1)), Scalar(0,0,255), MARKER_CROSS, 5);
     }
+
+    //detect road markers
+    Mat left_mask, right_mask;
+    lane_detector->detect(left_img, left_mask);
+    lane_detector->detect(right_img, right_mask);
+
+    //rectify imgs
+    Mat F = findFundamentalMat(left_kp_inliner, right_kp_inliner, RANSAC, ransac_thres_essential, 0.999);
+    cv::Mat left_rectified, right_rectified;
+    calibrator->compute(left_img, right_img, F, left_kp_inliner, right_kp_inliner);
+    calibrator->getRectifiedImages(left_img, right_img, left_rectified, right_rectified);
+
+    vector<Point2d> left_marker_detected, right_marker_detected;
+    for(int i=0; i<left_img.rows; i++) {
+        for(int j=0; j<left_img.cols; j++) {
+          if(left_mask.at<uchar>(i,j) > 0) {
+                left_marker_detected.push_back(Point2d(j,i));
+            }
+            if(right_mask.at<uchar>(i,j) > 0) {
+                right_marker_detected.push_back(Point2d(j,i));
+            }
+        }
+    }
+
+    //match them between left img and right img based on rectified imgs
+    vector<Point2d> left_marker_matched, right_marker_matched;
+    matchRoadMarkers(left_rectified, right_rectified, left_marker_detected, right_marker_detected, left_marker_matched, right_marker_matched);
 
     //reconstruct 3d marker points
     for(unsigned int i=0; i<left_marker_matched.size(); i++) {

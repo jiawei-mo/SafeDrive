@@ -43,14 +43,14 @@ void ThreeDHandler::changeParam(const shared_ptr<Matcher> _matcher, float rte, f
     max_theta_offset = mto;
 }
 
-bool ThreeDHandler::getPose(const Mat& left_img, const Mat& right_img, Mat& R, Mat& t, vector<Point2f>& left_kp_inliner, vector<Point2f>& right_kp_inliner, const string& window_name)
+bool ThreeDHandler::getPose(const Mat& left_img, const Mat& right_img, Mat& R, Mat& t, vector<Point2f>& left_kp_inliner, vector<Point2f>& right_kp_inliner)
 {
     vector<Point2f> left_kp, right_kp;
     matcher->match(left_img, left_kp, right_img, right_kp);
 
-    if(DEBUG) {
-        matcher->showMatches(left_img, left_kp, right_img, right_kp, window_name);
-    }
+//    if(DEBUG) {
+//        matcher->showMatches(left_img, left_kp, right_img, right_kp, "Original Match");
+//    }
 
     //find fundamental based on matches using RANSAC
     Mat inliner_mask, E;
@@ -154,7 +154,7 @@ bool ThreeDHandler::find3DPoints(const Mat& left_img, const Mat& right_img, vect
     // find pose between left img and right img
     Mat R, t;
     vector<Point2f> left_kp_inliner, right_kp_inliner;
-    if(!getPose(left_img, right_img, R, t, left_kp_inliner, right_kp_inliner, "Original match")) return false;
+    if(!getPose(left_img, right_img, R, t, left_kp_inliner, right_kp_inliner)) return false;
 
     features = left_kp_inliner;
     matcher->get_desc(right_img, right_kp_inliner, additional_desc);
@@ -319,16 +319,16 @@ if(DEBUG) {
     namedWindow("DEBUG:Rectified Road Marker", WINDOW_NORMAL);
     imshow("DEBUG:Rectified Road Marker", lane_rectified_concat);
 
-    Mat marker_match_img;
-    vconcat(left_img, right_img, marker_match_img);
-    for(int t=0; t<2; t++)
-    {
-        for(unsigned int i=0; i<left_marker_matched[t].size(); i++) {
-            line(marker_match_img, left_marker_matched[t][i], Point(right_marker_matched[t][i].x, right_marker_matched[t][i].y+left_img.rows), Scalar(0, 255, 0));
-        }
-    }
-    namedWindow("Marker Match", WINDOW_NORMAL);
-    imshow("Marker Match", marker_match_img);
+//    Mat marker_match_img;
+//    vconcat(left_img, right_img, marker_match_img);
+//    for(int t=0; t<2; t++)
+//    {
+//        for(unsigned int i=0; i<left_marker_matched[t].size(); i++) {
+//            line(marker_match_img, left_marker_matched[t][i], Point(right_marker_matched[t][i].x, right_marker_matched[t][i].y+left_img.rows), Scalar(0, 255, 0));
+//        }
+//    }
+//    namedWindow("Marker Match", WINDOW_NORMAL);
+//    imshow("Marker Match", marker_match_img);
 
     for(int t=0; t<2; t++)
     {
@@ -435,7 +435,7 @@ bool ThreeDHandler::project(const Mat& obj_img, const Mat &cur_img,
 
 if(DEBUG)
 {
-    matcher->showMatches(obj_img, _obj_kp, cur_img, _img_kp, "DEBUG:Current matches");
+//    matcher->showMatches(obj_img, _obj_kp, cur_img, _img_kp, "DEBUG:Current matches");
 
     vector<Point3f> obj_pts_inlier;
     vector<Point2f> obj_kp_inlier, img_kp_inlier;

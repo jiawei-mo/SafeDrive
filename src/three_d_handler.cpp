@@ -388,6 +388,7 @@ bool ThreeDHandler::project(const Mat& obj_img, const Mat &cur_img,
     }
 
     //register camera frame
+    Mat obj_pts_mat = Mat::zeros(3,inliers_features.size(),CV_64F);
     vector<Point3f> obj_pts;
     vector<Point2f> _obj_kp, _img_kp;
     Mat rep_img = cur_img.clone();
@@ -396,6 +397,10 @@ bool ThreeDHandler::project(const Mat& obj_img, const Mat &cur_img,
         obj_pts.push_back(feature_pts[inliers_features[i]]);
         _obj_kp.push_back(features[inliers_features[i]]);
         _img_kp.push_back(img_kp[i]);
+
+        obj_pts_mat.at<double>(0, i) = feature_pts[inliers_features[i]].x;
+        obj_pts_mat.at<double>(1, i) = feature_pts[inliers_features[i]].y;
+        obj_pts_mat.at<double>(2, i) = feature_pts[inliers_features[i]].z;
     }
 
     cv::Mat rvec, t, inliers;
@@ -407,6 +412,11 @@ bool ThreeDHandler::project(const Mat& obj_img, const Mat &cur_img,
         thres *= 1.2;
     }
     cout<<"PnP Thres: "<<thres<<endl;
+
+    Mat covar, mean;
+    calcCovarMatrix(obj_pts_mat, covar, mean, CV_COVAR_NORMAL | CV_COVAR_COLS);
+    cout<<"Mean: "<<endl<<mean<<endl;
+    cout<<"Covariance: "<<endl<<covar<<endl;
 
     if(inliers.rows < 3) {
         matcher->showMatches(obj_img, _obj_kp, cur_img, _img_kp, "Fail:Project matches");
@@ -433,15 +443,15 @@ bool ThreeDHandler::project(const Mat& obj_img, const Mat &cur_img,
             if(imgBoundValid(cur_img, proj_p))
             {
                 //            canvas.at<uchar>(proj_p.y, proj_p.x) = 255;
-                //            circle(output, proj_p, 2, Scalar(0,0,255));
-                if(t==0)
-                {
-                    output.at<Vec3b>(proj_p.y, proj_p.x) = Vec3b(255,255,255);
-                }
-                else
-                {
-                    output.at<Vec3b>(proj_p.y, proj_p.x) = Vec3b(0,255,255);
-                }
+                            circle(output, proj_p, 2, Scalar(0,0,255));
+//                if(t==0)
+//                {
+//                    output.at<Vec3b>(proj_p.y, proj_p.x) = Vec3b(255,255,255);
+//                }
+//                else
+//                {
+//                    output.at<Vec3b>(proj_p.y, proj_p.x) = Vec3b(0,255,255);
+//                }
             }
         }
     }
@@ -450,6 +460,7 @@ bool ThreeDHandler::project(const Mat& obj_img, const Mat &cur_img,
 //    imshow("tetete", canvas);
 //    cur_img.setTo(Scalar(0,0,255), canvas);
 
+    imwrite("test.png", output);
 if(DEBUG)
 {
 

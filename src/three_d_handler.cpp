@@ -48,10 +48,6 @@ bool ThreeDHandler::getPose(const Mat& left_img, const Mat& right_img, Mat& R, M
     vector<Point2f> left_kp, right_kp;
     matcher->match(left_img, left_kp, right_img, right_kp);
 
-//    if(DEBUG) {
-//        matcher->showMatches(left_img, left_kp, right_img, right_kp, "Original Match");
-//    }
-
     //find fundamental based on matches using RANSAC
     Mat inliner_mask, E;
     E  = findEssentialMat(left_kp, right_kp, K, RANSAC, 0.999, ransac_thres_essential, inliner_mask);
@@ -71,6 +67,7 @@ bool ThreeDHandler::getPose(const Mat& left_img, const Mat& right_img, Mat& R, M
             right_kp_inliner.push_back(right_kp[i]);
         }
     }
+
     return true;
 }
 
@@ -170,6 +167,8 @@ bool ThreeDHandler::find3DPoints(const Mat& left_img, const Mat& right_img, vect
     Mat_<double> point_3d_tmp(4,1),point_2d_tmp(3,1);
 
     //reconstruct 3d feature points
+    int feature_counter = 0;
+    double feature_reproj_err = 0.0;
     for(unsigned int i=0; i<left_kp_inliner.size(); i++) {
         Mat ul_skew = (Mat_<double>(3,3) << 0, -1, left_kp_inliner[i].y, 1, 0, -left_kp_inliner[i].x, -left_kp_inliner[i].y, left_kp_inliner[i].x, 0);
         Mat ur_skew = (Mat_<double>(3,3) << 0, -1, right_kp_inliner[i].y, 1, 0, -right_kp_inliner[i].x, -right_kp_inliner[i].y, right_kp_inliner[i].x, 0);
@@ -190,13 +189,20 @@ bool ThreeDHandler::find3DPoints(const Mat& left_img, const Mat& right_img, vect
         circle(img_rep, left_kp_inliner[i], 5, Scalar(255,0,0));
         point_2d_tmp = Pl*point_3d_tmp;
         point_2d_tmp /= point_2d_tmp(2);
+        double dist = sqrt((left_kp_inliner[i].x-point_2d_tmp(0))*(left_kp_inliner[i].x-point_2d_tmp(0))+(left_kp_inliner[i].y-point_2d_tmp(1))*(left_kp_inliner[i].y-point_2d_tmp(1)));
         drawMarker(img_rep, Point2f(point_2d_tmp(0), point_2d_tmp(1)), Scalar(0,0,255), MARKER_CROSS, 5);
 
         circle(img_rep, Point2f(right_kp_inliner[i].x+left_img.cols, right_kp_inliner[i].y), 5, Scalar(255,0,0));
         point_2d_tmp = Pr*point_3d_tmp;
         point_2d_tmp /= point_2d_tmp(2);
+        dist += sqrt((right_kp_inliner[i].x-point_2d_tmp(0))*(right_kp_inliner[i].x-point_2d_tmp(0))+(right_kp_inliner[i].y-point_2d_tmp(1))*(right_kp_inliner[i].y-point_2d_tmp(1)));
         drawMarker(img_rep, Point2f(point_2d_tmp(0)+left_img.cols, point_2d_tmp(1)), Scalar(0,0,255), MARKER_CROSS, 5);
+
+        feature_reproj_err += dist;
+        feature_counter++;
     }
+
+    feature_reproj_err /= (2*feature_counter);
 
     //detect road markers
     vector<Mat> left_mask, right_mask;
@@ -240,6 +246,8 @@ bool ThreeDHandler::find3DPoints(const Mat& left_img, const Mat& right_img, vect
                      left_marker_matched, right_marker_matched);
 
     //reconstruct 3d marker points
+    int marker_counter = 0;
+    double marker_reproj_err = 0.0;
     vector<Point3f> _marker_pts;
     for(int t=0; t<2; t++)
     {
@@ -268,13 +276,13 @@ bool ThreeDHandler::find3DPoints(const Mat& left_img, const Mat& right_img, vect
             point_3d_tmp(0)=x; point_3d_tmp(1)=y; point_3d_tmp(2)=z; point_3d_tmp(3) = 1;
             point_2d_tmp = Pl*point_3d_tmp;
             point_2d_tmp /= point_2d_tmp(2);
-            double dist = (left_marker_matched[t][i].x-point_2d_tmp(0))*(left_marker_matched[t][i].x-point_2d_tmp(0));
-            dist += (left_marker_matched[t][i].y-point_2d_tmp(1))*(left_marker_matched[t][i].y-point_2d_tmp(1));
+            double dist = sqrt((left_marker_matched[t][i].x-point_2d_tmp(0))*(left_marker_matched[t][i].x-point_2d_tmp(0))
+                               +(left_marker_matched[t][i].y-point_2d_tmp(1))*(left_marker_matched[t][i].y-point_2d_tmp(1)));
 
             point_2d_tmp = Pr*point_3d_tmp;
             point_2d_tmp /= point_2d_tmp(2);
-            dist += (right_marker_matched[t][i].x-point_2d_tmp(0))*(right_marker_matched[t][i].x-point_2d_tmp(0));
-            dist += (right_marker_matched[t][i].y-point_2d_tmp(1))*(right_marker_matched[t][i].y-point_2d_tmp(1));
+            dist += sqrt((right_marker_matched[t][i].x-point_2d_tmp(0))*(right_marker_matched[t][i].x-point_2d_tmp(0))
+                    +(right_marker_matched[t][i].y-point_2d_tmp(1))*(right_marker_matched[t][i].y-point_2d_tmp(1)));
             if(dist > max_lane_reproj_dist)      //mark large dist as yellow
             {
 
@@ -287,12 +295,24 @@ bool ThreeDHandler::find3DPoints(const Mat& left_img, const Mat& right_img, vect
 
             circle(img_rep, left_marker_matched[t][i], 5, Scalar(0,255,0));
             circle(img_rep, Point2f(right_marker_matched[t][i].x+left_img.cols, right_marker_matched[t][i].y), 5, Scalar(0,255,0));
+
+            marker_reproj_err += dist;
+            marker_counter++;
         }
         marker_pts.push_back(_marker_pts);
     }
 
+    marker_reproj_err /= (2*marker_counter);
+
 
 if(DEBUG) {
+    matcher->showMatches(left_img, left_kp_inliner, right_img, right_kp_inliner, "Feature Match");
+
+    cout<<"Fundamental matrix: "<<endl<<F<<endl;
+    cout<<"Rotation: "<<endl<<R<<endl;
+    cout<<"Translation: "<<endl<<t<<endl;
+    cout<<"Feature reproj ave err: "<<feature_reproj_err<<endl;
+    cout<<"Marker reproj ave err: "<<marker_reproj_err<<endl;
     Mat left_lane = left_img.clone();
     cvtColor(left_lane, left_lane, CV_BGR2GRAY);
     cvtColor(left_lane, left_lane, CV_GRAY2BGR);
@@ -319,16 +339,16 @@ if(DEBUG) {
     namedWindow("DEBUG:Rectified Road Marker", WINDOW_NORMAL);
     imshow("DEBUG:Rectified Road Marker", lane_rectified_concat);
 
-//    Mat marker_match_img;
-//    vconcat(left_img, right_img, marker_match_img);
-//    for(int t=0; t<2; t++)
-//    {
-//        for(unsigned int i=0; i<left_marker_matched[t].size(); i++) {
-//            line(marker_match_img, left_marker_matched[t][i], Point(right_marker_matched[t][i].x, right_marker_matched[t][i].y+left_img.rows), Scalar(0, 255, 0));
-//        }
-//    }
-//    namedWindow("Marker Match", WINDOW_NORMAL);
-//    imshow("Marker Match", marker_match_img);
+    Mat marker_match_img;
+    hconcat(left_img, right_img, marker_match_img);
+    for(int t=0; t<2; t++)
+    {
+        for(unsigned int i=0; i<left_marker_matched[t].size(); i+=20) {
+            line(marker_match_img, left_marker_matched[t][i], Point(right_marker_matched[t][i].x+left_img.cols, right_marker_matched[t][i].y), Scalar(0, 255, 0));
+        }
+    }
+    namedWindow("Marker Match", WINDOW_NORMAL);
+    imshow("Marker Match", marker_match_img);
 
     for(int t=0; t<2; t++)
     {
@@ -396,9 +416,6 @@ bool ThreeDHandler::project(const Mat& obj_img, const Mat &cur_img,
 
     cout<<"PnP inliers: "<<inliers.rows<<" / "<<_img_kp.size()<<endl;
 
-    cout<<"Rotation:"<<endl<<rvec<<endl;
-    cout<<"Translation:"<<endl<<t<<endl;
-
     Mat R, P;
     Rodrigues(rvec, R);
     hconcat(R, t, P);
@@ -435,6 +452,9 @@ bool ThreeDHandler::project(const Mat& obj_img, const Mat &cur_img,
 
 if(DEBUG)
 {
+
+    cout<<"Rotation:"<<endl<<R<<endl;
+    cout<<"Translation:"<<endl<<t<<endl;
 //    matcher->showMatches(obj_img, _obj_kp, cur_img, _img_kp, "DEBUG:Current matches");
 
     vector<Point3f> obj_pts_inlier;

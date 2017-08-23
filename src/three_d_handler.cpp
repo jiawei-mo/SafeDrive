@@ -336,11 +336,11 @@ if(DEBUG) {
             point_3d_tmp(0)=marker_pts[t][i].x; point_3d_tmp(1)=marker_pts[t][i].y; point_3d_tmp(2)=marker_pts[t][i].z; point_3d_tmp(3) = 1;
             point_2d_tmp = Pl*point_3d_tmp;
             point_2d_tmp /= point_2d_tmp(2);
-            drawMarker(img_rep, Point2f(point_2d_tmp(0), point_2d_tmp(1)), Scalar(0,0,255), MARKER_CROSS, 5);
+            drawMarker(img_rep, Point2f(point_2d_tmp(0), point_2d_tmp(1)), Scalar(255,0,255), MARKER_CROSS, 5);
 
             point_2d_tmp = Pr*point_3d_tmp;
             point_2d_tmp /= point_2d_tmp(2);
-            drawMarker(img_rep, Point2f(point_2d_tmp(0)+left_img.cols, point_2d_tmp(1)), Scalar(0,0,255), MARKER_CROSS, 5);
+            drawMarker(img_rep, Point2f(point_2d_tmp(0)+left_img.cols, point_2d_tmp(1)), Scalar(255,0,255), MARKER_CROSS, 5);
         }
     }
     namedWindow("DEBUG:Essential reprojection", WINDOW_NORMAL);

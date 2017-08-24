@@ -20,19 +20,35 @@ void Matcher::changeParam(int mnf, float ql, int md, float mtf, float mtg)
     match_thres_given_kp = mtg;
 }
 
-bool Matcher::get_desc(const Mat& img, const vector<Point2f>& kp, Mat& desc)
+void Matcher::match_desc(const Mat& left_desc, const Mat& right_desc, vector<pair<int, int> >& matches, float thres, bool bi_direct)
 {
-    if(img.empty()) {
-        return false;
+    vector<vector<DMatch> > _lr_matches, _rl_matches;
+    matcher->knnMatch(left_desc, right_desc, _lr_matches, 2);
+    matcher->knnMatch(right_desc, left_desc, _rl_matches, 2);
+
+    vector<vector<DMatch> > lr_matches, rl_matches;
+    for(unsigned int i=0; i<_lr_matches.size(); i++) {
+        if(float(_lr_matches[i][0].distance) < thres*float(_lr_matches[i][1].distance))
+        {
+            lr_matches.push_back(_lr_matches[i]);
+        }
+    }
+    for(unsigned int i=0; i<_rl_matches.size(); i++) {
+        if(float(_rl_matches[i][0].distance) < thres*float(_rl_matches[i][1].distance))
+        {
+            rl_matches.push_back(_rl_matches[i]);
+        }
     }
 
-    vector<KeyPoint> _kp;
-    for( size_t i = 0; i < kp.size(); i++ ) {
-        _kp.push_back(KeyPoint(kp[i], 1.f));
+    unordered_map<int, int> match_hash;
+    for(auto& it:rl_matches) {
+        match_hash[it[0].trainIdx] = it[0].queryIdx;
     }
 
-    detector->compute(img, _kp, desc);
-    return true;
+    for(unsigned int i=0; i<lr_matches.size(); i++) {
+        if(bi_direct && match_hash.find(lr_matches[i][0].queryIdx) == match_hash.end()) continue;
+        matches.push_back({lr_matches[i][0].queryIdx, lr_matches[i][0].trainIdx});
+    }
 }
 
 void Matcher::match(const Mat& left_img, vector<Point2f>& left_matched_kp, const Mat& right_img, vector<Point2f>& right_matched_kp)
@@ -62,35 +78,15 @@ void Matcher::match(const Mat& left_img, vector<Point2f>& left_matched_kp, const
     Mat left_desc, right_desc;
     detector->compute(left_img,left_kp, left_desc);
     detector->compute(right_img, right_kp, right_desc);
+    assert(left_kp.size()==left_desc.rows && right_kp.size()==right_desc.rows);
 
-    vector<vector<DMatch> > _lr_matches, _rl_matches;
-    matcher->knnMatch(left_desc, right_desc, _lr_matches, 2);
-    matcher->knnMatch(right_desc, left_desc, _rl_matches, 2);
+    vector<pair<int, int> > matches;
+    match_desc(left_desc, right_desc, matches, match_thres_feature);
 
-    vector<vector<DMatch> > lr_matches, rl_matches;
-    for(unsigned int i=0; i<_lr_matches.size(); i++) {
-        if(float(_lr_matches[i][0].distance) < match_thres_feature*float(_lr_matches[i][1].distance))
-        {
-            lr_matches.push_back(_lr_matches[i]);
-        }
-    }
-    for(unsigned int i=0; i<_rl_matches.size(); i++) {
-        if(float(_rl_matches[i][0].distance) < match_thres_feature*float(_rl_matches[i][1].distance))
-        {
-            rl_matches.push_back(_rl_matches[i]);
-        }
-    }
-
-    unordered_map<int, int> match_hash;
-    for(auto& it:rl_matches) {
-        match_hash[it[0].trainIdx] = it[0].queryIdx;
-    }
-
-    for(unsigned int i=0; i<lr_matches.size(); i++) {
-        if(match_hash.find(lr_matches[i][0].queryIdx) != match_hash.end()) {
-            left_matched_kp.push_back(left_kp[lr_matches[i][0].queryIdx].pt);
-            right_matched_kp.push_back(right_kp[lr_matches[i][0].trainIdx].pt);
-        }
+    for(size_t i=0; i<matches.size(); i++)
+    {
+        left_matched_kp.push_back(left_kp[matches[i].first].pt);
+        right_matched_kp.push_back(right_kp[matches[i].second].pt);
     }
 
     return;

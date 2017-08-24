@@ -73,6 +73,7 @@ bool ThreeDHandler::getPose(const Mat& left_img, const Mat& right_img, Mat& R, M
 
 void ThreeDHandler::matchRoadMarkers(const Mat& left_rectified, const Mat& right_rectified,
                                      const vector<vector<Point2d> >& left_marker_detected_cartesian, const vector<vector<Point2d> >& right_marker_detected_cartesian,
+                                     const vector<Mat>& left_marker_desc, const vector<Mat>& right_marker_desc,
                                      vector<vector<Point2d> >& left_marker_cartesian, vector<vector<Point2d> >& right_marker_cartesian)
 {
     for(int t=0; t<2; t++)
@@ -81,69 +82,59 @@ void ThreeDHandler::matchRoadMarkers(const Mat& left_rectified, const Mat& right
         calibrator->transformPointsToPolar(left_marker_detected_cartesian[t], left_marker_detected_polar, 1);
         calibrator->transformPointsToPolar(right_marker_detected_cartesian[t], right_marker_detected_polar, 2);
 
-        Mat right_marker_detected_polar_mat = Mat::zeros(right_rectified.size(), CV_8U);
-        Mat left_marker_detected_polar_mat = Mat::zeros(right_rectified.size(), CV_8U);
+        Mat right_marker_detected_polar_mat = -Mat::ones(right_rectified.size(), CV_16S);
+        Mat left_marker_detected_polar_mat = -Mat::ones(right_rectified.size(), CV_16S);
+
         for(unsigned int c=0; c<left_marker_detected_polar.size(); c++) {
-            left_marker_detected_polar_mat.at<uchar>(left_marker_detected_polar[c].y, left_marker_detected_polar[c].x) = 1;
+            if(left_marker_detected_polar[c].y<0 || left_marker_detected_polar[c].x<0) continue;
+            left_marker_detected_polar_mat.at<short>(left_marker_detected_polar[c].y, left_marker_detected_polar[c].x) = c;
         }
         for(unsigned int c=0; c<right_marker_detected_polar.size(); c++) {
-            right_marker_detected_polar_mat.at<uchar>(right_marker_detected_polar[c].y, right_marker_detected_polar[c].x) = 1;
+            if(right_marker_detected_polar[c].y<0 || right_marker_detected_polar[c].x<0) continue;
+            right_marker_detected_polar_mat.at<short>(right_marker_detected_polar[c].y, right_marker_detected_polar[c].x) = c;
         }
 
-        vector<Point2d> left_marker_polar, right_marker_polar;
-        int batch_size_h = 5;
-        int batch_size_v = 5;
-        Mat left_batch, right_batch, diff;
-        for(unsigned int c=0; c<left_marker_detected_polar.size(); c++) {
-            int rho(left_marker_detected_polar[c].x), theta(left_marker_detected_polar[c].y);
-            if(theta<(max_theta_offset+batch_size_v) || (theta+max_theta_offset+batch_size_v)>=left_rectified.rows ||
-                    rho<batch_size_h || rho>=left_rectified.cols-batch_size_h-1) continue;
-            left_batch = left_rectified(Rect(rho-batch_size_h, theta-batch_size_v, batch_size_h*2+1, 2*batch_size_v+1));
-            double min_dist = -1;
-            int min_rho = -1;
-            int min_theta_offset = 0;
+        vector<Point2d> left_pts_collector, right_pts_collector;
+        for(int theta=0; theta<left_rectified.rows; theta++) {
+            vector<Point2d> left_pts, right_pts;
+            Mat left_desc = Mat(0, left_marker_desc[t].cols, left_marker_desc[t].type());
+            Mat right_desc = Mat(0, right_marker_desc[t].cols, right_marker_desc[t].type());
+
+            for(int rho_left=0; rho_left<left_rectified.cols; rho_left++) {
+                short pts_idx = left_marker_detected_polar_mat.at<short>(theta,rho_left);
+                if(pts_idx < 0) continue;
+                cout<<pts_idx<<" < "<<left_marker_desc[t].rows;
+                left_pts.push_back(left_marker_detected_cartesian[t][pts_idx]);
+                vconcat(left_desc, left_marker_desc[t].row(pts_idx), left_desc);
+            }
+            if(left_pts.empty()) continue;
+
             for(int theta_offset=-max_theta_offset; theta_offset<=max_theta_offset; theta_offset++) {
-                for(int i_rho=batch_size_h; i_rho<right_rectified.cols-batch_size_h-1; i_rho++) {
-                    if(right_marker_detected_polar_mat.at<uchar>(theta+theta_offset,i_rho) == 0) continue;
-                    right_batch = right_rectified(Rect(i_rho-batch_size_h, theta+theta_offset-batch_size_v, batch_size_h*2+1, 2*batch_size_v+1));
-                    diff = right_batch - left_batch;
-                    double dist = norm(diff);
-                    if(min_dist < 0 || min_dist > dist){
-                        min_dist = dist;
-                        min_rho = i_rho;
-                        min_theta_offset = theta_offset;
-                    }
+                int theta_right = theta+theta_offset;
+                if(theta_right<0 || theta_right>=right_marker_detected_polar_mat.rows) continue;
+                for(int rho_right=0; rho_right<right_rectified.cols; rho_right++) {
+                    short pts_idx = right_marker_detected_polar_mat.at<short>(theta_right,rho_right);
+                    if(pts_idx < 0) continue;
+                    right_pts.push_back(right_marker_detected_cartesian[t][pts_idx]);
+                    vconcat(right_desc, right_marker_desc[t].row(pts_idx), right_desc);
                 }
             }
-            if(min_rho<0) continue;
+            if(right_pts.empty()) continue;
 
-            //bi-directional
-            //        right_batch = right_rectified(Rect(min_rho-batch_size_h, theta+min_theta_offset, batch_size_h*2, 1));
-            //        min_dist = -1;
-            //        int min_rho_rev = -1;
-            //        for(int i_rho=batch_size_h; i_rho<left_rectified.cols-batch_size_h-1; i_rho++) {
-            //            if(left_marker_detected_polar_mat.at<uchar>(theta,i_rho) == 0) continue;
-            //            left_batch = left_rectified(Rect(i_rho-batch_size_h, theta, batch_size_h*2, 1));
-            //            diff = right_batch - left_batch;
-            //            double dist = norm(diff);
-            //            if(min_dist < 0 || min_dist > dist){
-            //                min_dist = dist;
-            //                min_rho_rev = i_rho;
-            //            }
-            //        }
+            vector<pair<int, int> > matches;
+            matcher->match_desc(left_desc, right_desc, matches, 1.0);
 
-            //        if(abs(min_rho_rev-rho)<15)
+            for(size_t i=0; i<matches.size(); i++)
             {
-                left_marker_polar.push_back(left_marker_detected_polar[c]);
-                right_marker_polar.push_back(Point2d(min_rho, theta+min_theta_offset));
+                left_pts_collector.push_back(left_pts[matches[i].first]);
+                right_pts_collector.push_back(right_pts[matches[i].second]);
             }
         }
-        vector<Point2d> _left_marker_cartesian, _right_marker_cartesian;
-        calibrator->transformPointsFromPolar(left_marker_polar, _left_marker_cartesian, 1);
-        calibrator->transformPointsFromPolar(right_marker_polar, _right_marker_cartesian, 2);
-        left_marker_cartesian.push_back(_left_marker_cartesian);
-        right_marker_cartesian.push_back(_right_marker_cartesian);
+
+        left_marker_cartesian.push_back(left_pts_collector);
+        right_marker_cartesian.push_back(right_pts_collector);
     }
+
 }
 
 bool ThreeDHandler::find3DPoints(const Mat& left_img, const Mat& right_img, vector<Point2f> &features, Mat& additional_desc, vector<Point3f>& feature_pts, vector<vector<Point3f> >& marker_pts)
@@ -233,16 +224,29 @@ bool ThreeDHandler::find3DPoints(const Mat& left_img, const Mat& right_img, vect
             }
         }
     }
+
     vector<vector<Point2d>> left_marker_detected, right_marker_detected;
     left_marker_detected.push_back(left_yellow_marker_detected);
     left_marker_detected.push_back(left_white_marker_detected);
     right_marker_detected.push_back(right_yellow_marker_detected);
     right_marker_detected.push_back(right_white_marker_detected);
 
+    Mat left_marker_yellow_desc, left_marker_white_desc, right_marker_yellow_desc, right_marker_white_desc;
+    matcher->get_desc(left_img, left_yellow_marker_detected, left_marker_yellow_desc);
+    matcher->get_desc(left_img, left_white_marker_detected, left_marker_white_desc);
+    matcher->get_desc(right_img, right_yellow_marker_detected, right_marker_yellow_desc);
+    matcher->get_desc(right_img, right_white_marker_detected, right_marker_white_desc);
+    vector<Mat>  left_marker_desc, right_marker_desc;
+    left_marker_desc.push_back(left_marker_yellow_desc);
+    left_marker_desc.push_back(left_marker_white_desc);
+    right_marker_desc.push_back(right_marker_yellow_desc);
+    right_marker_desc.push_back(right_marker_white_desc);
+
     //match road markers between left img and right img based on rectified imgs
     vector<vector<Point2d>> left_marker_matched, right_marker_matched;
     matchRoadMarkers(left_rectified, right_rectified,
                      left_marker_detected, right_marker_detected,
+                     left_marker_desc, right_marker_desc,
                      left_marker_matched, right_marker_matched);
 
     //reconstruct 3d marker points

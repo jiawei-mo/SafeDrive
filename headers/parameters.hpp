@@ -1,6 +1,8 @@
 #ifndef PARAMETERS_HPP
 #define PARAMETERS_HPP
 
+#define ORB_BORDER 32
+
 #define BS 3
 #define BV 1
 

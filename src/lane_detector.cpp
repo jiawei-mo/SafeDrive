@@ -1,11 +1,10 @@
 #include "headers/lane_detector.hpp"
-#define ORB_BORDER 32
 
 double REMOVE_TOP_RATIO = 53.0/72.0;
 
 void LaneDetector::detect(const Mat& img, vector<Mat>& white_yellow_mask)
 {
-    Mat imgROI = img(Rect(ORB_BORDER,REMOVE_TOP_RATIO*img.rows,img.cols-2*ORB_BORDER,img.rows-REMOVE_TOP_RATIO*img.rows-ORB_BORDER)).clone();
+    Mat imgROI = img(Rect(0,REMOVE_TOP_RATIO*img.rows,img.cols,img.rows-REMOVE_TOP_RATIO*img.rows)).clone();
     GaussianBlur(imgROI, imgROI, Size(3,3), 2, 2);
 
     // Canny algorithm
@@ -26,11 +25,11 @@ void LaneDetector::detect(const Mat& img, vector<Mat>& white_yellow_mask)
     threshold(yellowContours, yellowLanes, 0, 255, THRESH_BINARY);
     threshold(whiteContours, whiteLanes, 0, 255, THRESH_BINARY);
 
-    Mat yellow_mask = Mat::zeros(img.rows, img.cols, CV_8U);
-    Mat white_mask = Mat::zeros(img.rows, img.cols, CV_8U);
-    whiteLanes.copyTo(white_mask(Rect(ORB_BORDER,REMOVE_TOP_RATIO*img.rows,img.cols-2*ORB_BORDER,img.rows-REMOVE_TOP_RATIO*img.rows-ORB_BORDER)));
-    yellowLanes.copyTo(yellow_mask(Rect(ORB_BORDER,REMOVE_TOP_RATIO*img.rows,img.cols-2*ORB_BORDER,img.rows-REMOVE_TOP_RATIO*img.rows-ORB_BORDER)));
+    Mat empty_top = Mat::zeros(REMOVE_TOP_RATIO*img.rows, img.cols, CV_8U);
+    Mat yellow_mask, white_mask;
+    vconcat(empty_top, whiteLanes, white_mask);
     white_yellow_mask.push_back(white_mask);
+    vconcat(empty_top, yellowLanes, yellow_mask);
     white_yellow_mask.push_back(yellow_mask);
 }
 

@@ -1,6 +1,6 @@
 function findDist(img_path)
     img = imread(img_path);
-    imshow(img)
+    fig = imshow(img);
     [x,y] = getpts;
     line(x(1:2), y(1:2))
     line(x(3:4), y(3:4),'LineStyle','--')
@@ -10,8 +10,14 @@ function findDist(img_path)
     b2 = y(3) - m2*x(3);
     
     if((y(3)-m1*x(3)-b1)*(y(4)-m1*x(4)-b1)>0)
-        disp(polyarea(x([1,2,4,3]),y([1,2,4,3]))/pdist([x(1:2), y(1:2)]))
+        offset = polyarea(x([1,2,4,3]),y([1,2,4,3]))/pdist([x(1:2), y(1:2)]);
+        disp(offset)
     else
         2
     end
+    
+    name = sprintf('%f.png', offset);
+    saveas(fig,name);
+    
+    close all
 end

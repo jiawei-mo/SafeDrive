@@ -13,7 +13,7 @@ function findDist(img_path)
         offset = polyarea(x([1,2,4,3]),y([1,2,4,3]))/pdist([x(1:2), y(1:2)]);
         disp(offset)
     else
-        2
+        -1
     end
     
     name = sprintf('%f.png', offset);

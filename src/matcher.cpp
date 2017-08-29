@@ -208,7 +208,7 @@ void Matcher::showMatches(const Mat& left_img, const vector<Point2f>& left_p, co
     //    show matches between two images side by side
     for(unsigned int i=0; i<right_kp.size(); i++)
     {
-        line(corres_img, left_kp[i].pt, Point2f(right_kp[i].pt.x+left_img.cols, right_kp[i].pt.y), CV_RGB(255, 0, 0));
+        line(corres_img, left_kp[i].pt, Point2f(right_kp[i].pt.x+left_img.cols, right_kp[i].pt.y), CV_RGB(255, 0, 0), 2);
     }
 
     namedWindow(windowName, WINDOW_NORMAL);

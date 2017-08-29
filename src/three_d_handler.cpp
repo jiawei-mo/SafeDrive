@@ -167,12 +167,17 @@ bool ThreeDHandler::find3DPoints(const Mat& left_img, const Mat& right_img, vect
     hconcat(left_img, right_img, img_rep);
     Mat_<double> point_3d_tmp(4,1),point_2d_tmp(3,1);
 
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr point_cloud (new pcl::PointCloud<pcl::PointXYZRGB>);
     //reconstruct 3d feature points
     int feature_counter = 0;
     double feature_reproj_err = 0.0;
     for(unsigned int i=0; i<left_kp_inliner.size(); i++) {
-        Mat ul_skew = (Mat_<double>(3,3) << 0, -1, left_kp_inliner[i].y, 1, 0, -left_kp_inliner[i].x, -left_kp_inliner[i].y, left_kp_inliner[i].x, 0);
-        Mat ur_skew = (Mat_<double>(3,3) << 0, -1, right_kp_inliner[i].y, 1, 0, -right_kp_inliner[i].x, -right_kp_inliner[i].y, right_kp_inliner[i].x, 0);
+        float ul = left_kp_inliner[i].x;
+        float vl = left_kp_inliner[i].y;
+        float ur = right_kp_inliner[i].x;
+        float vr = right_kp_inliner[i].y;
+        Mat ul_skew = (Mat_<double>(3,3) << 0, -1, vl, 1, 0, -ul, -vl, ul, 0);
+        Mat ur_skew = (Mat_<double>(3,3) << 0, -1, vr, 1, 0, -ur, -vr, ur, 0);
         Mat uPl = ul_skew*Pl;
         Mat uPr = ur_skew*Pr;
         Mat A, W, U, V;
@@ -186,18 +191,30 @@ bool ThreeDHandler::find3DPoints(const Mat& left_img, const Mat& right_img, vect
         if(z<0) continue;
         feature_pts.push_back(Point3f(x,y,z));
 
+        if(fabs(x) < 100.0 && fabs(y) < 100.0 && fabs(z) < 100.0)
+        {
+            pcl::PointXYZRGB p;
+            p.x = x;
+            p.y = y;
+            p.z = z;
+            p.b = left_img.at<Vec3b>(vl, ul)[0];
+            p.g = left_img.at<Vec3b>(vl, ul)[1];
+            p.r = left_img.at<Vec3b>(vl, ul)[2];
+            point_cloud->push_back(p);
+        }
+
         point_3d_tmp(0)=x; point_3d_tmp(1)=y; point_3d_tmp(2)=z; point_3d_tmp(3) = 1;
-        circle(img_rep, left_kp_inliner[i], 5, Scalar(255,0,0));
+        circle(img_rep, left_kp_inliner[i], 15, Scalar(255,0,0), 4);
         point_2d_tmp = Pl*point_3d_tmp;
         point_2d_tmp /= point_2d_tmp(2);
-        double dist = sqrt((left_kp_inliner[i].x-point_2d_tmp(0))*(left_kp_inliner[i].x-point_2d_tmp(0))+(left_kp_inliner[i].y-point_2d_tmp(1))*(left_kp_inliner[i].y-point_2d_tmp(1)));
-        drawMarker(img_rep, Point2f(point_2d_tmp(0), point_2d_tmp(1)), Scalar(0,0,255), MARKER_CROSS, 5);
+        double dist = sqrt((ul-point_2d_tmp(0))*(ul-point_2d_tmp(0))+(vl-point_2d_tmp(1))*(vl-point_2d_tmp(1)));
+        drawMarker(img_rep, Point2f(point_2d_tmp(0), point_2d_tmp(1)), Scalar(0,0,255), MARKER_STAR, 10, 3);
 
-        circle(img_rep, Point2f(right_kp_inliner[i].x+left_img.cols, right_kp_inliner[i].y), 5, Scalar(255,0,0));
+        circle(img_rep, Point2f(ur+left_img.cols, vr), 15, Scalar(255,0,0), 4);
         point_2d_tmp = Pr*point_3d_tmp;
         point_2d_tmp /= point_2d_tmp(2);
-        dist += sqrt((right_kp_inliner[i].x-point_2d_tmp(0))*(right_kp_inliner[i].x-point_2d_tmp(0))+(right_kp_inliner[i].y-point_2d_tmp(1))*(right_kp_inliner[i].y-point_2d_tmp(1)));
-        drawMarker(img_rep, Point2f(point_2d_tmp(0)+left_img.cols, point_2d_tmp(1)), Scalar(0,0,255), MARKER_CROSS, 5);
+        dist += sqrt((ur-point_2d_tmp(0))*(ur-point_2d_tmp(0))+(vr-point_2d_tmp(1))*(vr-point_2d_tmp(1)));
+        drawMarker(img_rep, Point2f(point_2d_tmp(0)+left_img.cols, point_2d_tmp(1)), Scalar(0,0,255), MARKER_STAR, 10, 3);
 
         feature_reproj_err += dist;
         feature_counter++;
@@ -255,8 +272,12 @@ bool ThreeDHandler::find3DPoints(const Mat& left_img, const Mat& right_img, vect
     {
         _marker_pts.clear();
         for(unsigned int i=0; i<left_marker_matched[t].size(); i++) {
-            Mat ul_skew = (Mat_<double>(3,3) << 0, -1, left_marker_matched[t][i].y, 1, 0, -left_marker_matched[t][i].x, -left_marker_matched[t][i].y, left_marker_matched[t][i].x, 0);
-            Mat ur_skew = (Mat_<double>(3,3) << 0, -1, right_marker_matched[t][i].y, 1, 0, -right_marker_matched[t][i].x, -right_marker_matched[t][i].y, right_marker_matched[t][i].x, 0);
+            float ul = left_marker_matched[t][i].x;
+            float vl = left_marker_matched[t][i].y;
+            float ur = right_marker_matched[t][i].x;
+            float vr = right_marker_matched[t][i].y;
+            Mat ul_skew = (Mat_<double>(3,3) << 0, -1, vl, 1, 0, -ul, -vl, ul, 0);
+            Mat ur_skew = (Mat_<double>(3,3) << 0, -1, vr, 1, 0, -ur, -vr, ur, 0);
             Mat uPl = ul_skew*Pl;
             Mat uPr = ur_skew*Pr;
             Mat A, W, U, V;
@@ -267,42 +288,57 @@ bool ThreeDHandler::find3DPoints(const Mat& left_img, const Mat& right_img, vect
             double x = V.at<double>(0,3) / V.at<double>(3,3);
             double y = V.at<double>(1,3) / V.at<double>(3,3);
             double z = V.at<double>(2,3) / V.at<double>(3,3);
-            //        if(z<0)     //mark z<0 as purple
-            //        {
-            //            circle(img_rep, left_marker_matched[t][i], 3, Scalar(255,0,255));
-            //            circle(img_rep, Point2f(right_marker_matched[t][i].x+left_img.cols, right_marker_matched[t][i].y), 3, Scalar(255,0,255));
-            //            continue;
-            //        }
+                    if(z<0)     //mark z<0 as purple
+                    {
+                        circle(img_rep, left_marker_matched[t][i], 3, Scalar(255,0,255));
+                        circle(img_rep, Point2f(ur+left_img.cols, vr), 3, Scalar(255,0,255));
+                        continue;
+                    }
 
             //remove outlier by reporjection dist
             point_3d_tmp(0)=x; point_3d_tmp(1)=y; point_3d_tmp(2)=z; point_3d_tmp(3) = 1;
             point_2d_tmp = Pl*point_3d_tmp;
             point_2d_tmp /= point_2d_tmp(2);
-            double dist = sqrt((left_marker_matched[t][i].x-point_2d_tmp(0))*(left_marker_matched[t][i].x-point_2d_tmp(0))
-                               +(left_marker_matched[t][i].y-point_2d_tmp(1))*(left_marker_matched[t][i].y-point_2d_tmp(1)));
+            double dist = sqrt((ul-point_2d_tmp(0))*(ul-point_2d_tmp(0))
+                               +(vl-point_2d_tmp(1))*(vl-point_2d_tmp(1)));
 
             point_2d_tmp = Pr*point_3d_tmp;
             point_2d_tmp /= point_2d_tmp(2);
-            dist += sqrt((right_marker_matched[t][i].x-point_2d_tmp(0))*(right_marker_matched[t][i].x-point_2d_tmp(0))
-                    +(right_marker_matched[t][i].y-point_2d_tmp(1))*(right_marker_matched[t][i].y-point_2d_tmp(1)));
+            dist += sqrt((ur-point_2d_tmp(0))*(ur-point_2d_tmp(0))
+                    +(vr-point_2d_tmp(1))*(vr-point_2d_tmp(1)));
             if(dist > max_lane_reproj_dist)      //mark large dist as yellow
             {
 
                 circle(img_rep, left_marker_matched[t][i], 3, Scalar(0,255,255));
-                circle(img_rep, Point2f(right_marker_matched[t][i].x+left_img.cols, right_marker_matched[t][i].y), 3, Scalar(0,255,255));
+                circle(img_rep, Point2f(ur+left_img.cols, vr), 3, Scalar(0,255,255));
                 continue;
             }
 
             _marker_pts.push_back(Point3f(x,y,z));
 
+            if(fabs(x) < 100.0 && fabs(y) < 100.0 && fabs(z) < 100.0)
+            {
+                pcl::PointXYZRGB p;
+                p.x = x;
+                p.y = y;
+                p.z = z;
+                p.b = left_img.at<Vec3b>(vl, ul)[0];
+                p.g = left_img.at<Vec3b>(vl, ul)[1];
+                p.r = left_img.at<Vec3b>(vl, ul)[2];
+                point_cloud->push_back(p);
+            }
+
             circle(img_rep, left_marker_matched[t][i], 5, Scalar(0,255,0));
-            circle(img_rep, Point2f(right_marker_matched[t][i].x+left_img.cols, right_marker_matched[t][i].y), 5, Scalar(0,255,0));
+            circle(img_rep, Point2f(ur+left_img.cols, vr), 5, Scalar(0,255,0));
 
             marker_reproj_err += dist;
             marker_counter++;
         }
         marker_pts.push_back(_marker_pts);
     }
+
+    assert(point_cloud->size()>0);
+    pcl::io::savePCDFile("test_pcd.pcd", *point_cloud);
 
     marker_reproj_err /= (2*marker_counter);
 
@@ -327,8 +363,8 @@ if(DEBUG) {
     right_lane.setTo(Scalar(0,255,255), right_mask[1]);
     Mat lane_concat;
     hconcat(left_lane, right_lane, lane_concat);
-    namedWindow("DEBUG:Road Marker", WINDOW_NORMAL);
-    imshow("DEBUG:Road Marker", lane_concat);
+    namedWindow("Road Marker", WINDOW_NORMAL);
+    imshow("Road Marker", lane_concat);
 
 
     Mat left_rectified_lane, right_rectified_lane;
@@ -336,10 +372,10 @@ if(DEBUG) {
     Mat lane_rectified_concat;
     hconcat(left_rectified_lane, right_rectified_lane, lane_rectified_concat);
     for(int j = 0; j < lane_rectified_concat.rows; j += (lane_rectified_concat.rows / 50) ) {
-        line(lane_rectified_concat, Point(0, j), Point(lane_rectified_concat.cols, j), Scalar(0, 255, 0), 1, 8);
+        line(lane_rectified_concat, Point(0, j), Point(lane_rectified_concat.cols, j), Scalar(0, 255, 0), 2);
     }
-    namedWindow("DEBUG:Rectified Road Marker", WINDOW_NORMAL);
-    imshow("DEBUG:Rectified Road Marker", lane_rectified_concat);
+    namedWindow("Rectified Road Marker", WINDOW_NORMAL);
+    imshow("Rectified Road Marker", lane_rectified_concat);
 
     Mat marker_match_img;
     hconcat(left_img, right_img, marker_match_img);
@@ -358,15 +394,15 @@ if(DEBUG) {
             point_3d_tmp(0)=marker_pts[t][i].x; point_3d_tmp(1)=marker_pts[t][i].y; point_3d_tmp(2)=marker_pts[t][i].z; point_3d_tmp(3) = 1;
             point_2d_tmp = Pl*point_3d_tmp;
             point_2d_tmp /= point_2d_tmp(2);
-            drawMarker(img_rep, Point2f(point_2d_tmp(0), point_2d_tmp(1)), Scalar(255,0,255), MARKER_CROSS, 5);
+            drawMarker(img_rep, Point2f(point_2d_tmp(0), point_2d_tmp(1)), Scalar(255,0,255), MARKER_STAR, 5);
 
             point_2d_tmp = Pr*point_3d_tmp;
             point_2d_tmp /= point_2d_tmp(2);
-            drawMarker(img_rep, Point2f(point_2d_tmp(0)+left_img.cols, point_2d_tmp(1)), Scalar(255,0,255), MARKER_CROSS, 5);
+            drawMarker(img_rep, Point2f(point_2d_tmp(0)+left_img.cols, point_2d_tmp(1)), Scalar(255,0,255), MARKER_STAR, 5);
         }
     }
-    namedWindow("DEBUG:Essential reprojection", WINDOW_NORMAL);
-    imshow("DEBUG:Essential reprojection", img_rep);
+    namedWindow("Essential reprojection", WINDOW_NORMAL);
+    imshow("Essential reprojection", img_rep);
 }
 
     return true;
@@ -448,11 +484,11 @@ bool ThreeDHandler::project(const Mat& obj_img, const Mat &cur_img,
 //                            circle(output, proj_p, 2, Scalar(0,0,255));
                 if(t==0)
                 {
-                    circle(output, proj_p, 2, Scalar(255,255,255));
+                    circle(output, proj_p, 2, Scalar(255,255,255), -1);
                 }
                 else
                 {
-                    circle(output, proj_p, 2, Scalar(0,255,255));
+                    circle(output, proj_p, 2, Scalar(0,255,255), -1);
                 }
             }
         }
@@ -468,7 +504,7 @@ if(DEBUG)
 
     cout<<"Rotation:"<<endl<<R<<endl;
     cout<<"Translation:"<<endl<<t<<endl;
-//    matcher->showMatches(obj_img, _obj_kp, cur_img, _img_kp, "DEBUG:Current matches");
+//    matcher->showMatches(obj_img, _obj_kp, cur_img, _img_kp, "Current matches");
 
     vector<Point3f> obj_pts_inlier;
     vector<Point2f> obj_kp_inlier, img_kp_inlier;
@@ -478,20 +514,20 @@ if(DEBUG)
         obj_pts_inlier.push_back(obj_pts[inliers.at<int>(0,i)]);
         obj_kp_inlier.push_back(_obj_kp[inliers.at<int>(0,i)]);
         img_kp_inlier.push_back(_img_kp[inliers.at<int>(0,i)]);
-        circle(rep_img, img_kp[inliers.at<int>(0,i)], 5, Scalar(255,0,0));
+        circle(rep_img, img_kp[inliers.at<int>(0,i)], 15, Scalar(255,0,0), 4);
     }
 
-    matcher->showMatches(obj_img, obj_kp_inlier, cur_img, img_kp_inlier, "DEBUG:PnP inlier matches");
+    matcher->showMatches(obj_img, obj_kp_inlier, cur_img, img_kp_inlier, "PnP inlier matches");
 
 //    cout<<"Proj rotation: "<<rvec<<endl;
 //    cout<<"Proj translation: "<<t<<endl;
     vector<Point2f> points_2d;
     projectPoints(obj_pts_inlier, rvec, t, K, camera_coeff, points_2d);
     for(unsigned int i=0; i<points_2d.size(); i++) {
-        drawMarker(rep_img, points_2d[i], Scalar(0,0,255), MARKER_CROSS, 5);
+        drawMarker(rep_img, points_2d[i], Scalar(0,0,255), MARKER_STAR, 10, 3);
     }
-    namedWindow("DEBUG:PnP reprojection", WINDOW_NORMAL);
-    imshow("DEBUG:PnP reprojection", rep_img);
+    namedWindow("PnP projection", WINDOW_NORMAL);
+    imshow("PnP projection", rep_img);
 }
 
     return true;

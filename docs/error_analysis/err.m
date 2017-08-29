@@ -5,7 +5,10 @@ m_y = abs(m_y);
 log_det = log(det_cov);
 scatter(m_y, log_det);
 labels = num2str(error',3);
-text(m_y+0.05, log_det, labels, 'FontSize', 14);
-title("Average offset")
-xlabel('Center of distribution in horizontal direction: Abs(Mean of y axis of 3D feature points)');
-ylabel('Dispersity: Log(Det(Covariance of 3D feature points))');
+text(m_y+0.01, log_det, labels, 'FontSize', 20);
+title_name = sprintf('Average offset in pixel vs\n 3D feature points distribution');
+title(title_name, 'FontSize', 20)
+x_axis = sprintf('Center of distribution in horizontal direction\n Abs(Mean of y axis)');
+y_axis = sprintf('Dispersity\n Log(Det(Covariance))');
+xlabel(x_axis, 'FontSize', 15);
+ylabel(y_axis, 'FontSize', 15);

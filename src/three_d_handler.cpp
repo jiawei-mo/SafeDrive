@@ -369,6 +369,7 @@ if(DEBUG) {
 
     Mat left_rectified_lane, right_rectified_lane;
     calibrator->getRectifiedImages(left_lane, right_lane, left_rectified_lane, right_rectified_lane);
+    cout<<left_rectified_lane.size()<<endl;
     Mat lane_rectified_concat;
     hconcat(left_rectified_lane, right_rectified_lane, lane_rectified_concat);
     for(int j = 0; j < lane_rectified_concat.rows; j += (lane_rectified_concat.rows / 50) ) {

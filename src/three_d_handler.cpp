@@ -524,9 +524,14 @@ if(DEBUG)
 //    cout<<"Proj translation: "<<t<<endl;
     vector<Point2f> points_2d;
     projectPoints(obj_pts_inlier, rvec, t, K, camera_coeff, points_2d);
+    double proj_err = 0.0;
     for(unsigned int i=0; i<points_2d.size(); i++) {
         drawMarker(rep_img, points_2d[i], Scalar(0,0,255), MARKER_STAR, 10, 3);
+        double dist = sqrt((img_kp_inlier[i].x-points_2d[i].x)*(img_kp_inlier[i].x-points_2d[i].x)+(img_kp_inlier[i].y-points_2d[i].y)*(img_kp_inlier[i].y-points_2d[i].y));
+        proj_err += dist;
     }
+    proj_err /= points_2d.size();
+    cout<<"PnP projection err "<<proj_err<<endl;
     namedWindow("PnP projection", WINDOW_NORMAL);
     imshow("PnP projection", rep_img);
 }

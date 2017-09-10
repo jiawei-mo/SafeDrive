@@ -154,8 +154,8 @@ bool ThreeDHandler::find3DPoints(const Mat& left_img, const Mat& right_img, vect
     vector<Point2f> left_kp_inliner, right_kp_inliner;
     if(!getPose(left_img, right_img, R, t, left_kp_inliner, right_kp_inliner)) return false;
 
-    features = left_kp_inliner;
-    matcher->get_desc(right_img, right_kp_inliner, additional_desc);
+    Mat _additional_desc;
+    matcher->get_desc(right_img, right_kp_inliner, _additional_desc);
 
     //get perspective projection matrix
     Mat Pl, Pr;
@@ -171,6 +171,8 @@ bool ThreeDHandler::find3DPoints(const Mat& left_img, const Mat& right_img, vect
     //reconstruct 3d feature points
     int feature_counter = 0;
     double feature_reproj_err = 0.0;
+
+    additional_desc = Mat::zeros(0,32,_additional_desc.type());
     for(unsigned int i=0; i<left_kp_inliner.size(); i++) {
         float ul = left_kp_inliner[i].x;
         float vl = left_kp_inliner[i].y;
@@ -189,6 +191,8 @@ bool ThreeDHandler::find3DPoints(const Mat& left_img, const Mat& right_img, vect
         double y = V.at<double>(1,3) / V.at<double>(3,3);
         double z = V.at<double>(2,3) / V.at<double>(3,3);
         if(z<0) continue;
+        features.push_back(left_kp_inliner[i]);
+        vconcat(additional_desc, _additional_desc.row(i), additional_desc);
         feature_pts.push_back(Point3f(x,y,z));
 
         if(fabs(x) < 100.0 && fabs(y) < 100.0 && fabs(z) < 100.0)
@@ -369,7 +373,7 @@ if(DEBUG) {
 
     Mat left_rectified_lane, right_rectified_lane;
     calibrator->getRectifiedImages(left_lane, right_lane, left_rectified_lane, right_rectified_lane);
-    cout<<left_rectified_lane.size()<<endl;
+
     Mat lane_rectified_concat;
     hconcat(left_rectified_lane, right_rectified_lane, lane_rectified_concat);
     for(int j = 0; j < lane_rectified_concat.rows; j += (lane_rectified_concat.rows / 50) ) {
@@ -482,15 +486,15 @@ bool ThreeDHandler::project(const Mat& obj_img, const Mat &cur_img,
             if(imgBoundValid(cur_img, proj_p))
             {
                 //            canvas.at<uchar>(proj_p.y, proj_p.x) = 255;
-//                            circle(output, proj_p, 2, Scalar(0,0,255));
-                if(t==0)
-                {
-                    circle(output, proj_p, 2, Scalar(255,255,255), -1);
-                }
-                else
-                {
-                    circle(output, proj_p, 2, Scalar(0,255,255), -1);
-                }
+                            circle(output, proj_p, 2, Scalar(0,0,255));
+//                if(t==0)
+//                {
+//                    circle(output, proj_p, 2, Scalar(255,255,255), -1);
+//                }
+//                else
+//                {
+//                    circle(output, proj_p, 2, Scalar(0,255,255), -1);
+//                }
             }
         }
     }
@@ -498,8 +502,10 @@ bool ThreeDHandler::project(const Mat& obj_img, const Mat &cur_img,
 //    imshow("sdasdsada", cur_img_dup);
 //    imshow("tetete", canvas);
 //    cur_img.setTo(Scalar(0,0,255), canvas);
-
-    imwrite("test.png", output);
+    static int img_c=0;
+    string img_name = to_string(img_c++);
+    img_name += ".png";
+    imwrite(img_name, output);
 if(DEBUG)
 {
 

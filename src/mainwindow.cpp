@@ -39,6 +39,10 @@ void MainWindow::on_button_img_clicked()
 
     string camFile = folderName+"/cam.log";
     ifstream camParams(camFile);
+    if(camParams.peek() == std::ifstream::traits_type::eof())
+    {
+        return;
+    }
 
     string camParam;
     camParams >> camParam;
@@ -116,6 +120,10 @@ void MainWindow::on_button_video_clicked()
 
     string camFile = folderName+"/cam.log";
     ifstream camParams(camFile);
+    if(camParams.peek() == std::ifstream::traits_type::eof())
+    {
+        return;
+    }
 
     string camParam;
     camParams >> camParam;
@@ -175,7 +183,7 @@ void MainWindow::on_button_video_clicked()
             manager->process();
         }
 
-        waitKey();
+        waitKey(1);
     }
     destroyAllWindows();
 }
